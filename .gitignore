@@ -44,6 +44,7 @@ TODOs.txt
 deshi_project_suppressions.cfg
 misc/deshi.vcxproj.user
 misc/x64
+x64/
 
 #delle specifics
 misc/4coder.bat
