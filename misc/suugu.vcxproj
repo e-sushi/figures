@@ -252,6 +252,7 @@
     <None Include="..\src\deshi\src\math\vec2.inl" />
     <None Include="..\src\deshi\src\math\vec3.inl" />
     <None Include="..\src\deshi\src\math\vec4.inl" />
+    <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\src\deshi\cfg\keybinds.txt" />
@@ -313,6 +314,7 @@
     <ClInclude Include="..\src\deshi\src\utils\tuple.h" />
     <ClInclude Include="..\src\deshi\src\utils\utils.h" />
     <ClInclude Include="..\src\deshi\src\utils\view.h" />
+    <ClInclude Include="..\src\suugu\Canvas.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
