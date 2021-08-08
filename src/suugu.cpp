@@ -18,72 +18,89 @@ int main() {
 		UI::Update();
 
 		static vec2 userPos = vec2::ZERO;
+		static float userZoom = 5;
 		
-		vec2 c1 = vec2(0.5, 0);
-		vec2 c2 = vec2(0, 0.5);
-
-		Render::DrawTextUI("testing this wow", DeshWindow->dimensions / 2);
-
-		UI::BeginWindow("test", vec2(100, 100), vec2(100, 100));
-
-		static string buffer = "";
-
-		UI::Text("wow");
-		UI::InputText("label", buffer);
-
-		UI::EndWindow();
-
-		//UI::ShowDebugWindowOf("test");
+		if (DeshInput->ScrollDown()) { userZoom = Math::clamp(userZoom + userZoom / 10, 0.01, 10); }
+		if (DeshInput->ScrollUp())   { userZoom = Math::clamp(userZoom - userZoom / 10, 0.01, 10); }
 
 		UI::SetNextWindowSize(DeshWindow->dimensions);
 		UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible);
-		
-		
 
-		//world to camera
-		c1 += userPos; c2 += userPos;
+		auto toScreen = [&](vec2 point) {
+			point -= userPos;
+			point /= userZoom;
 
-		//camera to world
-		c1 += vec2::ONE; c2 += vec2::ONE;
-		c1 *= DeshWindow->dimensions / 2;
-		c2 *= DeshWindow->dimensions / 2;
+			point.y *= -(f32)DeshWindow->width / DeshWindow->height;
+			point += vec2(1, 1);
+			point *= DeshWindow->dimensions / 2;
 
-		UI::RectFilled(c1, vec2(2, 2));
-		UI::RectFilled(c2, vec2(2, 2));
+			return point;
+		};
+
+		auto toWorld = [&](vec2 point) {
+			point /= DeshWindow->dimensions;
+			point *= 2;
+			point -= vec2::ONE;
+			point.y /= -(f32)DeshWindow->width / DeshWindow->height;
+
+			point *= userZoom;
+			point += userPos;
+			return point;
+		};
 
 		//dragging camera
 		static vec2 begin;
 		static vec2 og;
 		if (DeshInput->KeyPressedAnyMod(MouseButton::LEFT)) {
+			
+			
 			og = userPos;
+
+			//og = ((DeshInput->mousePos / DeshWindow->dimensions) - vec2::ONE) * userZoom - userPos;
 			begin = DeshInput->mousePos;
+
 		}
 		if (DeshInput->KeyDownAnyMod(MouseButton::LEFT)) {
-			userPos = og + (DeshInput->mousePos - begin) / DeshWindow->dimensions;
+			vec2 mouseWorld = toWorld(DeshInput->mousePos);//((DeshInput->mousePos / DeshWindow->dimensions * 2) - vec2::ONE) * userZoom - userPos;
+			vec2 beginWorld = toWorld(begin);//((begin / DeshWindow->dimensions * 2) - vec2::ONE) * userZoom - userPos;
+			
+			userPos = og + (beginWorld - mouseWorld);
+			UI::Text(TOSTRING(mouseWorld));
+			UI::Text(TOSTRING(beginWorld));
+
+			vec2 size = vec2::ONE * 3;
+			Render::FillRectUI(toScreen(mouseWorld) - size / 2, size);
+
 		}
 
 		UI::Text(TOSTRING(userPos));
 
+		u32 lines = 30;
+		
+		f32 xp = floor(userPos.x) + lines;
+		f32 xn = floor(userPos.x) - lines;
+		f32 yp = floor(userPos.y) + lines;
+		f32 yn = floor(userPos.y) - lines;
+		
+		for (int i = 0; i < lines * 2 + 1; i++) {
+			vec2 v1 = toScreen(vec2{ xn + i, yn });
+			vec2 v2 = toScreen(vec2{ xn + i, yp });
+			vec2 v3 = toScreen(vec2{ xn, yn + i});
+			vec2 v4 = toScreen(vec2{ xp, yn + i});
+			
 
-		//u32 lines = 1000;
-		//
-		//f32 spacingx = DeshWindow->width / lines;
-		//f32 spacingy = spacingx;
-		//
-		//f32 xp = floor(userPos.x - DeshWindow->width / 2) + lines;
-		//f32 xn = floor(userPos.x - DeshWindow->width / 2) - lines;
-		//f32 yp = floor(userPos.y - DeshWindow->height / 2) + lines;
-		//f32 yn = floor(userPos.y - DeshWindow->height / 2) - lines;
-		//
-		//for (int i = 0; i < lines * 2 + 1; i++) {
-		//	vec2 v1 = vec2{ xn + i * spacingx, yn };
-		//	vec2 v2 = vec2{ xn + i * spacingx, yp };
-		//	vec2 v3 = vec2{ xn, yn + i * spacingy };
-		//	vec2 v4 = vec2{ xp, yn + i * spacingy };
-		//
-		//	UI::Line(v1, v2);
-		//	UI::Line(v3, v4);
-		//}
+
+			UI::Line(v1, v2, 0.5, Color(255, 255, 255, 100));
+			UI::Line(v3, v4, 0.5, Color(255, 255, 255, 100));
+		}
+
+		for (f32 i = -5; i <= 5; i++) {
+			vec2 posx{ i, 0 };
+			vec2 posy{ 0, i };
+
+			UI::Text(TOSTRING(i), toScreen(posx));
+			UI::Text(TOSTRING(i), toScreen(posy));
+		}
 
 		UI::EndWindow();
 
