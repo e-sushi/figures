@@ -1,4 +1,4 @@
-#include "deshi/deshi.h"
+#include "deshi.h"
 
 int main() {
 	deshi::init();

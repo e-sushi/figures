@@ -1,6 +1,3 @@
 [submodule "deshi"]
-	path = src/deshi
-	url = https://github.com/DelleVelleD/deshi/
-	branch = strip-game
-[submodule "main"]
-	branch = --branch
+	path = deshi
+	url = https://github.com/DelleVelleD/deshi
