@@ -62,6 +62,8 @@
     <ClInclude Include="..\deshi\src\utils\utils.h" />
     <ClInclude Include="..\deshi\src\utils\view.h" />
     <ClInclude Include="..\src\Canvas.h" />
+    <ClInclude Include="..\src\Lexer.h" />
+    <ClInclude Include="..\src\Syntax.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\core\assets.cpp">
@@ -141,6 +143,9 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\vk_layer_settings.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="debugvis.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

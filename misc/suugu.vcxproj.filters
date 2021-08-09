@@ -210,6 +210,12 @@
     <ClInclude Include="..\src\Canvas.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Syntax.h">
+      <Filter>src\suugu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\Lexer.h">
+      <Filter>src\suugu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
@@ -387,5 +393,10 @@
     <Text Include="..\vk_layer_settings.txt">
       <Filter>extra\misc</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="debugvis.natvis">
+      <Filter>extra\misc</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>
