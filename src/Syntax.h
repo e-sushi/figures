@@ -264,13 +264,9 @@ enum ExpressionType : u32 {
 	Expression_BinaryOpXOR,
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
-	Expression_BinaryOpAssignment,
 
 	//Expression Guards
-	ExpressionGuard_Assignment,
-	ExpressionGuard_Conditional,
-	ExpressionGuard_LogicalOR,
-	ExpressionGuard_LogicalAND,
+    ExpressionGuard_Preface, //i set the first expression in the tree to be a preface so that when we switch on these, the name of the switches and what we actually do in them makes sense
 	ExpressionGuard_BitOR,
 	ExpressionGuard_BitXOR,
 	ExpressionGuard_BitAND,
@@ -280,6 +276,49 @@ enum ExpressionType : u32 {
 	ExpressionGuard_Additive,
 	ExpressionGuard_Term,
 	ExpressionGuard_Factor,
+    ExpressionGuard_Unary
+};
+
+global_ const char* ExpTypeStrings[] = {
+    "Expression_IdentifierLHS",
+    "Expression_IdentifierRHS",
+
+    "literal",
+
+    "~",
+    "!",
+    "-",
+
+    "+",
+    "-",
+    "*",
+    "/",
+    "&&",
+    "&",
+    "||",
+    "|",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "==",
+    "!=",
+    "%",
+    "^",
+    "<<",
+    ">>",
+
+    "ExpressionGuard_Preface",
+    "ExpressionGuard_BitOR",
+    "ExpressionGuard_BitXOR",
+    "ExpressionGuard_BitAND",
+    "ExpressionGuard_Equality",
+    "ExpressionGuard_Relational",
+    "ExpressionGuard_BitShift",
+    "ExpressionGuard_Additive",
+    "ExpressionGuard_Term",
+    "ExpressionGuard_Factor",
+    "ExpressionGuard_Unary"
 };
 
 //defines arithmatic
@@ -287,7 +326,7 @@ struct Expression {
 	string expstr;
 	ExpressionType type;
 
-	array<Expression*> expressions;
+	array<Expression> expressions;
 
 	f32 literalValue; //for storing a literals value if thats what this expression defines
 
@@ -299,7 +338,7 @@ struct Expression {
 
 //holds expressions
 struct Statement {
-	array<Expression*> expressions;
+	array<Expression>* expressions;
 
 	Statement() {};
 };

@@ -8,7 +8,7 @@ which we will turn into our own internal format
 only basic arithmetic like +-/* and bitwise stuff for now
 
 <input>         :: = <exp>
-<exp>           :: = <bitwise or> | <literal>
+<exp>           :: = <bitwise or>
 <bitwise or>    :: = <bitwise xor> { "|" <bitwise xor> }
 <bitwise xor>   :: = <bitwise and> { "^" <bitwise and> }
 <bitwise and>   :: = <equality> { "&" <equality> }
@@ -29,6 +29,14 @@ ideas for parsing itself:
   or instead of erroring, we put an empty box where we expect something thats missing
   and only error in cases where the user uses invalid syntax such as "3 <<- 5"
   or if they use an undefined identifier, etc.
+
+
+TODO Board
+----------------------------------------------------
+
+Parser TODOs
+------------
+- implement a system for adding to an already existing AST tree
 
 
 */
@@ -54,23 +62,8 @@ int main() {
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
-		UI::BeginWindow("test", vec2::ONE * 300, vec2::ONE * 90);
-		UI::Text("FUCK");
-		string ok = "";
-		UI::InputText("label", ok);
-		UI::EndWindow();
-		UI::ShowDebugWindowOf("main_canvas");
-
-		//Render::DrawRectUI(vec2::ONE * 300, vec2::ONE * 300);
-
-		//Render::DrawLineUI(vec2(300, 300), vec2(100, 100));
-
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
-
-		
-
-
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
 

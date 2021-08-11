@@ -207,13 +207,19 @@
     <ClInclude Include="..\deshi\src\core\window.h">
       <Filter>src\deshi\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Canvas.h">
+    <ClInclude Include="..\src\parser.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Syntax.h">
+    <ClInclude Include="..\src\solver.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Lexer.h">
+    <ClInclude Include="..\src\syntax.h">
+      <Filter>src\suugu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\canvas.h">
+      <Filter>src\suugu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\lexer.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
   </ItemGroup>
@@ -266,7 +272,16 @@
     <ClCompile Include="..\deshi\src\core\renderers\vulkan.cpp">
       <Filter>src\deshi\core\renderers</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\solver.cpp">
+      <Filter>src\suugu</Filter>
+    </ClCompile>
     <ClCompile Include="..\src\suugu.cpp">
+      <Filter>src\suugu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\parser.cpp">
+      <Filter>src\suugu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\lexer.cpp">
       <Filter>src\suugu</Filter>
     </ClCompile>
   </ItemGroup>
