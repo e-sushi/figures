@@ -336,9 +336,14 @@ struct Expression {
 
 //holds expressions
 struct Statement {
-	array<Expression>* expressions;
+	array<Expression> expressions;
 
 	Statement() {};
+};
+
+//holds the state of a statement, indicating what it's AST is missing to be solvable
+struct StatementState {
+
 };
 
 

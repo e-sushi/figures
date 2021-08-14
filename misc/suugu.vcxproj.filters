@@ -222,6 +222,9 @@
     <ClInclude Include="..\src\lexer.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\keybinds.h">
+      <Filter>src\suugu</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
