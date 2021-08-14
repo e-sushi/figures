@@ -61,9 +61,11 @@
     <ClInclude Include="..\deshi\src\utils\tuple.h" />
     <ClInclude Include="..\deshi\src\utils\utils.h" />
     <ClInclude Include="..\deshi\src\utils\view.h" />
-    <ClInclude Include="..\src\Canvas.h" />
-    <ClInclude Include="..\src\Lexer.h" />
-    <ClInclude Include="..\src\Syntax.h" />
+    <ClInclude Include="..\src\canvas.h" />
+    <ClInclude Include="..\src\lexer.h" />
+    <ClInclude Include="..\src\parser.h" />
+    <ClInclude Include="..\src\solver.h" />
+    <ClInclude Include="..\src\syntax.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\core\assets.cpp">
@@ -98,6 +100,9 @@
     <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\deshi\src\external\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\deshi\src\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\src\lexer.cpp" />
+    <ClCompile Include="..\src\parser.cpp" />
+    <ClCompile Include="..\src\solver.cpp" />
     <ClCompile Include="..\src\suugu.cpp" />
   </ItemGroup>
   <ItemGroup>

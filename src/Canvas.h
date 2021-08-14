@@ -6,11 +6,17 @@
 #include "math/Math.h"
 #include "core/ui.h"
 
+#include "lexer.h"
+#include "parser.h"
+
 //placeholder struct representing an object on the canvas 
 struct temp {
 	vec2 pos;
 	string input;
 };
+
+struct Canvas;
+static Canvas* stubptr = 0;
 
 //maybe make it so the canvas can store its own windows as well
 struct Canvas {
@@ -29,13 +35,35 @@ struct Canvas {
 	void AddObj(vec2 pos, string input) {
 		objs.add(temp{ pos, input });
 	}
+
+	static u32 EvaluateTypingInputStub(UIInputTextCallbackData* data) {
+		stubptr->EvaluateTypingInput(data);
+		return 0;
+	}
+
+	//continuously reads the buffer
+	u32 EvaluateTypingInput(UIInputTextCallbackData* data) {
+		switch (data->eventFlag) {
+			case UIInputFlags_CallbackAlways: {
+				array<token> tokens = Lexer::lex(*data->buffer);;
+				
+				if(tokens.count)
+					Parser::parse(tokens);
+
+
+			}break;
+		}
+
+		return 0;
+	}
 	
 	//playing around with a design for this, it will most likely be changed in the future
+	//TODO(sushi) make a way to leave focus of the input box without emptying buffer
 	void GatherInput(vec2 mousePos) {
 		persist vec2 mp;
 
 		UI::SetNextItemActive();
-		if (gathering && UI::InputText("canvasinput", buffer, ToScreen(mp))) {
+		if (gathering && UI::InputText("canvasinput", buffer, -1, ToScreen(mp), &EvaluateTypingInputStub, UIInputFlags_CallbackAlways | UIInputFlags_CallbackUpDown)) {
 			AddObj(mp, buffer);
 			buffer.clear();
 			gathering = 0;
@@ -104,30 +132,27 @@ struct Canvas {
 		}
 	}
 
+
+
 	void HandleCamera() {
-		
-		//zoomin
-		if (DeshInput->ScrollDown()) { cameraZoom = Math::clamp(cameraZoom + cameraZoom / 10, 0.01, 10); }
-		if (DeshInput->ScrollUp())   { cameraZoom = Math::clamp(cameraZoom - cameraZoom / 10, 0.01, 10); }
+		persist bool dragging = false;
+		if (dragging || !UI::AnyWinHovered()) {
+			//zoomin
+			if (DeshInput->ScrollDown()) { cameraZoom = Math::clamp(cameraZoom + cameraZoom / 10, 0.01, 10); }
+			if (DeshInput->ScrollUp()) { cameraZoom = Math::clamp(cameraZoom - cameraZoom / 10, 0.01, 10); }
 
-		//dragging camera
-		static vec2 begin;
-		static vec2 og;
-		if (DeshInput->LMousePressed()) {
-			og = cameraPos;
-			begin = DeshInput->mousePos;
-		}
-		if (DeshInput->LMouseDown()) {
-			vec2 mouseWorld = ToWorld(DeshInput->mousePos);
-			vec2 beginWorld = ToWorld(begin);
-
-			cameraPos = og + (beginWorld - mouseWorld);
-			//UI::Text(TOSTRING(mouseWorld));
-			//UI::Text(TOSTRING(beginWorld));
-
-			vec2 size = vec2::ONE * 3;
-			Render::FillRectUI(ToScreen(mouseWorld) - size / 2, size);
-
+			//dragging camera
+			static vec2 begin;
+			static vec2 og;
+			if (DeshInput->LMousePressed()) {
+				og = cameraPos;
+				begin = DeshInput->mousePos;
+				dragging = true;
+			}
+			if (DeshInput->LMouseDown()) {
+				cameraPos = og + (ToWorld(begin) - ToWorld(DeshInput->mousePos));
+			}
+			if (DeshInput->LMouseReleased()) dragging = false;
 		}
 	}
 
@@ -136,7 +161,7 @@ struct Canvas {
 
 		//begin main canvas
 		UI::SetNextWindowSize(DeshWindow->dimensions);
-		UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible);
+		UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag);
 
 		if (DeshInput->RMousePressed() || gathering) GatherInput(DeshInput->mousePos);
 		
@@ -154,6 +179,8 @@ struct Canvas {
 	}
 
 };
+
+
 
 
 #endif
