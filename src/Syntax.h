@@ -231,8 +231,6 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 */
 
 
-
-
 enum ExpressionType : u32 {
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,

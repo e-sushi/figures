@@ -48,9 +48,9 @@
     <ClInclude Include="..\deshi\src\math\vector.h" />
     <ClInclude Include="..\deshi\src\math\VectorMatrix.h" />
     <ClInclude Include="..\deshi\src\utils\array.h" />
-    <ClInclude Include="..\deshi\src\utils\Color.h" />
-    <ClInclude Include="..\deshi\src\utils\Command.h" />
-    <ClInclude Include="..\deshi\src\utils\ContainerManager.h" />
+    <ClInclude Include="..\deshi\src\utils\color.h" />
+    <ClInclude Include="..\deshi\src\utils\command.h" />
+    <ClInclude Include="..\deshi\src\utils\container_manager.h" />
     <ClInclude Include="..\deshi\src\utils\Debug.h" />
     <ClInclude Include="..\deshi\src\utils\font.h" />
     <ClInclude Include="..\deshi\src\utils\hash.h" />

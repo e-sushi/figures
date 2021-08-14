@@ -119,8 +119,8 @@ struct Canvas {
 			vec2 v3 = ToScreen(vec2{ xn, yn + i });
 			vec2 v4 = ToScreen(vec2{ xp, yn + i });
 
-			UI::Line(v1, v2, 0.5, Color(255, 255, 255, 100));
-			UI::Line(v3, v4, 0.5, Color(255, 255, 255, 100));
+			UI::Line(v1, v2, 0.5, color(255, 255, 255, 100));
+			UI::Line(v3, v4, 0.5, color(255, 255, 255, 100));
 		}
 
 		for (f32 i = -5; i <= 5; i++) {

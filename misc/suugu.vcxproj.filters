@@ -63,10 +63,10 @@
     <ClInclude Include="..\deshi\src\deshi.h">
       <Filter>src\deshi</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\utils\Command.h">
+    <ClInclude Include="..\deshi\src\utils\command.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\utils\ContainerManager.h">
+    <ClInclude Include="..\deshi\src\utils\container_manager.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\deshi\src\utils\Debug.h">
@@ -102,7 +102,7 @@
     <ClInclude Include="..\deshi\src\utils\array.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\utils\Color.h">
+    <ClInclude Include="..\deshi\src\utils\color.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\deshi\src\math\Math.h">

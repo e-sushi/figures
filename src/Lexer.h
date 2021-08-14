@@ -42,6 +42,7 @@ enum token_type {
 	tok_Colon,				// :
 	tok_If,					// if
 	tok_Else,				// else
+	tok_Comment             // a comment, use #
 
 };
 

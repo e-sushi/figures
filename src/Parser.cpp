@@ -32,15 +32,14 @@ if(expect.has(curt.type)) {
 u32 layer = 0;
 bool master_logger = true;
 
-#define PrettyPrint(message)\
+#define PrettyPrint(...)\
 if(master_logger){ for(int i = 0; i < layer; i++)\
 if(i % 2 == 0) std::cout << "|   ";\
 else std::cout << "!   ";\
-std::cout << TOSTRING("~", message, ":").str << std::endl;}
+std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
 
 #define EOICheck \
-if(tokens.iter > tokens.last) return;
-
+if(tokens.iter > tokens.last){ layer--; return; }
 
 
 local map<token_type, ExpressionType> binaryOps{
@@ -108,7 +107,7 @@ void parse_factor(array<Expression>* expressions) {
 
 		default: {
 			ExpectOneOf(unaryOps) 
-				PrettyPrint("unaop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+				PrettyPrint("unaop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 				expressions->add(Expression(curt.str, *unaryOps.at(curt.type)));
 			
@@ -135,7 +134,7 @@ void parse_term(array<Expression>* expressions){
 		token_peek.type == tok_Multiplication || token_peek.type == tok_Division ||
 		token_peek.type == tok_Modulo) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, *binaryOps.at(curt.type)));
@@ -158,7 +157,7 @@ void parse_additive(array<Expression>* expressions){
 
 	while (token_peek.type == tok_Plus || token_peek.type == tok_Negation) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 		
 		//operator expression
 		expressions->add(Expression(curt.str, *binaryOps.at(curt.type)));
@@ -182,7 +181,7 @@ void parse_bitwise_shift(array<Expression>* expressions){
 
 	while (token_peek.type == tok_BitShiftRight || token_peek.type == tok_BitShiftLeft) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, *binaryOps.at(curt.type)));
@@ -209,7 +208,7 @@ void parse_relational(array<Expression>* expressions){
 		token_peek.type == tok_LessThanOrEqual ||
 		token_peek.type == tok_GreaterThanOrEqual) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, *binaryOps.at(curt.type)));
@@ -232,7 +231,7 @@ void parse_equality(array<Expression>* expressions){
 
 	while (token_peek.type == tok_NotEqual || token_peek.type == tok_Equal) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, Expression_BinaryOpEqual));
@@ -255,7 +254,7 @@ void parse_bitwise_and(array<Expression>* expressions){
 
 	while (token_peek.type == tok_BitAND) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, Expression_BinaryOpBitAND));
@@ -277,7 +276,7 @@ void parse_bitwise_xor(array<Expression>* expressions){
 
 	while (token_peek.type == tok_BitXOR) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, Expression_BinaryOpXOR));
@@ -299,7 +298,7 @@ void parse_bitwise_or(array<Expression>* expressions) {
 
 	while (token_peek.type == tok_BitOR) {
 		token_next;
-		PrettyPrint("binop ", ExpTypeStrings[binaryOps.at(curt.type)]);
+		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
 
 		//operator expression
 		expressions->add(Expression(curt.str, Expression_BinaryOpBitOR));
@@ -312,14 +311,15 @@ void parse_bitwise_or(array<Expression>* expressions) {
 }
 
 void parse_expressions(array<Expression>* expressions) {
-	EOICheck;
 	PrettyPrint("expression preface");
+	EOICheck;
 
 	expressions->add(Expression(curt.str, ExpressionGuard_Preface));
 	parse_bitwise_or(&expressions->last->expressions);
 }
 
 Statement Parser::parse(array<token> _tokens){
+	layer = 0;
 	tokens = _tokens;
 	curt = tokens[0];
 	Statement statement;
