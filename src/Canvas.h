@@ -2,14 +2,6 @@
 #ifndef SUUGU_CANVAS_H
 #define SUUGU_CANVAS_H
 
-#include "utils/array.h"
-#include "utils/string.h"
-#include "math/Math.h"
-#include "core/ui.h"
-
-#include "lexer.h"
-#include "parser.h"
-
 local vec2 ToScreen(vec2 point, vec2 cameraPos, f32 cameraZoom) {
 	point -= cameraPos;
 	point /= cameraZoom;
@@ -45,7 +37,7 @@ struct Element {
 	Statement statement;
     
 	
-	void AddToken(token_type t) {
+	void AddToken(TokenType t) {
 		tokens.add(token(t));
 		CalcSize();
 	}
@@ -64,7 +56,7 @@ struct Element {
 };
 
 struct Canvas;
-static Canvas* stubptr = 0;
+global_ Canvas* stubptr = 0;
 
 //maybe make it so the canvas can store its own windows as well
 struct Canvas {
@@ -124,7 +116,7 @@ struct Canvas {
 			UI::InputText("dummy_input", buffer, -1, vec2{ -100, -100 });
             
 			if (buffer.size > 0) {
-				if (token_type* t = strToTok.at(buffer)) {
+				if (TokenType* t = strToTok.at(buffer)) {
 					activeElement->AddToken(*t);
 				}
 			}
