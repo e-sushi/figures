@@ -102,9 +102,18 @@
     <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_vulkan.cpp" />
     <ClCompile Include="..\deshi\src\external\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\deshi\src\external\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="..\src\lexer.cpp" />
-    <ClCompile Include="..\src\parser.cpp" />
-    <ClCompile Include="..\src\solver.cpp" />
+    <ClCompile Include="..\src\lexer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\parser.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\solver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\suugu.cpp" />
   </ItemGroup>
   <ItemGroup>

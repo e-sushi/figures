@@ -1,10 +1,3 @@
-#include "defines.h"
-#include "lexer.h"
-
-#include <stdlib.h> //this fixes some include issue and should be remove when we do a unity build
-#include <cctype>
-#include <cstdio>
-
 array<char> stopping_chars{
 	';', ' ', '{',  '}', '(', ')',
 	',', '+', '*', '/', '-', '<', '>',

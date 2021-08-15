@@ -1,5 +1,3 @@
-#include "deshi.h"
-
 /* suugu
 
 current brakus naur idea
@@ -42,21 +40,43 @@ Parser TODOs
 
 */
 
-#include "Canvas.h"
+
+//// deshi includes ////
+#include "deshi.h"
 #include "utils/string.h"
+#include "utils/array.h"
+#include "utils/map.h"
+#include "math/Math.h"
+
+//// STL includes ////
+
+
+//// suugu headers ////
+#include "canvas.h"
+#include "syntax.h"
+#include "lexer.h"
+#include "parser.h"
+
+//// suugu cpps ////
+#include "lexer.cpp"
+#include "parser.cpp"
+#include "solver.cpp"
 
 int main() {
-	deshi::init();
-
+	//suugu vars
+    Canvas canvas;
+	
+    //init deshi
+    deshi::init();
 	Render::UseDefaultViewProjMatrix();
-
-	Canvas canvas;
-
+    
+    //init suugu
 	canvas.Init();
-
+    
+    //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
-
+        
 		DeshiImGui::NewFrame();                    //place imgui calls after this
 		DeshTime->Update();
 		DeshWindow->Update();
@@ -67,6 +87,7 @@ int main() {
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
-
+    
+    //cleanup deshi
 	deshi::cleanup();
 }

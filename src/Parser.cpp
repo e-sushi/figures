@@ -1,10 +1,3 @@
-#include "parser.h"
-
-#include "utils/map.h"
-#include "core/console.h"
-
-#include <iostream>
-
 //master token
 token curt;
 array<token> tokens;
@@ -325,7 +318,7 @@ Statement Parser::parse(array<token> _tokens){
 	tokens = _tokens;
 	curt = tokens[0];
 	Statement statement;
-
+    
 	parse_expressions(&statement.expressions);
 	
 	return statement;

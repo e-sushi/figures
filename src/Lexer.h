@@ -44,7 +44,7 @@ enum token_type {
 	tok_If,					// if
 	tok_Else,				// else
 	tok_Comment             // a comment, use #
-
+    
 };
 
 local map<token_type, string> tokToStr{
@@ -85,7 +85,7 @@ local map<token_type, string> tokToStr{
 	{tok_If,                 ""},
 	{tok_Else,               ""},
 	{tok_Comment,            ""}
-
+    
 };
 
 local map<string, token_type> strToTok{
@@ -126,17 +126,17 @@ local map<string, token_type> strToTok{
 	{"", tok_If},
 	{"", tok_Else},
 	{"", tok_Comment}
-
+    
 };
 
 struct token {
 	string str;
 	token_type type;
-
+    
 	union {
-
+        
 	};
-
+    
 	token() {};
 	token(token_type t) { type = t; str = *tokToStr.at(t); }
 };
@@ -147,4 +147,4 @@ namespace Lexer {
 	array<token> lex(string input);
 }
 
-#endif
+#endif //SUUGU_LEXER_H
