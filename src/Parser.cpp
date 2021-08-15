@@ -37,7 +37,7 @@ std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
 if(tokens.iter > tokens.last){ return; }
 
 
-local map<token_type, ExpressionType> binaryOps{
+local map<TokenType, ExpressionType> binaryOps{
 	{tok_Multiplication,     Expression_BinaryOpMultiply},
 	{tok_Division,           Expression_BinaryOpDivision},
 	{tok_Negation,           Expression_BinaryOpMinus},
@@ -58,7 +58,7 @@ local map<token_type, ExpressionType> binaryOps{
 	{tok_Modulo,             Expression_BinaryOpModulo},
 };
 
-local map<token_type, ExpressionType> unaryOps{
+local map<TokenType, ExpressionType> unaryOps{
 	{tok_BitwiseComplement, Expression_UnaryOpBitComp},
 	{tok_LogicalNOT,        Expression_UnaryOpLogiNOT},
 	{tok_Negation,          Expression_UnaryOpNegate},
@@ -100,18 +100,26 @@ void parse_factor(array<Expression>* expressions) {
 			return;
 		}break;
         
+		case tok_Negation:
+		case tok_LogicalNOT:
+		case tok_BitwiseComplement: {
+			PrettyPrint("unaop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
+
+			expressions->add(Expression(curt.str, *unaryOps.at(curt.type)));
+
+			token_next;
+			parse_factor(&expressions->last->expressions);
+
+			return;
+		}break;
+
+
+		//by default if no valid token is found we call it empty
 		default: {
-			ExpectOneOf(unaryOps) 
-				PrettyPrint("unaop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
-            
-            expressions->add(Expression(curt.str, *unaryOps.at(curt.type)));
-			
-            token_next;
-            parse_factor(&expressions->last->expressions);
-            
-            return;
-			ExpectFail()
-		}
+			PrettyPrint("empty");
+			expressions->add(Expression(curt.str, Expression_Empty));
+			return;
+		}break;
 	}
     
 	layer--;

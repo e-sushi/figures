@@ -7,8 +7,7 @@
 #include "math/Math.h"
 #include "core/ui.h"
 
-#include "lexer.h"
-#include "parser.h"
+#include "types.h"
 
 local vec2 ToScreen(vec2 point, vec2 cameraPos, f32 cameraZoom) {
 	point -= cameraPos;
@@ -41,13 +40,12 @@ struct Element {
 	//list of tokens the user has input and their strings to show 
 	array<token> tokens;
     
-    
 	Statement statement;
-    
 	
-	void AddToken(token_type t) {
+	void AddToken(TokenType t) {
 		tokens.add(token(t));
 		CalcSize();
+		statement = Parser::parse(tokens);
 	}
 	
 	//temporarily text based, but when we get to custom positioning of
@@ -62,9 +60,6 @@ struct Element {
 	}
     
 };
-
-struct Canvas;
-static Canvas* stubptr = 0;
 
 //maybe make it so the canvas can store its own windows as well
 struct Canvas {
@@ -124,7 +119,7 @@ struct Canvas {
 			UI::InputText("dummy_input", buffer, -1, vec2{ -100, -100 });
             
 			if (buffer.size > 0) {
-				if (token_type* t = strToTok.at(buffer)) {
+				if (TokenType* t = strToTok.at(buffer)) {
 					activeElement->AddToken(*t);
 				}
 			}

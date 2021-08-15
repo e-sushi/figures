@@ -297,9 +297,9 @@ global_ map<TokenType, string> tokToStr{
     {tok_Modulo,             "%"},
     {tok_QuestionMark,       "?"},
     {tok_Colon,              ":"},
-    {tok_If,                 "if"},
-    {tok_Else,               "else"},
-    {tok_Comment,            "#"}
+    {tok_If,                 ""},
+    {tok_Else,               ""},
+    {tok_Comment,            ""}
 };
 global_ map<string, TokenType> strToTok{
 	{"",     tok_ERROR},
@@ -336,9 +336,9 @@ global_ map<string, TokenType> strToTok{
 	{"%",    tok_Modulo},
 	{"?",    tok_QuestionMark},
 	{":",    tok_Colon},
-	{"if",   tok_If},
-	{"else", tok_Else},
-	{"#",    tok_Comment}
+	{"",   tok_If},
+	{"", tok_Else},
+	{"",    tok_Comment}
 };
 
 enum ExpressionType_{
@@ -373,6 +373,9 @@ enum ExpressionType_{
     Expression_BinaryOpBitShiftLeft,
     Expression_BinaryOpBitShiftRight,
     
+    //Special
+    Expression_Empty,
+
 	//Expression Guards
     ExpressionGuard_Preface, //i set the first expression in the tree to be a preface so that when we switch on these, the name of the switches and what we actually do in them makes sense
     ExpressionGuard_BitOR,
@@ -415,6 +418,8 @@ global_ const char* ExpTypeStrings[] = {
     "<<",
     ">>",
     
+    "empty",
+
     "ExpressionGuard_Preface",
     "ExpressionGuard_BitOR",
     "ExpressionGuard_BitXOR",
@@ -433,7 +438,7 @@ struct token{
 	string str;
     
     token(){}
-    token(TokenType _type) : type(_type){}
+    token(TokenType _type) : type(_type) { str = *tokToStr.at(_type); }
 };
 
 //defines arithmatic
@@ -441,6 +446,9 @@ struct Expression{
 	ExpressionType type;
 	string expstr;
 	array<Expression> expressions;
+
+    //for when we make a dummy expression meant to be filled by some value later
+    bool incomplete = true;
     
 	f32 literalValue; //for storing a literals value if thats what this expression defines
     
@@ -456,5 +464,9 @@ struct Statement{
 struct StatementState{
     
 };
+
+namespace Parser {
+    Statement parse(array<token> tokens);
+}
 
 #endif //SUUGU_TYPES_H
