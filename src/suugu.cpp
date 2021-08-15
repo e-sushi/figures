@@ -52,10 +52,8 @@ Parser TODOs
 
 
 //// suugu headers ////
+#include "types.h"
 #include "canvas.h"
-#include "syntax.h"
-#include "lexer.h"
-#include "parser.h"
 
 //// suugu cpps ////
 #include "lexer.cpp"

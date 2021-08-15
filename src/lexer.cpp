@@ -1,19 +1,26 @@
-array<char> stopping_chars{
+/////////////////////
+//// @local vars ////
+/////////////////////
+local array<char> stopping_chars{
 	';', ' ', '{',  '}', '(', ')',
 	',', '+', '*', '/', '-', '<', '>',
 	'=', '!', '~', '\n', '&', '|', '^',
 	'%', ':', '?', '\0'
 };
 
+
+///////////////////////
+//// @global funcs ////
+///////////////////////
 template<class T>
 static int is_in(T& c, array<T>& array) {
-	for (T t : array) { if (t == c) return 1; }
+	for (T& t : array) { if (t == c) return 1; }
 	return 0;
 }
 
 //TODO(sushi) make a map of tokens to characters instead, so implementing new tokens is easier
 //NOTE this has been reimpl from su and could have errors or unecessary things throughout
-array<token> Lexer::lex(string input) {
+array<token> lex(string input) {
 	array<token> tokens;
 	char currChar = 0;
 	string buff = "";
@@ -245,5 +252,3 @@ array<token> Lexer::lex(string input) {
 	}
 	return tokens;
 }
-
-
