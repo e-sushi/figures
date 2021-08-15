@@ -63,6 +63,7 @@
     <ClInclude Include="..\deshi\src\utils\utils.h" />
     <ClInclude Include="..\deshi\src\utils\view.h" />
     <ClInclude Include="..\src\canvas.h" />
+    <ClInclude Include="..\src\keybinds.h" />
     <ClInclude Include="..\src\lexer.h" />
     <ClInclude Include="..\src\parser.h" />
     <ClInclude Include="..\src\solver.h" />

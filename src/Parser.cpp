@@ -41,7 +41,7 @@ else std::cout << "!   ";\
 std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
 
 #define EOICheck \
-if(tokens.iter > tokens.last){ layer--; return; }
+if(tokens.iter > tokens.last){ return; }
 
 
 local map<token_type, ExpressionType> binaryOps{
@@ -325,10 +325,8 @@ Statement Parser::parse(array<token> _tokens){
 	tokens = _tokens;
 	curt = tokens[0];
 	Statement statement;
-    
-	statement.expressions = new array<Expression>;
-    
-	parse_expressions(statement.expressions);
+
+	parse_expressions(&statement.expressions);
 	
 	return statement;
 }
