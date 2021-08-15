@@ -58,6 +58,7 @@
     <ClInclude Include="..\deshi\src\utils\optional.h" />
     <ClInclude Include="..\deshi\src\utils\RingArray.h" />
     <ClInclude Include="..\deshi\src\utils\string.h" />
+    <ClInclude Include="..\deshi\src\utils\string_conversion.h" />
     <ClInclude Include="..\deshi\src\utils\tuple.h" />
     <ClInclude Include="..\deshi\src\utils\utils.h" />
     <ClInclude Include="..\deshi\src\utils\view.h" />

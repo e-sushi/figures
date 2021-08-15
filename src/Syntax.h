@@ -231,18 +231,18 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 */
 
 
-enum ExpressionType : u32 {
+enum ExpressionType_{
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
-
+    
 	//Types
 	Expression_Literal,
-
+    
 	//Unary Operators
 	Expression_UnaryOpBitComp,
 	Expression_UnaryOpLogiNOT,
 	Expression_UnaryOpNegate,
-
+    
 	//Binary Operators
 	Expression_BinaryOpPlus,
 	Expression_BinaryOpMinus,
@@ -262,7 +262,7 @@ enum ExpressionType : u32 {
 	Expression_BinaryOpXOR,
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
-
+    
 	//Expression Guards
     ExpressionGuard_Preface, //i set the first expression in the tree to be a preface so that when we switch on these, the name of the switches and what we actually do in them makes sense
 	ExpressionGuard_BitOR,
@@ -275,18 +275,18 @@ enum ExpressionType : u32 {
 	ExpressionGuard_Term,
 	ExpressionGuard_Factor,
     ExpressionGuard_Unary
-};
+}; typedef u32 ExpressionType;
 
 global_ const char* ExpTypeStrings[] = {
     "Expression_IdentifierLHS",
     "Expression_IdentifierRHS",
-
+    
     "literal",
-
+    
     "~",
     "!",
     "-",
-
+    
     "+",
     "-",
     "*",
@@ -305,7 +305,7 @@ global_ const char* ExpTypeStrings[] = {
     "^",
     "<<",
     ">>",
-
+    
     "ExpressionGuard_Preface",
     "ExpressionGuard_BitOR",
     "ExpressionGuard_BitXOR",
@@ -323,11 +323,11 @@ global_ const char* ExpTypeStrings[] = {
 struct Expression {
 	string expstr;
 	ExpressionType type;
-
+    
 	array<Expression> expressions;
-
+    
 	f32 literalValue; //for storing a literals value if thats what this expression defines
-
+    
 	Expression(string expstr, ExpressionType type) {
 		this->type = type;
 		this->expstr = expstr;
@@ -337,7 +337,7 @@ struct Expression {
 //holds expressions
 struct Statement {
 	array<Expression>* expressions;
-
+    
 	Statement() {};
 };
 

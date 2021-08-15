@@ -1,12 +1,12 @@
-#include <stdlib.h> //this fixes some include issue and should be remove when we do a unity build
-
+#include "defines.h"
 #include "lexer.h"
 
-#include "defines.h"
-
+#include <stdlib.h> //this fixes some include issue and should be remove when we do a unity build
+#include <cctype>
+#include <cstdio>
 
 array<char> stopping_chars{
-	';', ' ', '{',  '}', '\(', '\)',
+	';', ' ', '{',  '}', '(', ')',
 	',', '+', '*', '/', '-', '<', '>',
 	'=', '!', '~', '\n', '&', '|', '^',
 	'%', ':', '?', '\0'
@@ -25,7 +25,7 @@ array<token> Lexer::lex(string input) {
 	char currChar = 0;
 	string buff = "";
 	u32 lines = 1;
-
+    
 	//special comment case
 	if (input[0] == '#') {
 		token t;
@@ -37,7 +37,7 @@ array<token> Lexer::lex(string input) {
 	else if (input.size == 1) {
 		token t;
 		t.str = buff;
-
+        
 		//TODO make this cleaner
 		if (isalpha(input[0])) {
 			//if it begins with a letter it must be an identifier
@@ -63,8 +63,8 @@ array<token> Lexer::lex(string input) {
 					case ';':  t.type = tok_Semicolon;         break;
 					case '{':  t.type = tok_OpenBrace;         break;
 					case '}':  t.type = tok_CloseBrace;        break;
-					case '\(': t.type = tok_OpenParen;         break;
-					case '\)': t.type = tok_CloseParen;        break;
+					case '(':  t.type = tok_OpenParen;         break;
+					case ')':  t.type = tok_CloseParen;        break;
 					case ',':  t.type = tok_Comma;             break;
 					case '+':  t.type = tok_Plus;              break;
 					case '-':  t.type = tok_Negation;          break;
@@ -85,7 +85,7 @@ array<token> Lexer::lex(string input) {
 				tokens.add(t);
 			}
 		}
-
+        
 		tokens.add(t);
 	}
 	//any other case
@@ -100,7 +100,7 @@ array<token> Lexer::lex(string input) {
 				if (buff[0]) {
 					token t;
 					t.str = buff.substr(0, buff.size);
-
+                    
 					//TODO make this cleaner
 					if (isalpha(buff[0])) {
 						//if it begins with a letter it must be an identifier
@@ -115,10 +115,10 @@ array<token> Lexer::lex(string input) {
 						if (error) t.type = tok_ERROR;
 						else t.type = tok_Literal;
 					}
-
+                    
 					tokens.add(t);
 				}
-
+                
 				//check what our stopping character is 
 				if (currChar != ' ' && currChar != '\n') {
 					token t;
@@ -127,8 +127,8 @@ array<token> Lexer::lex(string input) {
 						case ';':  t.type = tok_Semicolon;         break;
 						case '{':  t.type = tok_OpenBrace;         break;
 						case '}':  t.type = tok_CloseBrace;        break;
-						case '\(': t.type = tok_OpenParen;         break;
-						case '\)': t.type = tok_CloseParen;        break;
+						case '(':  t.type = tok_OpenParen;         break;
+						case ')':  t.type = tok_CloseParen;        break;
 						case ',':  t.type = tok_Comma;             break;
 						case '+':  t.type = tok_Plus;              break;
 						case '-':  t.type = tok_Negation;          break;
@@ -139,7 +139,7 @@ array<token> Lexer::lex(string input) {
 						case '^':  t.type = tok_BitXOR;            break;
 						case '?':  t.type = tok_QuestionMark;      break;
 						case ':':  t.type = tok_Colon;             break;
-
+                        
 						case '&': {
 							if (i != input.size - 1 && input[i + 1] == '&') {
 								t.type = tok_AND;
@@ -149,7 +149,7 @@ array<token> Lexer::lex(string input) {
 								t.type = tok_BitAND;
 							}
 						}break;
-
+                        
 						case '|': {
 							if (i != input.size - 1 && input[i + 1] == '|') {
 								t.type = tok_OR;
@@ -159,7 +159,7 @@ array<token> Lexer::lex(string input) {
 								t.type = tok_BitOR;
 							}
 						}break;
-
+                        
 						case '!': {
 							if (i != input.size - 1 && input[i + 1] == '=') {
 								t.type = tok_NotEqual;
@@ -169,7 +169,7 @@ array<token> Lexer::lex(string input) {
 								t.type = tok_LogicalNOT;
 							}
 						}break;
-
+                        
 						case '=': {
 							if (i != input.size - 1 && input[i + 1] == '=') {
 								t.type = tok_Equal;
@@ -179,7 +179,7 @@ array<token> Lexer::lex(string input) {
 								t.type = tok_Assignment;
 							}
 						}break;
-
+                        
 						case '>': {
 							char c = input[i + 1];
 							if (c == '=') {
@@ -194,7 +194,7 @@ array<token> Lexer::lex(string input) {
 								t.type = tok_GreaterThan;
 							}
 						}break;
-
+                        
 						case '<': {
 							char c = input[i + 1];
 							if (c == '=') {
@@ -218,7 +218,7 @@ array<token> Lexer::lex(string input) {
 				if (buff[0]) {
 					token t;
 					t.str = buff.substr(0, buff.size);
-
+                    
 					//TODO make this cleaner
 					if (isalpha(buff[0])) {
 						//if it begins with a letter it must be an identifier
