@@ -1,41 +1,11 @@
+/////////////////////
+//// @local vars ////
+/////////////////////
 //master token
-token curt;
-array<token> tokens;
-
-#define token_next curt = tokens.next()
-#define token_last curt = tokens.prev()
-
-#define token_peek tokens.peek(0)
-#define token_look_back(i) tokens.lookback(i)
-
-#define Expect(tok_type)\
-if(curt.type == tok_type) {
-
-#define ElseExpect(tok_type)\
-} else if(curt.type == tok_type) {
-
-#define ExpectFail(fail_code)\
-} else { fail_code }
-
-#define ParseOut(out)\
-LOG(out);
-
-
-#define ExpectOneOf(expect)\
-if(expect.has(curt.type)) {
-
-u32 layer = 0;
-bool master_logger = true;
-
-#define PrettyPrint(...)\
-if(master_logger){ for(int i = 0; i < layer; i++)\
-if(i % 2 == 0) std::cout << "|   ";\
-else std::cout << "!   ";\
-std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
-
-#define EOICheck \
-if(tokens.iter > tokens.last){ return; }
-
+local token curt;
+local array<token> tokens;
+local u32 layer = 0;
+local bool master_logger = true;
 
 local map<TokenType, ExpressionType> binaryOps{
 	{tok_Multiplication,     Expression_BinaryOpMultiply},
@@ -65,10 +35,44 @@ local map<TokenType, ExpressionType> unaryOps{
 };
 
 
-void parse_term(array<Expression>*expressions);
-void parse_expressions(array<Expression>*expressions);
+//////////////////////
+//// @local funcs ////
+//////////////////////
+#define token_next curt = tokens.next()
+#define token_last curt = tokens.prev()
 
-void parse_factor(array<Expression>* expressions) {
+#define token_peek tokens.peek(0)
+#define token_look_back(i) tokens.lookback(i)
+
+#define Expect(tok_type)\
+if(curt.type == tok_type) {
+
+#define ElseExpect(tok_type)\
+} else if(curt.type == tok_type) {
+
+#define ExpectFail(fail_code)\
+} else { fail_code }
+
+#define ParseOut(out)\
+LOG(out);
+
+
+#define ExpectOneOf(expect)\
+if(expect.has(curt.type)) {
+
+#define PrettyPrint(...)\
+if(master_logger){ for(int i = 0; i < layer; i++)\
+if(i % 2 == 0) std::cout << "|   ";\
+else std::cout << "!   ";\
+std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
+
+#define EOICheck \
+if(tokens.iter > tokens.last){ return; }
+
+local void parse_term(array<Expression>*expressions);
+local void parse_expressions(array<Expression>*expressions);
+
+local void parse_factor(array<Expression>* expressions) {
 	layer++;
 	PrettyPrint("factor");
 	EOICheck;
@@ -125,7 +129,7 @@ void parse_factor(array<Expression>* expressions) {
 	layer--;
 }
 
-void parse_term(array<Expression>* expressions){
+local void parse_term(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("term");
 	EOICheck;
@@ -150,7 +154,7 @@ void parse_term(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_additive(array<Expression>* expressions){
+local void parse_additive(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("additive");
 	EOICheck;
@@ -174,7 +178,7 @@ void parse_additive(array<Expression>* expressions){
 }
 
 
-void parse_bitwise_shift(array<Expression>* expressions){
+local void parse_bitwise_shift(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("bitshift");
 	EOICheck;
@@ -197,7 +201,7 @@ void parse_bitwise_shift(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_relational(array<Expression>* expressions){
+local void parse_relational(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("relational");
 	EOICheck;
@@ -224,7 +228,7 @@ void parse_relational(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_equality(array<Expression>* expressions){
+local void parse_equality(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("equality");
 	EOICheck;
@@ -247,7 +251,7 @@ void parse_equality(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_bitwise_and(array<Expression>* expressions){
+local void parse_bitwise_and(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("bit and");
 	EOICheck;
@@ -269,7 +273,7 @@ void parse_bitwise_and(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_bitwise_xor(array<Expression>* expressions){
+local void parse_bitwise_xor(array<Expression>* expressions){
 	layer++;
 	PrettyPrint("bit xor");
 	EOICheck;
@@ -291,7 +295,7 @@ void parse_bitwise_xor(array<Expression>* expressions){
 	layer--;
 }
 
-void parse_bitwise_or(array<Expression>* expressions) {
+local void parse_bitwise_or(array<Expression>* expressions) {
 	layer++;
 	PrettyPrint("bit or");
 	EOICheck;
@@ -313,7 +317,7 @@ void parse_bitwise_or(array<Expression>* expressions) {
 	layer--;
 }
 
-void parse_expressions(array<Expression>* expressions) {
+local void parse_expressions(array<Expression>* expressions) {
 	PrettyPrint("expression preface");
 	EOICheck;
     
@@ -321,7 +325,23 @@ void parse_expressions(array<Expression>* expressions) {
 	parse_bitwise_or(&expressions->last->expressions);
 }
 
-Statement Parser::parse(array<token> _tokens){
+#undef token_next
+#undef token_last
+#undef token_peek
+#undef token_look_back
+#undef Expect
+#undef ElseExpect
+#undef ExpectFail
+#undef ParseOut
+#undef ExpectOneOf
+#undef PrettyPrint
+#undef EOICheck
+
+
+///////////////////////
+//// @global funcs ////
+///////////////////////
+global_ Statement parse(array<token> _tokens){
 	layer = 0;
 	tokens = _tokens;
 	curt = tokens[0];
@@ -331,6 +351,3 @@ Statement Parser::parse(array<token> _tokens){
 	
 	return statement;
 }
-
-
-
