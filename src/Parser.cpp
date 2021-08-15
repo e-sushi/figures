@@ -341,7 +341,7 @@ local void parse_expressions(array<Expression>* expressions) {
 ///////////////////////
 //// @global funcs ////
 ///////////////////////
-global_ Statement parse(array<token> _tokens){
+Statement Parser::parse(array<token> _tokens){
 	layer = 0;
 	tokens = _tokens;
 	curt = tokens[0];
