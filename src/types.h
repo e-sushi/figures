@@ -223,7 +223,7 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
     result with the right result
 */
 
-enum TokenType_{
+enum TokenType{
     tok_ERROR,              // when something doesnt make sense during lexing
     tok_EOF,                // end of file
     tok_Keyword,            // int, float, etc.
@@ -240,8 +240,6 @@ enum TokenType_{
     tok_Negation,           // -
     tok_Multiplication,     // *
     tok_Division,           // /
-    tok_LogicalNOT,         // !
-    tok_BitwiseComplement,  // ~
     tok_LessThan,           // <
     tok_GreaterThan,        // >
     tok_LessThanOrEqual,    // <=
@@ -256,12 +254,14 @@ enum TokenType_{
     tok_BitShiftLeft,       // <<
     tok_BitShiftRight,      // >>
     tok_Modulo,             // %
+    tok_LogicalNOT,         // !
+    tok_BitwiseComplement,  // ~
     tok_QuestionMark,       // ?
     tok_Colon,              // :
     tok_If,                 // if
     tok_Else,               // else
     tok_Comment             // a comment, use #
-}; typedef u32 TokenType;
+}; //typedef u32 TokenType; leave this out for a min because when i try to debug it shows the numerical vaule instead of the name of the token_type
 global_ map<TokenType, string> tokToStr{
     {tok_ERROR,              ""},
     {tok_EOF,                ""},			       
@@ -341,7 +341,7 @@ global_ map<string, TokenType> strToTok{
 	{"",    tok_Comment}
 };
 
-enum ExpressionType_{
+enum ExpressionType{
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
     
@@ -388,7 +388,7 @@ enum ExpressionType_{
     ExpressionGuard_Term,
     ExpressionGuard_Factor,
     ExpressionGuard_Unary
-}; typedef u32 ExpressionType;
+}; //typedef u32 ExpressionType; look at TokenType typedef to see y
 global_ const char* ExpTypeStrings[] = {
     "Expression_IdentifierLHS",
     "Expression_IdentifierRHS",
@@ -436,6 +436,7 @@ global_ const char* ExpTypeStrings[] = {
 struct token{
     TokenType type;
 	string str;
+    vec2 strSize; //the strings size on screen in px
     
     token(){}
     token(TokenType _type) : type(_type) { str = *tokToStr.at(_type); }
@@ -447,9 +448,6 @@ struct Expression{
 	string expstr;
 	array<Expression> expressions;
 
-    //for when we make a dummy expression meant to be filled by some value later
-    bool incomplete = true;
-    
 	f32 literalValue; //for storing a literals value if thats what this expression defines
     
     Expression(string str, ExpressionType _type) : expstr(str), type(_type){}
@@ -458,11 +456,6 @@ struct Expression{
 //holds expressions
 struct Statement{
 	array<Expression> expressions;
-};
-
-//holds the state of a statement, indicating what it's AST is missing to be solvable
-struct StatementState{
-    
 };
 
 namespace Parser {

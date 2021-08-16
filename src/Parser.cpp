@@ -41,7 +41,7 @@ local map<TokenType, ExpressionType> unaryOps{
 #define token_next curt = tokens.next()
 #define token_last curt = tokens.prev()
 
-#define token_peek tokens.peek(0)
+#define token_peek tokens.peek()
 #define token_look_back(i) tokens.lookback(i)
 
 #define Expect(tok_type)\
@@ -66,8 +66,8 @@ if(i % 2 == 0) std::cout << "|   ";\
 else std::cout << "!   ";\
 std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
 
-#define EOICheck \
-if(tokens.iter > tokens.last){ return; }
+#define EOICheck 0\
+//if(tokens.iter > tokens.last){ return; }
 
 local void parse_term(array<Expression>*expressions);
 local void parse_expressions(array<Expression>*expressions);
@@ -82,6 +82,8 @@ local void parse_factor(array<Expression>* expressions) {
 		case tok_Literal: {
 			PrettyPrint("literal ", curt.str);
 			expressions->add(Expression(curt.str, Expression_Literal));
+			//token_next;
+			layer--;
 			return;
 		}break;
         
@@ -95,12 +97,13 @@ local void parse_factor(array<Expression>* expressions) {
 			
 			Expect(tok_CloseParen)
 				PrettyPrint("CLOSE )");
+			layer--;
             return;
 			ExpectFail()
 		}break;
         
 		case tok_Identifier: {
-			//expressions->add(new Expression(curt.str, Expression_IdentifierRHS));
+			//expressions->add(Expression(curt.str, Expression_Literal));
 			return;
 		}break;
         
@@ -113,6 +116,7 @@ local void parse_factor(array<Expression>* expressions) {
 
 			token_next;
 			parse_factor(&expressions->last->expressions);
+			layer--;
 
 			return;
 		}break;
@@ -122,6 +126,7 @@ local void parse_factor(array<Expression>* expressions) {
 		default: {
 			PrettyPrint("empty");
 			expressions->add(Expression(curt.str, Expression_Empty));
+			layer--;
 			return;
 		}break;
 	}

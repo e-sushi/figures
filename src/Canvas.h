@@ -31,19 +31,71 @@ local vec2 ToWorld(vec2 point, vec2 cameraPos, f32 cameraZoom) {
 	return point;
 };
 
+u32 expandtokcount = 0;
+
 struct Element {
 	vec2 pos; //maybe cache a screen position for elements 
 	vec2 size;
     
-	u32 cursor = 0; //for tracking where in the token array we are editing
-    
+	s32 cursor = 0; //for tracking where in the token array we are editing
+
 	//list of tokens the user has input and their strings to show 
 	array<token> tokens;
     
 	Statement statement;
 	
 	void AddToken(TokenType t) {
-		tokens.add(token(t));
+
+		//special initial case
+		if (tokens.count == 0) {
+		    //check if we are inserting a literal
+			if (t == tok_Literal) {
+				tokens.add(token(tok_Literal));
+				cursor = 0; //position cursor in literal's box
+		    }
+			//if we are dealing with a binop make a binop case
+			else if (t >= tok_Plus && t <= tok_Modulo) {
+				tokens.add(token(tok_Literal));
+				tokens.add(token(t));
+				tokens.add(token(tok_Literal));
+				cursor = 0; //position cursor inside first tok_Literal box 
+
+			}
+			//unary op ditto
+			else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || tok_Negation) {
+				tokens.add(token(t));
+				tokens.add(token(tok_Literal));
+				cursor = 1; //position cursor in the literals box
+			}
+			
+		}
+		else {
+			//we must deal with the cursor and only if its in a position to add a new token
+			//other wise input is handled in Update()
+			//TODO(sushi) handle inputting operators when we are within
+			if (cursor == -1) {
+				//insert new token at beginning 
+				tokens.insert(token(t), 0);
+				tokens.insert(token(tok_Literal), 0);
+				cursor = 0;
+			}
+			else if (cursor == tokens.count) {
+				//keeping these 2 cases separate for now
+				//if its a long time after 08/15/2021 and i havent merged them u can do that
+				if (t >= tok_Plus && t <= tok_Modulo) {
+					tokens.add(token(t));
+					tokens.add(token(tok_Literal));
+					cursor = tokens.count - 2; //position cursor inside first tok_Literal box 
+
+				}
+				else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || tok_Negation) {
+					tokens.add(token(t));
+					tokens.add(token(tok_Literal));
+					cursor = tokens.count - 2; //position cursor inside first tok_Literal box 
+				}
+			}
+		}
+
 		CalcSize();
 		statement = Parser::parse(tokens);
 	}
@@ -54,9 +106,55 @@ struct Element {
 		string s = "";
 		for (token& t : tokens) {
 			s += t.str;
+			t.strSize = UI::CalcTextSize(t.str);
 		}
 		size = UI::CalcTextSize(s);
         
+	}
+
+	//draws input boxes and tokens
+	//TODO(sushi) add parameter for if element is active
+	void Update(vec2 cameraPos, float cameraZoom) {
+		
+		//temp way of drawing a background
+		//maybe save size info on each token and only calculate that when they change
+		CalcSize();
+		UI::RectFilled(ToScreen(pos, cameraPos, cameraZoom), size, color{ 15, 100, 110, 125 });
+		UI::PushVar(UIStyleVar_InputTextTextAlign, vec2(0, 0));
+
+
+		f32 posOffset = 0;
+		for (int i = 0; i < tokens.count; i++) {
+			vec2 lastTokSize = (i != 0 ? tokens[i - 1].strSize : vec2(0,0));
+			vec2 tokSize = tokens[i].strSize;
+			posOffset += (i != 0 ? lastTokSize.x : 0);
+
+			vec2 screenPos = ToScreen(pos, cameraPos, cameraZoom);
+			vec2 placement = vec2{ screenPos.x + posOffset, screenPos.y };
+			//special cases for when we are drawing and reach the location of the cursor
+			if (i == cursor) {
+				//the cursor is in a literal's edit box so we let it edit the literal
+				UI::Rect(placement, tokSize, color::DARK_CYAN);
+				if (tokens[cursor].type == tok_Literal) {
+					UI::SetNextItemActive();
+					if (UI::InputText(TOSTRING((char)this + tokens.count), tokens[cursor].str, -1, placement, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue)) {
+						tokens[i].strSize = UI::CalcTextSize(tokens[i].str);
+						statement = Parser::parse(tokens);
+					}
+				}
+				//underline anything else for now
+				else {
+					UI::Text(tokens[i].str, placement, UITextFlags_NoWrap);
+					UI::Line(vec2{ placement.x + 6, screenPos.y + 12 }, vec2{ placement.x, screenPos.y + 12 }, 1);
+				}
+			}
+			else {
+				UI::Text(tokens[i].str, placement, UITextFlags_NoWrap);
+			}
+		}
+
+		UI::PopVar();
+		
 	}
     
 };
@@ -66,8 +164,7 @@ struct Canvas {
 	array<Element> elements;
 	bool gathering = 0;
     
-	Element* activeElement;
-	
+	Element* activeElement = 0;
     
 	vec2 cameraPos{ 0,0 };
 	float cameraZoom = 5;
@@ -106,12 +203,15 @@ struct Canvas {
         
 		//handle token inputs
 		//this is only for non-literal tokens
+		//this may also be better handled entirely within element, rather than partially
 		//this should only do this if a key is pressed but for some reason 
 		//AnyKeyPressed() doesnt work with mods rn
 		if (activeElement) {
 			//moving cursor
-			if      (DeshInput->KeyPressedAnyMod(Key::LEFT)  && activeElement->cursor > 0)                           activeElement->cursor--;
-			else if (DeshInput->KeyPressedAnyMod(Key::RIGHT) && activeElement->cursor < activeElement->tokens.count) activeElement->cursor++;
+			if (DeshInput->KeyPressed(Key::LEFT  | InputMod_AnyCtrl) && activeElement->cursor >= 0) 
+				activeElement->cursor--;
+			else if (DeshInput->KeyPressed(Key::RIGHT | InputMod_AnyCtrl) && activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1) 
+				activeElement->cursor++;
             
 			//use UI::InputText to get an input 
 			string buffer = "";
@@ -143,16 +243,16 @@ struct Canvas {
 			vec2 v3 = ToScreen(vec2{ xn, yn + i }, cameraPos, cameraZoom);
 			vec2 v4 = ToScreen(vec2{ xp, yn + i }, cameraPos, cameraZoom);
             
-			UI::Line(v1, v2, 0.5, color(255, 255, 255, 100));
-			UI::Line(v3, v4, 0.5, color(255, 255, 255, 100));
+			UI::Line(v1, v2, 1, color(255, 255, 255, 100));
+			UI::Line(v3, v4, 1, color(255, 255, 255, 100));
 		}
         
 		for (f32 i = -5; i <= 5; i++) {
 			vec2 posx{ i, 0 };
 			vec2 posy{ 0, i };
             
-			UI::Text(TOSTRING(i), ToScreen(posx, cameraPos, cameraZoom));
-			UI::Text(TOSTRING(i), ToScreen(posy, cameraPos, cameraZoom));
+			UI::Text(TOSTRING(i), ToScreen(posx, cameraPos, cameraZoom), UITextFlags_NoWrap);
+			UI::Text(TOSTRING(i), ToScreen(posy, cameraPos, cameraZoom), UITextFlags_NoWrap);
 		}
 	}
     
@@ -195,15 +295,16 @@ struct Canvas {
 		
 		//draw canvas elements
 		for (Element& e : elements) {
-			string send = "";
-			for (token& t : e.tokens)
-				send += t.str;
+			//string send = "";
+			//for (token& t : e.tokens)
+			//	send += t.str;
 			if (activeElement == &e) {
-				UI::RectFilled(ToScreen(e.pos, cameraPos, cameraZoom), (e.size.x == 0 ? vec2{ 11, 11 } : e.size), color{ 100, 100, 155, 150 });
+				//UI::RectFilled(ToScreen(e.pos, cameraPos, cameraZoom), (e.size.x == 0 ? vec2{ 11, 11 } : e.size), color{ 100, 100, 155, 150 });
 				//LOG(e.size);
 			}
-			UI::Text(send, ToScreen(e.pos, cameraPos, cameraZoom), UITextFlags_NoWrap);
-			send.clear();
+			e.Update(cameraPos, cameraZoom);
+			//UI::Text(send, ToScreen(e.pos, cameraPos, cameraZoom), UITextFlags_NoWrap);
+			//send.clear();
 		}
         
 		UI::Text(TOSTRING(cameraPos));
