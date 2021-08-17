@@ -69,7 +69,9 @@ int main() {
 	Render::UseDefaultViewProjMatrix();
     
     //init suugu
-	canvas.Init();
+	//canvas.Init();
+
+	
     
     //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
@@ -80,7 +82,15 @@ int main() {
 		DeshWindow->Update();
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
-		canvas.Update();
+		//canvas.Update();
+		UI::BeginWindow("testing", vec2{ 300,300 }, vec2{ 100, 100 }, UIWindowFlags_NoTitleBar);
+		UI::Text("testing");
+		UI::Text("wow!");
+
+
+		UI::Rect(UI::GetLastItemPos() - vec2::ONE, UI::GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(255.f * (sinf(DeshTotalTime) + 1) / 2) });
+
+		UI::EndWindow();
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
