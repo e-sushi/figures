@@ -119,108 +119,55 @@ struct Element {
 		Font* font = UI::GetStyle().font;
 		
 		vec2 winpos = ToScreen(pos, cameraPos, cameraZoom);
-		SetNextWindowPos(winpos);
-		BeginWindow((char)this, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoTitleBar);;
 		
-		f32 posOffset = 0;
+		PushVar(UIStyleVar_WindowPadding, vec2{ 0,0 });
+		PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
+
+		SetNextWindowPos(winpos);
+		BeginWindow((char)this, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements);;
+		
+		UI::Row(tokens.count);
 		for (int i = 0; i < tokens.count; i++) {
 			token curt = tokens[i];
-			token last = (i != 0 ? tokens[i - 1] : token());
-			
-			//set a default size if the token's string doesnt contain anything yet
-			vec2 ts = curt.strSize;
-			if (curt.type == tok_Literal && curt.str.size == 0)
-				ts = vec2{ (f32)font->height, (f32)font->height };
-	
-			//same but for last token
-			vec2 ls = (i != 0 ? last.strSize : vec2{ 0, 0 });
-			if (i != 0 && last.type == tok_Literal && last.str.size == 0)
-				ls = vec2{ (f32)font->height, (f32)font->height };
-
-			//offset placement by size of last token
-			posOffset += (i != 0 ? ls.x : 0);
-
-			vec2 placement = vec2{ posOffset, 0};
-
-			//LOG(TOSTRING(placement));
 
 			//cases where the user has the token selected
 			if (i == cursor) {
 				if (curt.type == tok_Literal) {
 					
 					SetNextItemActive();
-					//SetNextItemSize(ts);
-					if (InputText(TOSTRING((char)this + tokens.count), tokens[cursor].str, -1, placement, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue)) {
+
+					if(!curt.str.size)
+						SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+					
+					if (InputText(TOSTRING((char)this + tokens.count), tokens[cursor].str, -1, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						//statement = Parser::parse(tokens);
 					}
-					
+
 					//selection outline
 					Rect(GetLastItemPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(255.f * (sinf(DeshTotalTime) + 1) / 2) });
+					
 				}
 				//underline anything else for now
 				else {
-					Text(tokens[i].str, placement, UITextFlags_NoWrap);
-					Line(vec2{ GetLastItemPos().x + font->width, GetLastItemPos().y + font->height + 1 }, vec2{ GetLastItemPos().x, GetLastItemPos().y + font->height + 1 }, 1);
+
+					Text(tokens[i].str, UITextFlags_NoWrap);
+					Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
 				}
 			}
 			else {
-				UI::Text(tokens[i].str, placement, UITextFlags_NoWrap);
-				Text(TOSTRING(GetLastItemPos()));
-				Text(TOSTRING(GetLastItemSize()));
+				if (!curt.str.size)
+					SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+				UI::Text(tokens[i].str, UITextFlags_NoWrap);
 
 			}
 		}
 		
 		EndWindow();
 
-		//clean this up once its in a working state
-		//f32 posOffset = 0;
-		//for (int i = 0; i < tokens.count; i++) {
-		//	vec2 lastTokSize = (i != 0 ? tokens[i - 1].strSize : vec2(0, 0));
-		//	vec2 tokSize = tokens[i].strSize;
-		//
-		//	//first check if the token is a literal and if its empty, so we can size everything properly
-		//	if (tokens[i].type == tok_Literal && tokens[i].str.size == 0)
-		//		tokSize = vec2{ (f32)font->height, (f32)font->height };
-		//
-		//	//same but for last token
-		//	if(i != 0 && tokens[i-1].type == tok_Literal && tokens[i-1].str.size == 0)
-		//		lastTokSize = vec2{ (f32)font->height, (f32)font->height };
-		//
-		//	posOffset += (i != 0 ? lastTokSize.x : 0);
-		//
-		//	vec2 screenPos = ToScreen(pos, cameraPos, cameraZoom);
-		//	vec2 placement = vec2{ screenPos.x + posOffset, screenPos.y };
-		//	//special cases for when we are drawing and reach the location of the cursor
-		//	if (i == cursor) {
-		//		
-		//
-		//		//the cursor is in a literal's edit box so we let it edit the literal
-		//		if (tokens[cursor].type == tok_Literal) {
-		//			//selection rectangle
-		//			UI::Rect(placement, tokSize, color{ 64, 64, 64, (u8)(255.f * (sinf(DeshTotalTime) + 1) / 2) });
-		//			
-		//			UI::SetNextItemActive();
-		//			UI::SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
-		//			if (UI::InputText(TOSTRING((char)this + tokens.count), tokens[cursor].str, -1, placement, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue)) {
-		//				tokens[i].strSize = UI::CalcTextSize(tokens[i].str);
-		//				//statement = Parser::parse(tokens);
-		//			}
-		//		}
-		//		//underline anything else for now
-		//		else {
-		//			UI::Text(tokens[i].str, placement, UITextFlags_NoWrap);
-		//			UI::Line(vec2{ placement.x + font->width, screenPos.y + font->height + 1 }, vec2{ placement.x, screenPos.y + font->height + 1 }, 1);
-		//		}
-		//	}
-		//	else {
-		//		
-		//		UI::Text(tokens[i].str, placement, UITextFlags_NoWrap);
-		//	}
-		//}
+		PopVar(2);
 
-		//UI::PopVar();
+		UI::ShowDebugWindowOf((char)this);
 		
 	}
     
@@ -352,7 +299,7 @@ struct Canvas {
         
 		//begin main canvas
 		UI::SetNextWindowSize(DeshWindow->dimensions);
-		UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag);
+		UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
         
 		//if (DeshInput->RMousePressed() || gathering) GatherInput(DeshInput->mousePos);
 		
