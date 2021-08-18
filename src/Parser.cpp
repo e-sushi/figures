@@ -142,8 +142,7 @@ local void parse_term(array<Expression>* expressions){
 	expressions->add(Expression(curt.str, ExpressionGuard_Term));
 	parse_factor(&expressions->last->expressions);
     
-	while (
-           token_peek.type == tok_Multiplication || token_peek.type == tok_Division ||
+	while (token_peek.type == tok_Multiplication || token_peek.type == tok_Division ||
            token_peek.type == tok_Modulo) {
 		token_next;
 		PrettyPrint("binop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
@@ -214,8 +213,7 @@ local void parse_relational(array<Expression>* expressions){
 	expressions->add(Expression(curt.str, ExpressionGuard_Relational));
 	parse_bitwise_shift(&expressions->last->expressions);
     
-	while (
-           token_peek.type == tok_LessThan ||
+	while (token_peek.type == tok_LessThan ||
            token_peek.type == tok_GreaterThan ||
            token_peek.type == tok_LessThanOrEqual ||
            token_peek.type == tok_GreaterThanOrEqual) {

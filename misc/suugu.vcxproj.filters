@@ -219,6 +219,9 @@
     <ClInclude Include="..\src\types.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\core\commands.h">
+      <Filter>src\deshi\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
@@ -280,6 +283,9 @@
     </ClCompile>
     <ClCompile Include="..\src\lexer.cpp">
       <Filter>src\suugu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\commands.cpp">
+      <Filter>src\deshi\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
