@@ -42,7 +42,9 @@ Parser TODOs
 
 
 //// deshi includes ////
+#include "defines.h"
 #include "deshi.h"
+#include "core/memory.h"
 #include "utils/string.h"
 #include "utils/array.h"
 #include "utils/map.h"
@@ -65,19 +67,18 @@ int main() {
     Canvas canvas;
 	
     //init deshi
+    Memory::Init(Gigabytes(1), Megabytes(256));
     deshi::init();
 	Render::UseDefaultViewProjMatrix();
     
     //init suugu
 	canvas.Init();
-    
-	
-    
+
     //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
-        
 		DeshiImGui::NewFrame();                    //place imgui calls after this
+        Memory::Update();
 		DeshTime->Update();
 		DeshWindow->Update();
 		DeshInput->Update();
