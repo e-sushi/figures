@@ -70,7 +70,7 @@ int main() {
     
     //init suugu
 	canvas.Init();
-
+    
 	
     
     //start main loop
@@ -83,7 +83,9 @@ int main() {
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
-
+        
+        UI::Text(to_string(DeshTime->frameTime, true), vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
+        
 		//UI::BeginWindow("test", vec2{ 300, 300 }, vec2{ 300, 300 });
 		//
 		//persist string buff = "";
@@ -100,8 +102,8 @@ int main() {
 		//
 		//
 		//UI::EndWindow();
-
-
+        
+        
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
