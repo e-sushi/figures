@@ -124,7 +124,8 @@ struct Element {
 		PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
 
 		SetNextWindowPos(winpos);
-		BeginWindow((char)this, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements);;
+		//NOTE: I dont think this way of dynamically naming actually works so
+		BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements);;
 		
 		UI::Row(tokens.count);
 		for (int i = 0; i < tokens.count; i++) {
@@ -139,7 +140,7 @@ struct Element {
 					if(!curt.str.size)
 						SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
 					
-					if (InputText(TOSTRING((char)this + tokens.count), tokens[cursor].str, -1, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
+					if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str.str, -	1, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						//statement = Parser::parse(tokens);
 					}
@@ -151,14 +152,14 @@ struct Element {
 				//underline anything else for now
 				else {
 
-					Text(tokens[i].str, UITextFlags_NoWrap);
+					Text(tokens[i].str.str, UITextFlags_NoWrap);
 					Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
 				}
 			}
 			else {
 				if (!curt.str.size)
 					SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
-				UI::Text(tokens[i].str, UITextFlags_NoWrap);
+				UI::Text(tokens[i].str.str, UITextFlags_NoWrap);
 
 			}
 		}
@@ -167,7 +168,7 @@ struct Element {
 
 		PopVar(2);
 
-		UI::ShowDebugWindowOf((char)this);
+		UI::ShowDebugWindowOf(TOSTRING((char)this).str);
 		
 	}
     
@@ -228,11 +229,11 @@ struct Canvas {
 				activeElement->cursor++;
             
 			//use UI::InputText to get an input 
-			string buffer = "";
+			char buffer[2] = "";
 			UI::SetNextItemActive();
-			UI::InputText("dummy_input", buffer, -1, vec2{ -100, -100 });
+			UI::InputText("dummy_input", buffer, 2, vec2{ -100, -100 });
             
-			if (buffer.size > 0) {
+			if (buffer[0]) {
 				if (TokenType* t = strToTok.at(buffer)) {
 					activeElement->AddToken(*t);
 				}
@@ -321,7 +322,7 @@ struct Canvas {
 			//send.clear();
 		}
         
-		UI::Text(TOSTRING(cameraPos));
+		UI::Text(TOSTRING(cameraPos).str);
 		UI::EndWindow();
         
 	}
