@@ -85,7 +85,7 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
         
-        UI::Text(to_string(DeshTime->frameTime, true), vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
+       // UI::Text(to_string(DeshTime->frameTime, true), vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
         
 		//UI::BeginWindow("test", vec2{ 300, 300 }, vec2{ 300, 300 });
 		//
