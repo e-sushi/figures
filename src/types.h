@@ -462,6 +462,18 @@ namespace Parser {
     Statement parse(array<token> tokens);
 }
 
-
+union vec2f64{
+    f64 v[2];
+    struct{ f64 x; f64 y; };
+    
+    inline vec2f64 operator- (vec2f64 rhs){return {x-rhs.x,y-rhs.y};};
+    inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;};
+    inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};};
+    inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;};
+    inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};};
+    inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;};
+    inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};};
+    inline void    operator/=(f64 rhs){x/=rhs;y/=rhs;};
+};
 
 #endif //SUUGU_TYPES_H

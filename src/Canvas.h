@@ -9,7 +9,7 @@
 #include "core/ui.h"
 
 struct Element {
-	vec2 pos; //maybe cache a screen position for elements 
+	vec2f64 pos; //NOTE world space //TODO maybe cache a screen position for elements 
 	vec2 size;
 	s32 cursor = 0; //for tracking where in the token array we are editing
 	array<token> tokens; //list of tokens the user has input and their strings to show 
