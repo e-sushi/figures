@@ -375,7 +375,7 @@ enum ExpressionType{
     
     //Special
     Expression_Empty,
-
+    
 	//Expression Guards
     ExpressionGuard_Preface, //i set the first expression in the tree to be a preface so that when we switch on these, the name of the switches and what we actually do in them makes sense
     ExpressionGuard_BitOR,
@@ -419,7 +419,7 @@ global_ const char* ExpTypeStrings[] = {
     ">>",
     
     "empty",
-
+    
     "ExpressionGuard_Preface",
     "ExpressionGuard_BitOR",
     "ExpressionGuard_BitXOR",
@@ -447,7 +447,7 @@ struct Expression{
 	ExpressionType type;
 	string expstr;
 	array<Expression> expressions;
-
+    
 	f32 literalValue; //for storing a literals value if thats what this expression defines
     
     Expression(string str, ExpressionType _type) : expstr(str), type(_type){}
@@ -461,5 +461,7 @@ struct Statement{
 namespace Parser {
     Statement parse(array<token> tokens);
 }
+
+
 
 #endif //SUUGU_TYPES_H

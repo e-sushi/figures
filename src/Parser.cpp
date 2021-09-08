@@ -99,7 +99,7 @@ local void parse_factor(array<Expression>* expressions) {
 				PrettyPrint("CLOSE )");
 			layer--;
             return;
-			ExpectFail()
+			ExpectFail((void)0;)
 		}break;
         
 		case tok_Identifier: {
@@ -111,17 +111,17 @@ local void parse_factor(array<Expression>* expressions) {
 		case tok_LogicalNOT:
 		case tok_BitwiseComplement: {
 			PrettyPrint("unaop ", ExpTypeStrings[*binaryOps.at(curt.type)]);
-
+            
 			expressions->add(Expression(curt.str, *unaryOps.at(curt.type)));
-
+            
 			token_next;
 			parse_factor(&expressions->last->expressions);
 			layer--;
-
+            
 			return;
 		}break;
-
-
+        
+        
 		//by default if no valid token is found we call it empty
 		default: {
 			PrettyPrint("empty");
