@@ -262,7 +262,7 @@ enum TokenType{
     tok_Else,               // else
     tok_Comment             // a comment, use #
 }; //typedef u32 TokenType; leave this out for a min because when i try to debug it shows the numerical vaule instead of the name of the token_type
-global_ map<TokenType, string> tokToStr{
+global_ map<TokenType, const char*> tokToStr{
     {tok_ERROR,              ""},
     {tok_EOF,                ""},			       
     {tok_Keyword,            ""},
@@ -301,7 +301,7 @@ global_ map<TokenType, string> tokToStr{
     {tok_Else,               ""},
     {tok_Comment,            ""}
 };
-global_ map<string, TokenType> strToTok{
+global_ map<const char*, TokenType> strToTok{
 	{"",     tok_ERROR},
 	{"",     tok_EOF},
 	{"",     tok_Keyword},
@@ -435,11 +435,11 @@ global_ const char* ExpTypeStrings[] = {
 
 struct token{
     TokenType type;
-	string str;
+    char str[255] = "";
     vec2 strSize; //the strings size on screen in px
     
     token(){}
-    token(TokenType _type) : type(_type) { str = *tokToStr.at(_type); }
+    token(TokenType _type) : type(_type) { strcpy(str, *tokToStr.at(_type)); }
 };
 
 //defines arithmatic

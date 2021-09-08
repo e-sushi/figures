@@ -20,6 +20,7 @@ static int is_in(T& c, array<T>& array) {
 
 //TODO(sushi) make a map of tokens to characters instead, so implementing new tokens is easier
 //NOTE this has been reimpl from su and could have errors or unecessary things throughout
+#if 0 
 array<token> lex(string input) {
 	array<token> tokens;
 	char currChar = 0;
@@ -252,3 +253,4 @@ array<token> lex(string input) {
 	}
 	return tokens;
 }
+#endif

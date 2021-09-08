@@ -124,9 +124,9 @@ Update() {
     
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
-    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements);;
+    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements);;
     
-    UI::Row(tokens.count);
+    UI::BeginRow(tokens.count, 30);
     for (int i = 0; i < tokens.count; i++) {
         token curt = tokens[i];
         
@@ -135,10 +135,10 @@ Update() {
             if (curt.type == tok_Literal) {
                 SetNextItemActive();
                 
-                if(!curt.str.size)
+                if(!curt.str[0] == '\0')
                     SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
                 
-                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str.str, -	1, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
+                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
                     tokens[i].strSize = CalcTextSize(tokens[i].str);
                     //statement = Parser::parse(tokens);
                 }
@@ -149,21 +149,22 @@ Update() {
             //underline anything else for now
             else {
                 
-                Text(tokens[i].str.str, UITextFlags_NoWrap);
+                Text(tokens[i].str, UITextFlags_NoWrap);
                 Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
             }
         }
         else {
-            if (!curt.str.size)
+            if (!curt.str[0] == '\0')
                 SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
-            UI::Text(tokens[i].str.str, UITextFlags_NoWrap);
+            UI::Text(tokens[i].str, UITextFlags_NoWrap);
             
         }
     }
+    UI::EndRow();
     
     EndWindow();
     PopVar(2);
-    UI::ShowDebugWindowOf(TOSTRING((char)this).str);
+    //UI::ShowDebugWindowOf(TOSTRING((char)this).str);
 }
 
 
@@ -200,10 +201,6 @@ HandleInput() {
     }
     
     //handle token inputs
-    //this is only for non-literal tokens
-    //this may also be better handled entirely within element, rather than partially
-    //this should only do this if a key is pressed but for some reason 
-    //AnyKeyPressed() doesnt work with mods rn
     if (activeElement) {
         //moving cursor
         if (DeshInput->KeyPressed(Key::LEFT  | InputMod_AnyCtrl) && activeElement->cursor >= 0) 
@@ -211,16 +208,11 @@ HandleInput() {
         else if (DeshInput->KeyPressed(Key::RIGHT | InputMod_AnyCtrl) && activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1) 
             activeElement->cursor++;
         
-        //use UI::InputText to get an input 
-        char buffer[2] = "";
-        UI::SetNextItemActive();
-        UI::InputText("dummy_input", buffer, 2, vec2{ -100, -100 });
-        
-        if (buffer[0]) {
-            if (TokenType* t = strToTok.at(buffer)) {
-                activeElement->AddToken(*t);
-            }
-        }
+        //check for token inputs
+        if (DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) activeElement->AddToken(tok_Plus);
+        if (DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     activeElement->AddToken(tok_Multiplication);
+        if (DeshInput->KeyPressed(Key::BACKSLASH))                  activeElement->AddToken(tok_Division);
+        if (DeshInput->KeyPressed(Key::MINUS))                      activeElement->AddToken(tok_Negation);
     }
     
     //// camera inputs ////
