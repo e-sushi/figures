@@ -86,17 +86,9 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		string s = "test";
-		s.erase(3);
-		PRINTLN(s);
-		s.erase(2);
-		PRINTLN(s);
-		s.erase(1);
-		PRINTLN(s);
-		s.erase(0);
-		PRINTLN(s);
-
-		UI::Text(to_string(DeshTime->frameTime, true).str, vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
+		{//debug area
+		
+		}
 
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
