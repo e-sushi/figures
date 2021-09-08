@@ -124,11 +124,10 @@ Update() {
     
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
-    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements);;
+    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 0,0 }, UIWindowFlags_FitAllElements);;
     
-    UI::BeginRow(tokens.count, 30);
+    UI::Row(tokens.count);
     for (int i = 0; i < tokens.count; i++) {
-        RowSetupRelativeColumnWidth(i + 1, 1);
         token curt = tokens[i];
         
         //cases where the user has the token selected
@@ -136,10 +135,10 @@ Update() {
             if (curt.type == tok_Literal) {
                 SetNextItemActive();
                 
-                if(!curt.str[0] == '\0')
+                if(!curt.str.size)
                     SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
                 
-                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
+                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str.str, -	1, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
                     tokens[i].strSize = CalcTextSize(tokens[i].str);
                     //statement = Parser::parse(tokens);
                 }
