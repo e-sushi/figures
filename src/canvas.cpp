@@ -42,11 +42,16 @@ enum CanvasBind_{
     //CanvasBind_Expression_Create = Key::MBLEFT | InputMod_None;  //double pressed
     
     //[LOCAL]  Pencil
-    CanvasBind_Pencil_Stroke           = Key::MBLEFT       | InputMod_Any, //pressed, held
-    CanvasBind_Pencil_SizeIncrementBy1 = Key::MBSCROLLUP   | InputMod_AnyShift,
-    CanvasBind_Pencil_SizeIncrementBy5 = Key::MBSCROLLUP   | InputMod_AnyCtrl,
-    CanvasBind_Pencil_SizeDecrementBy1 = Key::MBSCROLLDOWN | InputMod_AnyShift,
-    CanvasBind_Pencil_SizeDecrementBy5 = Key::MBSCROLLDOWN | InputMod_AnyCtrl,
+    CanvasBind_Pencil_Stroke             = Key::MBLEFT       | InputMod_Any, //pressed, held
+    CanvasBind_Pencil_SizeIncrementBy1   = Key::MBSCROLLUP   | InputMod_AnyShift,
+    CanvasBind_Pencil_SizeIncrementBy5   = Key::MBSCROLLUP   | InputMod_AnyCtrl,
+    CanvasBind_Pencil_SizeDecrementBy1   = Key::MBSCROLLDOWN | InputMod_AnyShift,
+    CanvasBind_Pencil_SizeDecrementBy5   = Key::MBSCROLLDOWN | InputMod_AnyCtrl,
+    CanvasBind_Pencil_DeletePrevious     = Key::Z            | InputMod_AnyCtrl,
+    CanvasBind_Pencil_DetailIncrementBy1 = Key::EQUALS       | InputMod_None,
+    CanvasBind_Pencil_DetailIncrementBy5 = Key::EQUALS       | InputMod_AnyShift,
+    CanvasBind_Pencil_DetailDecrementBy1 = Key::MINUS        | InputMod_None,
+    CanvasBind_Pencil_DetailDecrementBy5 = Key::MINUS        | InputMod_AnyShift,
 }; typedef Key::Key CanvasBind;
 
 /////////////////
@@ -79,15 +84,16 @@ local u32 grid_zoom_fit_increment_index = 0;
 //// @pencil ////
 /////////////////
 struct PencilStroke{
-    f64 size;
-    u32 color;
+    f64   size;
+    color color;
     array<vec2f64> pencil_points;
 };
 local array<PencilStroke> pencil_strokes;
 local u32     pencil_stroke_idx  = 0;
-local f32     pencil_stroke_size = 1;
+local f64     pencil_stroke_size = 1;
 local color   pencil_stroke_color = PackColorU32(249,195,69,255);
 local vec2f64 pencil_stroke_start_pos;
+local u32     pencil_draw_skip_amount = 4;
 
 //////////////////
 //// @utility ////
@@ -253,7 +259,19 @@ Update() {
 /////////////////
 local void 
 DrawPencilStrokes(){
-    
+    UI::BeginWindow("pencil_canvas", vec2::ZERO, DeshWindow->dimensions,
+                    UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+    forE(pencil_strokes){
+        for(u32 point_idx = pencil_draw_skip_amount; 
+            point_idx < it->pencil_points.count; 
+            point_idx += pencil_draw_skip_amount)
+        {
+            vec2f64 prev = it->pencil_points[point_idx-pencil_draw_skip_amount];
+            vec2f64 curr = it->pencil_points[point_idx];
+            UI::Line(ToScreen(prev.x, prev.y), ToScreen(curr.x, curr.y), it->size, it->color);
+        }
+    }
+    UI::EndWindow();
 }
 
 ///////////////
@@ -330,7 +348,7 @@ DrawGridLines(){
                       "\nmii: ",grid_minor_increment
                       )
              .str);
-    UI::Text(to_string("zoom:%g",camera_zoom).str);
+    UI::TextF("zoom:%g",camera_zoom);
 #endif
 }
 
@@ -463,30 +481,48 @@ HandleInput() {
         //// Pencil
         case CanvasTool_Pencil:{
             if(DeshInput->KeyPressed(CanvasBind_Pencil_Stroke)){
-                //PencilStroke new_stroke;
-                //new_stroke.size  = pencil_stroke_size;
-                //new_stroke.color = pencil_stroke_color;
-                //pencil_strokes.add(new_stroke);
-                //pencil_stroke_start_pos = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
+                PencilStroke new_stroke;
+                new_stroke.size  = pencil_stroke_size;
+                new_stroke.color = pencil_stroke_color;
+                pencil_strokes.add(new_stroke);
+                pencil_stroke_start_pos = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
             }
             if(DeshInput->KeyDown(CanvasBind_Pencil_Stroke)){
-                
+                vec2f64 mouse_world = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
+                pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_world);
             }
             if(DeshInput->KeyReleased(CanvasBind_Pencil_Stroke)){
-                //pencil_stroke_idx += 1;
+                pencil_stroke_idx += 1;
             }
-            if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy1)){
-                
+            if(DeshInput->KeyPressed(CanvasBind_Pencil_DeletePrevious)){ 
+                if(pencil_strokes.count){
+                    pencil_strokes.pop();
+                    pencil_stroke_idx -= 1;
+                }
             }
-            if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy5)){
-                
-            }
-            if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy1)){
-                
-            }
-            if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy5)){
-                
-            }
+            if     (DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy1)){ pencil_stroke_size += 1; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy5)){ pencil_stroke_size += 5; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy1)){ pencil_stroke_size -= 1; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy5)){ pencil_stroke_size -= 5; }
+            pencil_stroke_size = ((pencil_stroke_size < 1) ? 1 : ((pencil_stroke_size > 100) ? 100 : (pencil_stroke_size)));
+            if     (DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy1)){ pencil_draw_skip_amount -= 1; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy5)){ pencil_draw_skip_amount -= 5; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
+            else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
+            pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
+#if 1
+            UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+            UI::TextF("Stroke Size:   %f", pencil_stroke_size);
+            UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
+            UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
+            UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
+            UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
+            if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
+            u32 total_stroke_points = 0;
+            forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
+            UI::TextF("Total Points:  %d", total_stroke_points);
+            UI::EndWindow();
+#endif
         }break;
     }
 }
@@ -520,9 +556,9 @@ Update(){
         //send.clear();
     }
     
-    UI::Text(to_string("Active Tool:   %s", CanvasToolStrings[active_tool]).str);
-    UI::Text(to_string("Previous Tool: %s", CanvasToolStrings[previous_tool]).str);
-    UI::Text(to_string("%.3fms", DeshTime->frameTime).str);
-    UI::Text(to_string("(%g,%g)",camera_pos.x,camera_pos.y).str);
+    UI::TextF("Active Tool:   %s", CanvasToolStrings[active_tool]);
+    UI::TextF("Previous Tool: %s", CanvasToolStrings[previous_tool]);
+    UI::TextF("%.3fms", DeshTime->frameTime);
+    UI::TextF("(%g,%g)",camera_pos.x,camera_pos.y);
     UI::EndWindow();
 }
