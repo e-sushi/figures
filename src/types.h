@@ -240,6 +240,7 @@ enum TokenType{
     tok_Negation,           // -
     tok_Multiplication,     // *
     tok_Division,           // /
+    tok_Modulo,             // %
     tok_LessThan,           // <
     tok_GreaterThan,        // >
     tok_LessThanOrEqual,    // <=
@@ -253,7 +254,6 @@ enum TokenType{
     tok_BitXOR,             // ^
     tok_BitShiftLeft,       // <<
     tok_BitShiftRight,      // >>
-    tok_Modulo,             // %
     tok_LogicalNOT,         // !
     tok_BitwiseComplement,  // ~
     tok_QuestionMark,       // ?

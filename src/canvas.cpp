@@ -216,21 +216,27 @@ Update() {
     for (int i = 0; i < tokens.count; i++) {
         token curt = tokens[i];
         
+        if(curt.type != tok_Literal)
+            RowSetupRelativeColumnWidth(i + 1, 2);
+        else
+            RowSetupRelativeColumnWidth(i + 1, 1);
+        
         //cases where the user has the token selected
         if (i == cursor) {
             if (curt.type == tok_Literal) {
                 SetNextItemActive();
                 
-                if(!curt.str[0] == '\0')
+                if(!curt.str[0])
                     SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
                 
-                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText)) {
+                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
                     tokens[i].strSize = CalcTextSize(tokens[i].str);
-                    //statement = Parser::parse(tokens);
+                    statement = Parser::parse(tokens);
                 }
-                
+
                 //selection outline
-                Rect(GetLastItemPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(255.f * (sinf(DeshTotalTime) + 1) / 2) });
+                RectFilled(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
+                
             }
             //underline anything else for now
             else {
@@ -240,9 +246,10 @@ Update() {
             }
         }
         else {
-            if (!curt.str[0] == '\0')
+            if (!curt.str[0])
                 SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
             UI::Text(tokens[i].str, UITextFlags_NoWrap);
+
             
         }
     }
@@ -450,7 +457,7 @@ HandleInput() {
                         selected = true; activeElement = &e;
                     }
                 }
-                
+
                 if(!selected && TIMER_END(dblClickTimer) > dblClickTime){
                     TIMER_RESET(dblClickTimer);
                     activeElement = 0;
@@ -473,7 +480,7 @@ HandleInput() {
                 //check for token inputs
                 if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) activeElement->AddToken(tok_Plus);
                 if(DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     activeElement->AddToken(tok_Multiplication);
-                if(DeshInput->KeyPressed(Key::BACKSLASH))                  activeElement->AddToken(tok_Division);
+                if(DeshInput->KeyPressed(Key::SLASH))                      activeElement->AddToken(tok_Division);
                 if(DeshInput->KeyPressed(Key::MINUS))                      activeElement->AddToken(tok_Negation);
             }
         }break;
