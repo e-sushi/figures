@@ -226,6 +226,7 @@ HandleInput() {
             }else{
                 camera_zoom += camera_zoom / 10.0; 
             }
+            camera_zoom = ((camera_zoom < 1e-37) ? 1e-37 : ((camera_zoom > 1e37) ? 1e37 : (camera_zoom)));
             if(camera_zoom > grid_zoom_fit+grid_major_increment){
                 grid_zoom_fit *= grid_zoom_fit_increments[grid_zoom_fit_increment_index];
                 //major_count = 12;
@@ -243,6 +244,7 @@ HandleInput() {
             }else{
                 camera_zoom -= camera_zoom / 10.0; 
             }
+            camera_zoom = ((camera_zoom < 1e-37) ? 1e-37 : ((camera_zoom > 1e37) ? 1e37 : (camera_zoom)));
             f64 prev_grid_zoom_fit = (grid_zoom_fit_increment_index == 0) ? 
                 grid_zoom_fit/grid_zoom_fit_increments[2] : grid_zoom_fit/grid_zoom_fit_increments[grid_zoom_fit_increment_index-1];
             if(camera_zoom < (prev_grid_zoom_fit)+grid_major_increment){
@@ -355,6 +357,7 @@ DrawGridLines(){
                       "\nmii: ",grid_minor_increment
                       )
              .str);
+    UI::Text(to_string("zoom:%g",camera_zoom).str);
 #endif
 }
 
