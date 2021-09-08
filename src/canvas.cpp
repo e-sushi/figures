@@ -375,16 +375,7 @@ Update() {
     
     //draw canvas elements
     for (Element& e : elements) {
-        //string send = "";
-        //for (token& t : e.tokens)
-        //	send += t.str;
-        if (activeElement == &e) {
-            //UI::RectFilled(ToScreen(e.pos, camera_pos, camera_zoom), (e.size.x == 0 ? vec2{ 11, 11 } : e.size), color{ 100, 100, 155, 150 });
-            //LOG(e.size);
-        }
         e.Update();
-        //UI::Text(send, ToScreen(e.pos, camera_pos, camera_zoom), UITextFlags_NoWrap);
-        //send.clear();
     }
     
     UI::Text(to_string(DeshTime->frameTime, true).str, vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
