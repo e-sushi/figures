@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_KHR_vulkan_glsl : enable
 
 layout(set = 1, binding = 0) uniform sampler2D nullSampler;
 
@@ -17,6 +18,7 @@ float rand(vec2 st) {
 }
 
 vec4 dither(){
+	
 	vec2 texSize = textureSize(nullSampler, 0);
 	vec2 texInc = vec2(1 / texSize.x, 1/ texSize.y);
 	
@@ -66,4 +68,5 @@ vec4 dither(){
 
 void main() {
 	outColor = dither();
+	outColor.a = 1;
 }

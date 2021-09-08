@@ -239,7 +239,7 @@ HandleInput() {
         }
         //zoom in
         if(DeshInput->ScrollUp()){
-            if(DeshInput->ShiftDown()){ //TODO(delle) fix zoom shift
+            if(DeshInput->ShiftDown()){
                 camera_zoom /= 2.0;
             }else{
                 camera_zoom -= camera_zoom / 10.0; 
