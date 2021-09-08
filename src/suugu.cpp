@@ -84,27 +84,17 @@ int main() {
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
-        
-       // UI::Text(to_string(DeshTime->frameTime, true), vec2{0,f32(DeshWindow->height-Storage::NullFont()->height)});
-        
-		//UI::BeginWindow("test", vec2{ 300, 300 }, vec2{ 300, 300 });
-		//
-		//persist string buff = "";
-		//
-		//UI::Row(3);
-		//UI::InputText("lab", buff, -1);
-		//UI::Text("+", UITextFlags_NoWrap);
-		//
-		//UI::Rect(UI::GetLastItemPos() - vec2::ONE, UI::GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(255.f * (sinf(DeshTotalTime) + 1) / 2) });
-		//
-		//UI::SetNextItemSize(vec2{ 14, 14 });
-		//UI::Text("", UITextFlags_NoWrap);
-		//
-		//
-		//
-		//UI::EndWindow();
-        
-        
+
+		string s = "test";
+		s.erase(3);
+		PRINTLN(s);
+		s.erase(2);
+		PRINTLN(s);
+		s.erase(1);
+		PRINTLN(s);
+		s.erase(0);
+		PRINTLN(s);
+
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);

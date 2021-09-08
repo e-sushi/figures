@@ -55,6 +55,9 @@
     <Filter Include="src\deshi\external\stb">
       <UniqueIdentifier>{4f416955-a38e-4f77-9596-4e0a3cc68613}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\deshi\external\d3dx12">
+      <UniqueIdentifier>{3782a311-bc4b-4948-a8a5-57e1b9a43184}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\deshi\src\defines.h">
@@ -228,6 +231,12 @@
     <ClInclude Include="..\deshi\src\utils\cstring.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\external\d3dx12\d3dx12.h">
+      <Filter>src\deshi\external\d3dx12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_dx12.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
@@ -295,6 +304,9 @@
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\renderers\directx.cpp">
       <Filter>src\deshi\core\renderers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_dx12.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
