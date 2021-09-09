@@ -233,7 +233,7 @@ Update() {
                     tokens[i].strSize = CalcTextSize(tokens[i].str);
                     statement = Parser::parse(tokens);
                 }
-
+                
                 //selection outline
                 RectFilled(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
                 
@@ -249,7 +249,7 @@ Update() {
             if (!curt.str[0])
                 SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
             UI::Text(tokens[i].str, UITextFlags_NoWrap);
-
+            
             
         }
     }
@@ -416,6 +416,24 @@ HandleInput() {
         }
     }
     
+#if 1
+    if(active_tool == CanvasTool_Pencil){
+        UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+        UI::TextF("Stroke Size:   %f", pencil_stroke_size);
+        UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
+        UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
+        UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
+        UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
+        if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
+        u32 total_stroke_points = 0;
+        forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
+        UI::TextF("Total Points:  %d", total_stroke_points);
+        UI::EndWindow();
+    }
+#endif
+    
+    //skip the rest of input if a UI window is hovered
+    if(UI::AnyWinHovered()) return;
     switch(active_tool){
         ///////////////////////////////////////////////////////////////////////////////////////////////
         //// Navigation
@@ -457,7 +475,7 @@ HandleInput() {
                         selected = true; activeElement = &e;
                     }
                 }
-
+                
                 if(!selected && TIMER_END(dblClickTimer) > dblClickTime){
                     TIMER_RESET(dblClickTimer);
                     activeElement = 0;
@@ -504,7 +522,7 @@ HandleInput() {
             if(DeshInput->KeyPressed(CanvasBind_Pencil_DeletePrevious)){ 
                 if(pencil_strokes.count){
                     pencil_strokes.pop();
-                    pencil_stroke_idx -= 1;
+                    if(pencil_stroke_idx) pencil_stroke_idx -= 1;
                 }
             }
             if     (DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy1)){ pencil_stroke_size += 1; }
@@ -517,19 +535,6 @@ HandleInput() {
             else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
             else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
             pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
-#if 1
-            UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
-            UI::TextF("Stroke Size:   %f", pencil_stroke_size);
-            UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
-            UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
-            UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
-            UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
-            if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
-            u32 total_stroke_points = 0;
-            forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
-            UI::TextF("Total Points:  %d", total_stroke_points);
-            UI::EndWindow();
-#endif
         }break;
     }
 }
