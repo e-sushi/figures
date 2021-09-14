@@ -36,6 +36,8 @@
     <ClInclude Include="..\deshi\src\core\font.h" />
     <ClInclude Include="..\deshi\src\core\imgui.h" />
     <ClInclude Include="..\deshi\src\core\input.h" />
+    <ClInclude Include="..\deshi\src\core\io.h" />
+    <ClInclude Include="..\deshi\src\core\logging.h" />
     <ClInclude Include="..\deshi\src\core\memory.h" />
     <ClInclude Include="..\deshi\src\core\model.h" />
     <ClInclude Include="..\deshi\src\core\renderer.h" />
@@ -507,7 +509,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)deshi\src;$(SolutionDir)deshi\src\external;C:\VulkanSDK\1.2.162.1\Include;C:\src\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/D"DESHI_WINDOWS=1" /D"DESHI_VULKAN=0" /D"DESHI_OPENGL=0" /D"DESHI_DIRECTX12=1" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D"DESHI_WINDOWS=1" /D"DESHI_VULKAN=0" /D"DESHI_OPENGL=1" /D"DESHI_DIRECTX12=0" %(AdditionalOptions)</AdditionalOptions>
       <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -530,7 +532,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)deshi\src;$(SolutionDir)deshi\src\external;C:\VulkanSDK\1.2.162.1\Include;C:\src\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/D"DESHI_WINDOWS=1" /D"DESHI_VULKAN=0" /D"DESHI_OPENGL=1" /D"DESHI_DIRECTX12=0" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D"DESHI_WINDOWS=1" /D"DESHI_VULKAN=0" /D"DESHI_OPENGL=0" /D"DESHI_DIRECTX12=1" %(AdditionalOptions)</AdditionalOptions>
       <DebugInformationFormat>None</DebugInformationFormat>
     </ClCompile>
     <Link>
