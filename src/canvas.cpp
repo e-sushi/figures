@@ -19,7 +19,7 @@ local CanvasTool previous_tool = CanvasTool_Navigation;
 enum CanvasBind_{
     //[GLOBAL] SetTool
     CanvasBind_SetTool_Navigation = Key::ESCAPE  | InputMod_Any,
-    CanvasBind_SetTool_Context    = Key::MBRIGHT | InputMod_Any,
+    CanvasBind_SetTool_Context    = Key::MBRIGHT | InputMod_AnyCtrl,
     CanvasBind_SetTool_Expression = Key::E       | InputMod_AnyCtrl, //NOTE temp making this CTRL+E for simplicity
     CanvasBind_SetTool_Pencil     = Key::P       | InputMod_AnyCtrl,
     CanvasBind_SetTool_Previous   = Key::MBFOUR  | InputMod_None,
@@ -38,8 +38,8 @@ enum CanvasBind_{
     
     
     //[LOCAL]  Expression
-    //CanvasBind_Expression_Select = Key::MBLEFT | InputMod_None;  //pressed
-    //CanvasBind_Expression_Create = Key::MBLEFT | InputMod_None;  //double pressed
+    CanvasBind_Expression_Select = Key::MBLEFT  | InputMod_None, //pressed
+    CanvasBind_Expression_Create = Key::MBRIGHT | InputMod_None, //pressed
     
     //[LOCAL]  Pencil
     CanvasBind_Pencil_Stroke             = Key::MBLEFT       | InputMod_Any, //pressed, held
@@ -210,7 +210,7 @@ Update() {
     
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
-    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements);;
+    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements);
     
     UI::BeginRow(tokens.count, 30);
     for (int i = 0; i < tokens.count; i++) {
@@ -418,7 +418,7 @@ HandleInput() {
     
 #if 1
     if(active_tool == CanvasTool_Pencil){
-        UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+        UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
         UI::TextF("Stroke Size:   %f", pencil_stroke_size);
         UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
         UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
@@ -428,6 +428,18 @@ HandleInput() {
         u32 total_stroke_points = 0;
         forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
         UI::TextF("Total Points:  %d", total_stroke_points);
+        UI::EndWindow();
+    }
+    if(active_tool == CanvasTool_Expression){
+        UI::BeginWindow("expression_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
+        UI::TextF("Elements: %d", elements.count);
+        if(activeElement){
+            UI::TextF("Selected: %#x", activeElement);
+            UI::TextF("Position: (%g,%g)", activeElement->pos.x,activeElement->pos.y);
+            UI::TextF("Size:     (%g,%g)", activeElement->size.x,activeElement->size.y);
+            UI::TextF("Cursor:   %d", activeElement->cursor);
+            UI::TextF("Tokens:   %d", activeElement->tokens.count);
+        }
         UI::EndWindow();
     }
 #endif
@@ -464,36 +476,31 @@ HandleInput() {
         ///////////////////////////////////////////////////////////////////////////////////////////////
         //// Expression
         case CanvasTool_Expression:{
-            //handle selecting/creating elements
-            if(DeshInput->LMousePressed()){
-                persist TIMER_START(dblClickTimer);
-                f32 dblClickTime = 200;
-                //check that we're not clicking on an element that already exists
-                bool selected = false;
-                for(Element& e : elements){
-                    if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(e.pos.x, e.pos.y), e.size)){
-                        selected = true; activeElement = &e;
+            if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
+                activeElement = 0;
+                forE(elements){
+                    if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size)){
+                        activeElement = it;
                     }
                 }
-                
-                if(!selected && TIMER_END(dblClickTimer) > dblClickTime){
-                    TIMER_RESET(dblClickTimer);
-                    activeElement = 0;
-                }else if(!selected && TIMER_END(dblClickTimer) < dblClickTime){
-                    TIMER_RESET(dblClickTimer);
-                    elements.add(Element());
-                    activeElement = elements.last;
-                    activeElement->pos = ToWorld(DeshInput->mousePos);
-                }
+            }
+            
+            if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
+                elements.add(Element());
+                activeElement = elements.last;
+                activeElement->pos = ToWorld(DeshInput->mousePos);
             }
             
             //handle token inputs
             if(activeElement){
                 //moving cursor
-                if     (DeshInput->KeyPressed(Key::LEFT  | InputMod_AnyCtrl) && activeElement->cursor >= 0) 
+                if      (DeshInput->KeyPressed(Key::LEFT) 
+                         && activeElement->cursor >= 0){
                     activeElement->cursor--;
-                else if(DeshInput->KeyPressed(Key::RIGHT | InputMod_AnyCtrl) && activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1) 
+                }else if(DeshInput->KeyPressed(Key::RIGHT)
+                         && (activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1)){
                     activeElement->cursor++;
+                }
                 
                 //check for token inputs
                 if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) activeElement->AddToken(tok_Plus);
