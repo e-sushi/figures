@@ -317,6 +317,12 @@
     <ClCompile Include="..\src\canvas.cpp">
       <Filter>src\suugu</Filter>
     </ClCompile>
+    <ClCompile Include="..\deshi\src\core\io.cpp">
+      <Filter>src\deshi\core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\logging.cpp">
+      <Filter>src\deshi\core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\deshi\src\math\mat3.inl">
