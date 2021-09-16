@@ -87,7 +87,7 @@ int main() {
 		canvas.Update();
 
 		{//debug area
-		
+			
 		}
 
 		UI::Update();

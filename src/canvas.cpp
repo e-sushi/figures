@@ -210,7 +210,7 @@ Update() {
     
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
-    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements);;
+    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoMove | UIWindowFlags_NoResize);
     
     UI::BeginRow(tokens.count, 30);
     for (int i = 0; i < tokens.count; i++) {
@@ -235,7 +235,7 @@ Update() {
                 }
                 
                 //selection outline
-                RectFilled(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
+                Rect(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
                 
             }
             //underline anything else for now
@@ -495,11 +495,18 @@ HandleInput() {
                 else if(DeshInput->KeyPressed(Key::RIGHT | InputMod_AnyCtrl) && activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1) 
                     activeElement->cursor++;
                 
+
+               
+
                 //check for token inputs
-                if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) activeElement->AddToken(tok_Plus);
-                if(DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     activeElement->AddToken(tok_Multiplication);
-                if(DeshInput->KeyPressed(Key::SLASH))                      activeElement->AddToken(tok_Division);
-                if(DeshInput->KeyPressed(Key::MINUS))                      activeElement->AddToken(tok_Negation);
+                if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) 
+                    activeElement->AddToken(tok_Plus);
+                if(DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     
+                    activeElement->AddToken(tok_Multiplication);
+                if(DeshInput->KeyPressed(Key::SLASH))                      
+                    activeElement->AddToken(tok_Division);
+                if(DeshInput->KeyPressed(Key::MINUS))                      
+                    activeElement->AddToken(tok_Negation);
             }
         }break;
         ///////////////////////////////////////////////////////////////////////////////////////////////
