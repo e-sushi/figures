@@ -61,6 +61,7 @@
     <ClInclude Include="..\deshi\src\external\imgui\imstb_textedit.h" />
     <ClInclude Include="..\deshi\src\external\imgui\imstb_truetype.h" />
     <ClInclude Include="..\deshi\src\external\stb\stb_image.h" />
+    <ClInclude Include="..\deshi\src\external\stb\stb_truetype.h" />
     <ClInclude Include="..\deshi\src\geometry\Edge.h" />
     <ClInclude Include="..\deshi\src\geometry\Geometry.h" />
     <ClInclude Include="..\deshi\src\math\InertiaTensors.h" />

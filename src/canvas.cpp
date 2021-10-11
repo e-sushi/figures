@@ -54,6 +54,15 @@ enum CanvasBind_{
     CanvasBind_Pencil_DetailDecrementBy5 = Key::MINUS        | InputMod_AnyShift,
 }; typedef Key::Key CanvasBind;
 
+////////////////
+//// @fonts ////
+////////////////
+
+local Font* mathfont;
+local Font* mathfontitalic;
+
+
+
 /////////////////
 //// @camera ////
 /////////////////
@@ -202,61 +211,78 @@ AddToken(TokenType t) {
 void Element::
 Update() {
     using namespace UI;
+    PushFont(mathfont);
+    
     Font* font = UI::GetStyle().font;
     vec2 winpos = ToScreen(pos.x, pos.y);
     
     PushVar(UIStyleVar_WindowPadding, vec2{ 0,0 });
     PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
     
+    //temp place for font used by math representation, eventually move this to be in an easier place to change at run time
+
+
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
-    BeginWindow(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoMove | UIWindowFlags_NoResize);
+    Begin(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoMove | UIWindowFlags_NoResize);
     
-    UI::BeginRow(tokens.count, 30);
-    for (int i = 0; i < tokens.count; i++) {
-        token curt = tokens[i];
-        
-        if(curt.type != tok_Literal)
-            RowSetupRelativeColumnWidth(i + 1, 2);
-        else
-            RowSetupRelativeColumnWidth(i + 1, 1);
-        
-        //cases where the user has the token selected
-        if (i == cursor) {
-            if (curt.type == tok_Literal) {
-                SetNextItemActive();
-                
-                if(!curt.str[0])
-                    SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
-                
-                if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
-                    tokens[i].strSize = CalcTextSize(tokens[i].str);
-                    statement = Parser::parse(tokens);
+    if (tokens.count) {
+
+        UI::BeginRow(tokens.count, 30);
+        for (int i = 0; i < tokens.count; i++) {
+            token curt = tokens[i];
+
+            if (curt.type != tok_Literal)
+                RowSetupRelativeColumnWidth(i + 1, 2);
+            else
+                RowSetupRelativeColumnWidth(i + 1, 1);
+
+            //cases where the user has the token selected
+            if (i == cursor) {
+                if (curt.type == tok_Literal) {
+                    SetNextItemActive();
+
+                    if (!curt.str[0])
+                        SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+
+                    if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
+                        tokens[i].strSize = CalcTextSize(tokens[i].str);
+                        statement = Parser::parse(tokens);
+                    }
+
+                    //selection outline
+                    Rect(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
+
                 }
-                
-                //selection outline
-                Rect(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
-                
+                //underline anything else for now
+                else {
+
+                    Text(tokens[i].str, UITextFlags_NoWrap);
+                    Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
+                }
             }
-            //underline anything else for now
             else {
-                
-                Text(tokens[i].str, UITextFlags_NoWrap);
-                Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
+                if (!curt.str[0])
+                    SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+                UI::Text(tokens[i].str, UITextFlags_NoWrap);
+
+
             }
         }
-        else {
-            if (!curt.str[0])
-                SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
-            UI::Text(tokens[i].str, UITextFlags_NoWrap);
-            
-            
-        }
+        UI::EndRow();
     }
-    UI::EndRow();
+    else {
+        PushFont(mathfontitalic);
+        //draw initial statement
+        UI::Text("type initial statement...");
+        PopFont();
+    }
+
+
     
-    EndWindow();
+    End();
     PopVar(2);
+    PopFont();
     //UI::ShowDebugWindowOf(TOSTRING((char)this).str);
 }
 
@@ -266,7 +292,7 @@ Update() {
 /////////////////
 local void 
 DrawPencilStrokes(){
-    UI::BeginWindow("pencil_canvas", vec2::ZERO, DeshWindow->dimensions,
+    UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions,
                     UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
     forE(pencil_strokes){
         for(u32 point_idx = pencil_draw_skip_amount; 
@@ -278,7 +304,7 @@ DrawPencilStrokes(){
             UI::Line(ToScreen(prev.x, prev.y), ToScreen(curr.x, curr.y), it->size, it->color);
         }
     }
-    UI::EndWindow();
+    UI::End();
 }
 
 ///////////////
@@ -340,7 +366,8 @@ DrawGridLines(){
     UI::Line(ToScreen(0,tl.y), ToScreen(0,br.y), 1, Color_Green);
     UI::Text("0", ToScreen({0,0}), PackColorU32(255,255,255,128), UITextFlags_NoWrap);
 #if 0 //debug text
-    UI::Text(TOSTRING(  "pos: ",camera_pos,
+    UI::Text(TOSTRING(  
+                      "pos: ",camera_pos,
                       "\nzoom:",camera_zoom,
                       "\ntl:  ",tl,
                       "\nbr:  ",br,
@@ -418,7 +445,7 @@ HandleInput() {
     
 #if 1
     if(active_tool == CanvasTool_Pencil){
-        UI::BeginWindow("pencil_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
+        UI::Begin("pencil_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
         UI::TextF("Stroke Size:   %f", pencil_stroke_size);
         UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
         UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
@@ -428,10 +455,10 @@ HandleInput() {
         u32 total_stroke_points = 0;
         forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
         UI::TextF("Total Points:  %d", total_stroke_points);
-        UI::EndWindow();
+        UI::End();
     }
     if(active_tool == CanvasTool_Expression){
-        UI::BeginWindow("expression_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
+        UI::Begin("expression_debug", {10,10}, {200,200}, UIWindowFlags_FitAllElements);
         UI::TextF("Elements: %d", elements.count);
         if(activeElement){
             UI::TextF("Selected: %#x", activeElement);
@@ -440,7 +467,7 @@ HandleInput() {
             UI::TextF("Cursor:   %d", activeElement->cursor);
             UI::TextF("Tokens:   %d", activeElement->tokens.count);
         }
-        UI::EndWindow();
+        UI::End();
     }
 #endif
     
@@ -501,9 +528,6 @@ HandleInput() {
                          && (activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1)){
                     activeElement->cursor++;
                 }
-                
-
-               
 
                 //check for token inputs
                 if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) 
@@ -556,12 +580,15 @@ HandleInput() {
 void Canvas::
 Init(){
     elements.reserve(100);
+
+    mathfont = Storage::CreateFontFromFileTTF("lmmonoprop10-regular.otf", 100).second;
+    mathfontitalic = Storage::CreateFontFromFileTTF("lmmonoprop10-oblique.otf", 100).second;
 }
 
 void Canvas::
 Update(){
     UI::SetNextWindowSize(DeshWindow->dimensions);
-    UI::BeginWindow("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+    UI::Begin("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
     //if (DeshInput->RMousePressed() || gathering) GatherInput(DeshInput->mousePos);
     
     HandleInput();
@@ -577,5 +604,5 @@ Update(){
     UI::TextF("Previous Tool: %s", CanvasToolStrings[previous_tool]);
     UI::TextF("%.3fms", DeshTime->frameTime);
     UI::TextF("(%g,%g)",camera_pos.x,camera_pos.y);
-    UI::EndWindow();
+    UI::End();
 }

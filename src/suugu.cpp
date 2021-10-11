@@ -1,4 +1,4 @@
-/* suugu
+﻿/* suugu
 
 current brakus naur idea
 this is basically the grammar we expect on input
@@ -50,6 +50,7 @@ Parser TODOs
 #include "utils/array.h"
 #include "utils/map.h"
 #include "math/Math.h"
+#include "core/logging.h"
 
 //// STL includes ////
 
@@ -64,6 +65,8 @@ Parser TODOs
 #include "solver.cpp"
 #include "canvas.cpp"
 
+#include <algorithm>
+
 int main() {
 	//suugu vars
     Canvas canvas;
@@ -74,6 +77,7 @@ int main() {
     
     //init suugu
 	canvas.Init();
+
     
     //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
@@ -86,10 +90,29 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		{//debug area
-			
-		}
+		static Font* font = Storage::CreateFontFromFileTTF("lmmonoltcond10-regular.otf", 100).second;
 
+		Render::DrawTextUI(font, cstr_lit("abcdefghijklmnopqrstuvwxyz"), vec2{ 0, 360 }, Color_White, vec2{ 0.5,0.5 });
+		//Render::DrawTextUI(font, cstr_lit("test"), vec2{ 0, (f32)font->height }, Color_White, vec2{ 0.3, 0.3 });
+		//Render::DrawTextUI(font, cstr_lit("test"), vec2{ 0, (f32)font->height * 4 }, Color_White, vec2{ 0.5, 0.5 });
+
+
+		
+
+		{//debug area
+			//UI::Begin("testin", vec2::ONE * 300, vec2::ONE * 300);
+			//
+			//UI::PushFont(font);
+			//
+			//UI::Text("∫xdx");
+			//
+			//UI::PopFont();
+			//
+			//UI::Text("regular font");
+			//
+			//UI::End();
+		}
+						
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);

@@ -336,9 +336,9 @@ global_ map<const char*, TokenType> strToTok{
 	{"%",    tok_Modulo},
 	{"?",    tok_QuestionMark},
 	{":",    tok_Colon},
-	{"",   tok_If},
-	{"", tok_Else},
-	{"",    tok_Comment}
+	{"",     tok_If},
+	{"",     tok_Else},
+	{"",     tok_Comment}
 };
 
 enum ExpressionType{
