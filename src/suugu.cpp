@@ -92,12 +92,8 @@ int main() {
 
 		static Font* font = Storage::CreateFontFromFileTTF("lmmonoltcond10-regular.otf", 100).second;
 
-		Render::DrawTextUI(font, cstr_lit("abcdefghijklmnopqrstuvwxyz"), vec2{ 0, 360 }, Color_White, vec2{ 0.5,0.5 });
-		//Render::DrawTextUI(font, cstr_lit("test"), vec2{ 0, (f32)font->height }, Color_White, vec2{ 0.3, 0.3 });
-		//Render::DrawTextUI(font, cstr_lit("test"), vec2{ 0, (f32)font->height * 4 }, Color_White, vec2{ 0.5, 0.5 });
+		//Render::DrawTextUI(font, cstr_lit("WOWOWOWOWOWOWOWOWO"), vec2{ 0, 360 }, Color_White, vec2{ Math::BoundedOscillation(0.5, 1, DeshTotalTime), Math::BoundedOscillation(0.5, 1, DeshTotalTime) });
 
-
-		
 
 		{//debug area
 			//UI::Begin("testin", vec2::ONE * 300, vec2::ONE * 300);

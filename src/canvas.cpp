@@ -66,9 +66,9 @@ local Font* mathfontitalic;
 /////////////////
 //// @camera ////
 /////////////////
-local vec2f64 camera_pos{0,0};
-local f64     camera_zoom = 5.0;
-local vec2f64 camera_pan_start_pos;
+local vec2 camera_pos{0,0};
+local f32     camera_zoom = 5.0;
+local vec2 camera_pan_start_pos;
 local vec2    camera_pan_mouse_pos;
 local bool    camera_pan_active = false;
 
@@ -81,27 +81,27 @@ local bool showGridMajorLines = true;
 local bool showGridMinorLines = true;
 local bool showGridAxisCoords = true;
 //grid internals
-local f64 grid_zoom_fit        = 5.0;
+local f32 grid_zoom_fit        = 5.0;
 local s32 grid_major_count     = 12;
-local f64 grid_major_increment = 1.0;
+local f32 grid_major_increment = 1.0;
 local s32 grid_minor_count     = 4;
-local f64 grid_minor_increment = 0.2;
-local f64 grid_zoom_fit_increments[3] = {2.0, 2.5, 2.0};
+local f32 grid_minor_increment = 0.2;
+local f32 grid_zoom_fit_increments[3] = {2.0, 2.5, 2.0};
 local u32 grid_zoom_fit_increment_index = 0;
 
 /////////////////
 //// @pencil ////
 /////////////////
 struct PencilStroke{
-    f64   size;
+    f32   size;
     color color;
-    array<vec2f64> pencil_points;
+    array<vec2> pencil_points;
 };
 local array<PencilStroke> pencil_strokes;
 local u32     pencil_stroke_idx  = 0;
-local f64     pencil_stroke_size = 1;
+local f32     pencil_stroke_size = 1;
 local color   pencil_stroke_color = PackColorU32(249,195,69,255);
-local vec2f64 pencil_stroke_start_pos;
+local vec2 pencil_stroke_start_pos;
 local u32     pencil_draw_skip_amount = 4;
 
 //////////////////
@@ -118,23 +118,23 @@ ToScreen(vec2 point){
 }
 
 inline local vec2 
-ToScreen(f64 x, f64 y){
+ToScreen(f32 x, f32 y){
 	return ToScreen(vec2(x,y));
 }
 
-local vec2f64 
-ToWorld(f64 x, f64 y){
-    vec2f64 point{x, y};
-	point.x /= f64(DeshWindow->width); point.y /= f64(DeshWindow->height);
+local vec2 
+ToWorld(f32 x, f32 y){
+    vec2 point{x, y};
+	point.x /= f32(DeshWindow->width); point.y /= f32(DeshWindow->height);
 	point *= 2;
 	point -= {1,1};
-	point.y /= -f64(DeshWindow->width) / f64(DeshWindow->height);
+	point.y /= -f32(DeshWindow->width) / f32(DeshWindow->height);
 	point *= camera_zoom;
 	point += camera_pos;
 	return point;
 };
 
-inline local vec2f64 
+inline local vec2 
 ToWorld(vec2 point){
 	return ToWorld(point.x, point.y);
 };
@@ -294,15 +294,22 @@ local void
 DrawPencilStrokes(){
     UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions,
                     UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
+
     forE(pencil_strokes){
-        for(u32 point_idx = pencil_draw_skip_amount; 
-            point_idx < it->pencil_points.count; 
-            point_idx += pencil_draw_skip_amount)
-        {
-            vec2f64 prev = it->pencil_points[point_idx-pencil_draw_skip_amount];
-            vec2f64 curr = it->pencil_points[point_idx];
-            UI::Line(ToScreen(prev.x, prev.y), ToScreen(curr.x, curr.y), it->size, it->color);
+        if (it->pencil_points.count > 1) {
+            array<vec2> pps = it->pencil_points;
+            for (vec2& p : pps) p = ToScreen(p);
+            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color);
+        
         }
+            //for(u32 point_idx = pencil_draw_skip_amount; 
+        //    point_idx < it->pencil_points.count; 
+        //    point_idx += pencil_draw_skip_amount)
+        //{
+        //    vec2 prev = it->pencil_points[point_idx-pencil_draw_skip_amount];
+        //    vec2 curr = it->pencil_points[point_idx];
+        //    UI::Line(ToScreen(prev.x, prev.y), ToScreen(curr.x, curr.y), it->size, it->color);
+        //}
     }
     UI::End();
 }
@@ -313,16 +320,16 @@ DrawPencilStrokes(){
 local void 
 DrawGridLines(){
     vec2 screen = DeshWindow->dimensions;
-    vec2f64 tl = ToWorld({0,0});
-    vec2f64 br = ToWorld(screen);
+    vec2 tl = ToWorld({0,0});
+    vec2 br = ToWorld(screen);
     //round to nearest multiple of major_increment (favoring away from zero)
-    f64 gx = floor(f64(tl.x) / grid_major_increment) * grid_major_increment;
-    f64 gy = ceil (f64(tl.y) / grid_major_increment) * grid_major_increment;
-    f64 ex = ceil (f64(br.x) / grid_major_increment) * grid_major_increment;
-    f64 ey = floor(f64(br.y) / grid_major_increment) * grid_major_increment;
+    f32 gx = floor(f32(tl.x) / grid_major_increment) * grid_major_increment;
+    f32 gy = ceil (f32(tl.y) / grid_major_increment) * grid_major_increment;
+    f32 ex = ceil (f32(br.x) / grid_major_increment) * grid_major_increment;
+    f32 ey = floor(f32(br.y) / grid_major_increment) * grid_major_increment;
     
     //draw grid lines
-    for(f64 x = gx; x < ex; x += grid_major_increment){
+    for(f32 x = gx; x < ex; x += grid_major_increment){
         vec2 coord = ToScreen({f32(x),0});
         if(showGridAxisCoords && x != 0){
             UI::Text(to_string("%g",x).str, coord, PackColorU32(255,255,255,128), UITextFlags_NoWrap);
@@ -341,7 +348,7 @@ DrawGridLines(){
             }
         }
     }
-    for(f64 y = gy; y > ey; y -= grid_major_increment){
+    for(f32 y = gy; y > ey; y -= grid_major_increment){
         vec2 coord = ToScreen({0,f32(y)});
         if(showGridAxisCoords && y != 0){
             UI::Text(to_string("%g",y).str, coord, PackColorU32(255,255,255,128), UITextFlags_NoWrap);
@@ -416,14 +423,14 @@ HandleInput() {
     if(DeshInput->KeyPressed(CanvasBind_Camera_ZoomIn) && !UI::AnyWinHovered()){
         camera_zoom -= camera_zoom / 10.0; 
         camera_zoom = ((camera_zoom < 1e-37) ? 1e-37 : ((camera_zoom > 1e37) ? 1e37 : (camera_zoom)));
-        f64 prev_grid_zoom_fit = (grid_zoom_fit_increment_index == 0) ? 
+        f32 prev_grid_zoom_fit = (grid_zoom_fit_increment_index == 0) ? 
             grid_zoom_fit/grid_zoom_fit_increments[2] : grid_zoom_fit/grid_zoom_fit_increments[grid_zoom_fit_increment_index-1];
         if(camera_zoom < (prev_grid_zoom_fit)+grid_major_increment){
             grid_zoom_fit = prev_grid_zoom_fit;
             //major_count = 12;
             grid_major_increment = grid_zoom_fit / 5.0;
             grid_minor_count = (grid_zoom_fit_increment_index == 2) ? 3 : 4;
-            grid_minor_increment = grid_major_increment / f64(grid_minor_count + 1);
+            grid_minor_increment = grid_major_increment / f32(grid_minor_count + 1);
             grid_zoom_fit_increment_index -= 1;
             if(grid_zoom_fit_increment_index == -1) grid_zoom_fit_increment_index = 2;
             Assert(grid_zoom_fit_increment_index < 3);
@@ -437,7 +444,7 @@ HandleInput() {
             //major_count = 12;
             grid_major_increment = grid_zoom_fit / 5.0;
             grid_minor_count = (grid_zoom_fit_increment_index == 0) ? 3 : 4;
-            grid_minor_increment = grid_major_increment / f64(grid_minor_count + 1);
+            grid_minor_increment = grid_major_increment / f32(grid_minor_count + 1);
             grid_zoom_fit_increment_index = (grid_zoom_fit_increment_index + 1) % 3;
             Assert(grid_zoom_fit_increment_index < 3);
         }
@@ -551,7 +558,7 @@ HandleInput() {
                 pencil_stroke_start_pos = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
             }
             if(DeshInput->KeyDown(CanvasBind_Pencil_Stroke)){
-                vec2f64 mouse_world = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
+                vec2 mouse_world = ToWorld(DeshInput->mouseX, DeshInput->mouseY);
                 pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_world);
             }
             if(DeshInput->KeyReleased(CanvasBind_Pencil_Stroke)){
@@ -598,11 +605,12 @@ Update(){
     //draw canvas elements
     for (Element& e : elements) {
         e.Update();
-    }
+    }						
+
     
     UI::TextF("Active Tool:   %s", CanvasToolStrings[active_tool]);
     UI::TextF("Previous Tool: %s", CanvasToolStrings[previous_tool]);
-    UI::TextF("%.3fms", DeshTime->frameTime);
+    UI::TextF("%.3ffps", F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
     UI::TextF("(%g,%g)",camera_pos.x,camera_pos.y);
     UI::End();
 }
