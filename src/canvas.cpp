@@ -243,7 +243,7 @@ Update() {
                     SetNextItemActive();
 
                     if (!curt.str[0])
-                        SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+                        SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
 
                     if (InputText((char*)TOSTRING((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
                         tokens[i].strSize = CalcTextSize(tokens[i].str);
@@ -258,12 +258,12 @@ Update() {
                 else {
 
                     Text(tokens[i].str, UITextFlags_NoWrap);
-                    Line(vec2{ GetLastItemScreenPos().x + font->width, GetLastItemScreenPos().y + (f32)font->height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->height + 1 }, 1);
+                    Line(vec2{ GetLastItemScreenPos().x + font->max_width, GetLastItemScreenPos().y + (f32)font->max_height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->max_height + 1 }, 1);
                 }
             }
             else {
                 if (!curt.str[0])
-                    SetNextItemSize(vec2{ (f32)font->height, (f32)font->height });
+                    SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
                 UI::Text(tokens[i].str, UITextFlags_NoWrap);
 
 
@@ -274,7 +274,7 @@ Update() {
     else {
         PushFont(mathfontitalic);
         //draw initial statement
-        UI::Text("type initial statement...");
+        UI::Text("type initial statement...", UITextFlags_NoWrap);
         PopFont();
     }
 
@@ -302,14 +302,6 @@ DrawPencilStrokes(){
             Render::DrawLinesUI(pps, it->size / camera_zoom, it->color);
         
         }
-            //for(u32 point_idx = pencil_draw_skip_amount; 
-        //    point_idx < it->pencil_points.count; 
-        //    point_idx += pencil_draw_skip_amount)
-        //{
-        //    vec2 prev = it->pencil_points[point_idx-pencil_draw_skip_amount];
-        //    vec2 curr = it->pencil_points[point_idx];
-        //    UI::Line(ToScreen(prev.x, prev.y), ToScreen(curr.x, curr.y), it->size, it->color);
-        //}
     }
     UI::End();
 }
@@ -588,8 +580,8 @@ void Canvas::
 Init(){
     elements.reserve(100);
 
-    mathfont = Storage::CreateFontFromFileTTF("lmmonoprop10-regular.otf", 100).second;
-    mathfontitalic = Storage::CreateFontFromFileTTF("lmmonoprop10-oblique.otf", 100).second;
+   // mathfont = Storage::CreateFontFromFileTTF("lmmonoprop10-regular.otf", 100).second;
+   // mathfontitalic = Storage::CreateFontFromFileTTF("lmmonoprop10-oblique.otf", 100).second;
 }
 
 void Canvas::

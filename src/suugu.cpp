@@ -90,9 +90,9 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		static Font* font = Storage::CreateFontFromFileTTF("lmmonoltcond10-regular.otf", 100).second;
+		static Font* font = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 100).second;
 
-		//Render::DrawTextUI(font, cstr_lit("WOWOWOWOWOWOWOWOWO"), vec2{ 0, 360 }, Color_White, vec2{ Math::BoundedOscillation(0.5, 1, DeshTotalTime), Math::BoundedOscillation(0.5, 1, DeshTotalTime) });
+		Render::DrawTextUI(font, cstr_lit("+-)(*&^%$#@!><,./?';:\"[] {}\\~`"), vec2{ 0, 360 }, Color_White, vec2{ Math::BoundedOscillation(0.5, 1, DeshTotalTime), Math::BoundedOscillation(0.5, 1, DeshTotalTime + M_PI / 2) });
 
 
 		{//debug area
@@ -113,6 +113,8 @@ int main() {
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
+
+	
     
     //cleanup deshi
 	deshi::cleanup();
