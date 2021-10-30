@@ -213,17 +213,15 @@ Update() {
     using namespace UI;
     PushFont(mathfont);
     
-    Font* font = UI::GetStyle().font;
+    Font* font = mathfont;
     vec2 winpos = ToScreen(pos.x, pos.y);
     
     PushVar(UIStyleVar_WindowPadding, vec2{ 0,0 });
     PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
     
-    //temp place for font used by math representation, eventually move this to be in an easier place to change at run time
-
-
     SetNextWindowPos(winpos);
     //NOTE: I dont think this way of dynamically naming actually works so
+    PushScale(vec2::ONE / camera_zoom);
     Begin(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoMove | UIWindowFlags_NoResize);
     
     if (tokens.count) {
@@ -272,10 +270,10 @@ Update() {
         UI::EndRow();
     }
     else {
-        PushFont(mathfontitalic);
+        //PushFont(mathfontitalic);
         //draw initial statement
         UI::Text("type initial statement...", UITextFlags_NoWrap);
-        PopFont();
+        //PopFont();
     }
 
 
@@ -283,6 +281,7 @@ Update() {
     End();
     PopVar(2);
     PopFont();
+    PopScale();
     //UI::ShowDebugWindowOf(TOSTRING((char)this).str);
 }
 
@@ -580,8 +579,10 @@ void Canvas::
 Init(){
     elements.reserve(100);
 
-   // mathfont = Storage::CreateFontFromFileTTF("lmmonoprop10-regular.otf", 100).second;
-   // mathfontitalic = Storage::CreateFontFromFileTTF("lmmonoprop10-oblique.otf", 100).second;
+    mathfontitalic = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Italic.otf", 100).second;
+    mathfont = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 100).second;
+
+    Assert(mathfont && mathfontitalic, "math fonts failed to load");
 }
 
 void Canvas::

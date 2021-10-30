@@ -10,7 +10,7 @@
 
 struct Element {
 	vec2 pos; //NOTE world space //TODO maybe cache a screen position for elements 
-	vec2 size;
+	vec2 size; //world size
 	s32 cursor = 0; //for tracking where in the token array we are editing
 	array<token> tokens; //list of tokens the user has input and their strings to show 
 	Statement statement;

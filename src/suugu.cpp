@@ -90,23 +90,8 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		static Font* font = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 100).second;
-
-		Render::DrawTextUI(font, cstr_lit("+-)(*&^%$#@!><,./?';:\"[] {}\\~`"), vec2{ 0, 360 }, Color_White, vec2{ Math::BoundedOscillation(0.5, 1, DeshTotalTime), Math::BoundedOscillation(0.5, 1, DeshTotalTime + M_PI / 2) });
-
-
 		{//debug area
-			//UI::Begin("testin", vec2::ONE * 300, vec2::ONE * 300);
-			//
-			//UI::PushFont(font);
-			//
-			//UI::Text("∫xdx");
-			//
-			//UI::PopFont();
-			//
-			//UI::Text("regular font");
-			//
-			//UI::End();
+
 		}
 						
 		UI::Update();
