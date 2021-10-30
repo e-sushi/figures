@@ -32,7 +32,7 @@ enum CanvasBind_{
     //[LOCAL]  Navigation 
     CanvasBind_Navigation_Pan       = Key::MBLEFT  | InputMod_Any, //pressed, held
     CanvasBind_Navigation_ResetPos  = Key::NUMPAD0 | InputMod_None,
-    CanvasBind_Navigation_ResetZoom = Key::NUMPAD0 | InputMod_AnyShift,
+    CanvasBind_Navigation_ResetZoom = Key::NUMPAD0 ,
     
     //[LOCAL]  Context
     
@@ -139,6 +139,12 @@ ToWorld(vec2 point){
 	return ToWorld(point.x, point.y);
 };
 
+local vec2 //returns the width and height of the area in world space that the user can currently see as a vec2
+WorldViewArea() {
+    return vec2(2 * camera_zoom, 2 * camera_zoom * (float)DeshWindow->height / DeshWindow->width);
+
+}
+
 //////////////////
 //// @element ////
 //////////////////
@@ -212,7 +218,7 @@ void Element::
 Update() {
     using namespace UI;
     PushFont(mathfont);
-    
+
     Font* font = mathfont;
     vec2 winpos = ToScreen(pos.x, pos.y);
     
@@ -220,10 +226,11 @@ Update() {
     PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
     
     SetNextWindowPos(winpos);
-    //NOTE: I dont think this way of dynamically naming actually works so
-    PushScale(vec2::ONE / camera_zoom);
-    Begin(TOSTRING((char)this).str, vec2{ 0,0 }, vec2{ 300,300 }, UIWindowFlags_FitAllElements | UIWindowFlags_NoMove | UIWindowFlags_NoResize);
-    
+    PushVar(UIStyleVar_FontHeight, 20);
+    PushScale(vec2::ONE * size.y / camera_zoom * 2);
+    Log("scale", vec2::ONE * size.y / camera_zoom * 2);
+    Begin(TOSTRING((char)this).str, vec2{ 0,0 }, size * DeshWindow->width / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag);
+   
     if (tokens.count) {
 
         UI::BeginRow(tokens.count, 30);
@@ -270,19 +277,18 @@ Update() {
         UI::EndRow();
     }
     else {
-        //PushFont(mathfontitalic);
         //draw initial statement
+        PushFont(mathfontitalic);
         UI::Text("type initial statement...", UITextFlags_NoWrap);
-        //PopFont();
+        PopFont();
     }
 
 
     
     End();
-    PopVar(2);
+    PopVar(3);
     PopFont();
     PopScale();
-    //UI::ShowDebugWindowOf(TOSTRING((char)this).str);
 }
 
 
@@ -504,7 +510,7 @@ HandleInput() {
             if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
                 activeElement = 0;
                 forE(elements){
-                    if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size)){
+                    if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size / (2 * camera_zoom) * DeshWindow->width)){
                         activeElement = it;
                     }
                 }
@@ -514,6 +520,7 @@ HandleInput() {
                 elements.add(Element());
                 activeElement = elements.last;
                 activeElement->pos = ToWorld(DeshInput->mousePos);
+                activeElement->size = vec2(2, 1);
             }
             
             //handle token inputs
@@ -589,8 +596,7 @@ void Canvas::
 Update(){
     UI::SetNextWindowSize(DeshWindow->dimensions);
     UI::Begin("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_NoScroll);
-    //if (DeshInput->RMousePressed() || gathering) GatherInput(DeshInput->mousePos);
-    
+
     HandleInput();
     if(showGrid) DrawGridLines();
     DrawPencilStrokes();
@@ -599,11 +605,13 @@ Update(){
     for (Element& e : elements) {
         e.Update();
     }						
-
     
     UI::TextF("Active Tool:   %s", CanvasToolStrings[active_tool]);
     UI::TextF("Previous Tool: %s", CanvasToolStrings[previous_tool]);
     UI::TextF("%.3ffps", F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
-    UI::TextF("(%g,%g)",camera_pos.x,camera_pos.y);
+    UI::TextF("campos:  (%g,%g)",camera_pos.x,camera_pos.y);
+    UI::TextF("camzoom: %g", camera_zoom);
+    UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
+
     UI::End();
 }
