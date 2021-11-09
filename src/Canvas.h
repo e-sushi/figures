@@ -13,12 +13,9 @@ struct Element {
 	vec2 size; //world size
 	s32 cursor = 0; //for tracking where in the token array we are editing
 	array<token> tokens; //list of tokens the user has input and their strings to show 
-	Statement statement;
+	Expression statement;
 	
 	void AddToken(TokenType t);
-	//temporarily text based, but when we get to custom positioning of
-	//glyphs this will have to be different
-	void CalcSize();
 	//draws input boxes and tokens
 	//TODO(sushi) add parameter for if element is active
 	void Update();

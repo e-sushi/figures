@@ -45,9 +45,9 @@ Parser TODOs
 //// deshi includes ////
 #include "defines.h"
 #include "deshi.h"
-#include "core/memory.h"
 #include "utils/string.h"
 #include "utils/array.h"
+#include "core/memory.h"
 #include "utils/map.h"
 #include "math/Math.h"
 #include "core/logging.h"
@@ -70,15 +70,17 @@ Parser TODOs
 int main() {
 	//suugu vars
     Canvas canvas;
-	
+	Canvas canvas2;
+
     //init deshi
     deshi::init();
 	Render::UseDefaultViewProjMatrix();
     
+	Memory::Init(Gigabytes(4), Gigabytes(1));
+
     //init suugu
 	canvas.Init();
 
-    
     //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -90,6 +92,8 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
+		static Font* font = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 40).second;
+	
 		{//debug area
 
 		}

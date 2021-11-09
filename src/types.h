@@ -2,6 +2,8 @@
 #ifndef SUUGU_TYPES_H
 #define SUUGU_TYPES_H
 
+#include "defines.h";
+
 /*
 here im going to write out some examples of what our trees look like
 see suugu.cpp for our brackus naur grammar, that defines how these trees are made up
@@ -420,17 +422,17 @@ global_ const char* ExpTypeStrings[] = {
     
     "empty",
     
-    "ExpressionGuard_Preface",
-    "ExpressionGuard_BitOR",
-    "ExpressionGuard_BitXOR",
-    "ExpressionGuard_BitAND",
-    "ExpressionGuard_Equality",
-    "ExpressionGuard_Relational",
-    "ExpressionGuard_BitShift",
-    "ExpressionGuard_Additive",
-    "ExpressionGuard_Term",
-    "ExpressionGuard_Factor",
-    "ExpressionGuard_Unary"
+    "preface",
+    "bitor",
+    "bitxor",
+    "bitand",
+    "equality",
+    "relational",
+    "bitshift",
+    "additive",
+    "term",
+    "factor",
+    "unary"
 };
 
 struct token{
@@ -444,22 +446,30 @@ struct token{
 
 //defines arithmatic
 struct Expression{
-	ExpressionType type;
+	ExpressionType type = Expression_Empty;
 	string expstr;
 	array<Expression> expressions;
     
 	f32 literalValue; //for storing a literals value if thats what this expression defines
     
+    Expression() {};
     Expression(string str, ExpressionType _type) : expstr(str), type(_type){}
-};
 
-//holds expressions
-struct Statement{
-	array<Expression> expressions;
+    //all stuff relating to pretty printing, so doesnt need to be avaliable in release, however could be later
+#if DESHI_SLOW
+    vec2 pos; //position of element in AST relative to parent
+    vec2 size;
+    vec2 cbbx_pos; 
+    vec2 cbbx_size;  //children bounding box size
+    string text; // the text that will be in the node 
+
+#endif
+
 };
 
 namespace Parser {
-    Statement parse(array<token> tokens);
+    Expression parse(array<token> tokens);
+    void pretty_print(Expression& e);
 }
 
 union vec2f64{

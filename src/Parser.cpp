@@ -74,6 +74,7 @@ local void parse_expressions(array<Expression>*expressions);
 
 local void parse_factor(array<Expression>* expressions) {
 	layer++;
+	
 	PrettyPrint("factor");
 	EOICheck;
     
@@ -82,7 +83,7 @@ local void parse_factor(array<Expression>* expressions) {
 		case tok_Literal: {
 			PrettyPrint("literal ", curt.str);
 			expressions->add(Expression(curt.str, Expression_Literal));
-			//token_next;
+			expressions->last->literalValue = stod(curt.str); 
 			layer--;
 			return;
 		}break;
@@ -344,13 +345,102 @@ local void parse_expressions(array<Expression>* expressions) {
 ///////////////////////
 //// @global funcs ////
 ///////////////////////
-Statement Parser::parse(array<token> _tokens){
+Expression Parser::parse(array<token> _tokens){
 	layer = 0;
 	tokens = _tokens;
 	curt = tokens[0];
-	Statement statement;
+	Expression exp;
     
-	parse_expressions(&statement.expressions);
+	parse_expressions(&exp.expressions);
 	
-	return statement;
+	return exp;
+}
+
+//pretty printing vars
+local f32 vertical_separation = 1;
+local f32 horizontal_separation = 20;
+local f32 node_margins = 10;
+
+
+vec2 pretty_print_recur(Expression& e) {
+	//we move through the tree using depth-first search
+	//we walk through it twice, first to calculate the positions of all nodes, and second to actually ask
+	//UI to place things in those positions. I'm not sure how to combine these 2 things at least with how
+	//I'm currently doing it.
+	vec2 size;
+	forI(e.expressions.count) {
+		//our first child defines the left side of the bounding box
+		vec2 ret = pretty_print_recur(e.expressions[i]);
+		e.cbbx_size.x = Max(e.cbbx_size.x, ret.x);
+		e.cbbx_size.y = Max(e.cbbx_size.y, ret.y);
+	}
+
+	//if this expression has no children or has run through them all, we can start reporting sizes and pos
+
+	if (e.type == Expression_Literal) {
+		e.text = TOSTRING("literal: ", e.expstr);
+	}
+	else {
+		e.text = TOSTRING(ExpTypeStrings[e.type]);
+	}
+
+	e.size = UI::CalcTextSize(e.text) + vec2::ONE * node_margins;
+
+	if (!e.expressions.count) 
+		e.cbbx_size = e.size;
+	else {
+
+		//now that we've finished doing a bunch of sizing, we have to walk our child elements again to give them
+		//their relative positions
+
+		vec2 sum;
+		forI(e.expressions.count) {
+			Expression& ex = e.expressions[i];
+			ex.pos = vec2(sum.x, e.size.y + vertical_separation);
+			sum.x += ex.cbbx_size.x;
+			sum.y = Max(sum.y, ex.cbbx_size.y);
+		}
+
+		
+
+		e.cbbx_size = sum;
+		e.cbbx_size += vec2(0, e.size.y + vertical_separation);
+	}
+
+	return e.cbbx_size;
+}
+
+local void pretty_print_final(Expression& e, vec2 parent_pos) {
+	forE(e.expressions) pretty_print_final(*it, e.pos + parent_pos);
+	vec2 pos = (e.pos + parent_pos).xAdd(-e.size.x/2);// -e.cbbx_size.ySet(0) / 2).xAdd(-e.size.x / 2);
+	pos.x = floor(pos.x);
+	pos.y = floor(pos.y);
+
+
+	UI::RectFilled(pos, e.size, color(25, 144, 130));
+	UI::Text(TOSTRING(e.cbbx_size).str, pos + vec2::ONE * node_margins / 2);
+
+}
+
+void Parser::pretty_print(Expression& e) {
+#if DESHI_SLOW
+	
+	//local Font* ppfont = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 30).second;
+
+
+	if (e.expressions.count) {
+		pretty_print_recur(e);
+		
+		//UI::PushVar(UIStyleVar_FontHeight, 30);
+		UI::Begin(TOSTRING("ASTPRETTYPRINT", (char*)&e).str, vec2(300, 300), vec2(300, 1500), UIWindowFlags_FitAllElements);
+			
+		pretty_print_final(e, vec2(150, 0));
+	
+		UI::End();
+		//UI::PopVar();
+	}
+
+#else
+	LogW("SUUGUDEBUG", "Function 'pretty_print_AST' called from somewhere when DESHI_SLOW not set!");
+#endif
 }

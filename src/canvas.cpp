@@ -148,15 +148,7 @@ WorldViewArea() {
 //////////////////
 //// @element ////
 //////////////////
-void Element::
-CalcSize() {
-    string s = "";
-    for (token& t : tokens) {
-        s += t.str;
-        t.strSize = UI::CalcTextSize(t.str);
-    }
-    size = UI::CalcTextSize(s);
-}
+
 
 void Element::
 AddToken(TokenType t) {
@@ -210,27 +202,33 @@ AddToken(TokenType t) {
         }
     }
     
-    CalcSize();
+   // CalcSize();
     statement = Parser::parse(tokens);
 }
 
 void Element::
 Update() {
     using namespace UI;
+
+    Parser::pretty_print(statement);
+
     PushFont(mathfont);
 
     Font* font = mathfont;
     vec2 winpos = ToScreen(pos.x, pos.y);
     
-    PushVar(UIStyleVar_WindowPadding, vec2{ 0,0 });
+    PushVar(UIStyleVar_WindowPadding,      vec2{ 0,0 });
     PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
+    PushVar(UIStyleVar_RowItemAlign,       vec2{ 0.5, 0.5 });
+    PushVar(UIStyleVar_FontHeight,         80);
     
-    SetNextWindowPos(winpos);
-    PushVar(UIStyleVar_FontHeight, 20);
     PushScale(vec2::ONE * size.y / camera_zoom * 2);
-    Log("scale", vec2::ONE * size.y / camera_zoom * 2);
+
+    SetNextWindowPos(winpos);
     Begin(TOSTRING((char)this).str, vec2{ 0,0 }, size * DeshWindow->width / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag);
    
+    
+
     if (tokens.count) {
 
         UI::BeginRow(tokens.count, 30);
@@ -286,9 +284,9 @@ Update() {
 
     
     End();
-    PopVar(3);
-    PopFont();
-    PopScale();
+    UI::PopVar(4);
+    UI::PopFont();
+    UI::PopScale();
 }
 
 
@@ -587,7 +585,7 @@ Init(){
     elements.reserve(100);
 
     mathfontitalic = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Italic.otf", 100).second;
-    mathfont = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 100).second;
+    mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 
     Assert(mathfont && mathfontitalic, "math fonts failed to load");
 }
