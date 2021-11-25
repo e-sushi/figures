@@ -55,32 +55,29 @@ Parser TODOs
 //// STL includes ////
 
 
-//// suugu headers ////
+//// suugu includes ////
+#define SUUGU_IMPLEMENTATION
 #include "types.h"
 #include "canvas.h"
-
-//// suugu cpps ////
 #include "lexer.cpp"
 #include "parser.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
 
-#include <algorithm>
-
 int main() {
 	//suugu vars
     Canvas canvas;
 	Canvas canvas2;
-
+	
     //init deshi
     deshi::init();
 	Render::UseDefaultViewProjMatrix();
     
-	Memory::Init(Gigabytes(4), Gigabytes(1));
-
+	//Memory::Init(Gigabytes(4), Gigabytes(1));
+	
     //init suugu
 	canvas.Init();
-
+	
     //start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -91,18 +88,18 @@ int main() {
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
-
+		
 		static Font* font = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 40).second;
-	
+		
 		{//debug area
-
+			
 		}
-						
+		
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
-
+	
 	
     
     //cleanup deshi

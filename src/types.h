@@ -2,7 +2,7 @@
 #ifndef SUUGU_TYPES_H
 #define SUUGU_TYPES_H
 
-#include "defines.h";
+#include "defines.h"
 
 /*
 here im going to write out some examples of what our trees look like
@@ -454,7 +454,7 @@ struct Expression{
     
     Expression() {};
     Expression(string str, ExpressionType _type) : expstr(str), type(_type){}
-
+	
     //all stuff relating to pretty printing, so doesnt need to be avaliable in release, however could be later
 #if DESHI_SLOW
     vec2 pos; //position of element in AST relative to parent
@@ -462,9 +462,9 @@ struct Expression{
     vec2 cbbx_pos; 
     vec2 cbbx_size;  //children bounding box size
     string text; // the text that will be in the node 
-
+	
 #endif
-
+	
 };
 
 namespace Parser {
@@ -473,17 +473,19 @@ namespace Parser {
 }
 
 union vec2f64{
-    f64 v[2];
+    f64 arr[2];
     struct{ f64 x; f64 y; };
     
-    inline vec2f64 operator- (vec2f64 rhs){return {x-rhs.x,y-rhs.y};};
-    inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;};
-    inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};};
-    inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;};
-    inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};};
-    inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;};
-    inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};};
-    inline void    operator/=(f64 rhs){x/=rhs;y/=rhs;};
+	inline void    operator= (vec2f64 rhs){x=rhs.x;y=rhs.y;}
+    inline vec2f64 operator- (vec2f64 rhs){return {x-rhs.x,y-rhs.y};}
+    inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;}
+    inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};}
+    inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;}
+    inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};}
+    inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;}
+    inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};}
+    inline void    operator/=(f64 rhs){x/=rhs;y/=rhs;}
+	friend vec2f64 operator* (f64 lhs, vec2f64 rhs){return rhs * lhs;}
 };
 
 #endif //SUUGU_TYPES_H
