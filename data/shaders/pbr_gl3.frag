@@ -1,11 +1,9 @@
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_KHR_vulkan_glsl : enable
+#version 330 core
 
-layout(set = 1, binding = 0) uniform sampler2D albedoSampler;
-layout(set = 1, binding = 1) uniform sampler2D normalSampler;
-layout(set = 1, binding = 2) uniform sampler2D specularSampler;
-layout(set = 1, binding = 3) uniform sampler2D lightSampler;
+uniform sampler2D albedoSampler;
+uniform sampler2D normalSampler;
+uniform sampler2D specularSampler;
+uniform sampler2D lightSampler;
 
 //layout(constant_id = 0) const bool ALPHA_MASK = false;
 //layout(constant_id = 1) const float ALPHA_THRESHOLD = 0.0f;

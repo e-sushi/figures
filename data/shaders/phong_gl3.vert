@@ -1,8 +1,7 @@
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_EXT_debug_printf : enable
+#version 330 core
+//#extension GL_EXT_debug_printf : enable
 
-layout(set = 0, binding = 0) uniform UniformBufferObject{
+uniform UniformBufferObject{
 	mat4  view;
 	mat4  proj;
 	vec4  lights[10];
@@ -15,7 +14,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
 	int   enablePCF;
 } ubo;
 
-layout(push_constant) uniform PushConsts{
+uniform PushConsts{
 	mat4 model;
 } primitive;
 
@@ -30,7 +29,7 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out float outLightBrightness;
 layout(location = 4) out vec3 outWorldPos;
 layout(location = 5) out vec3 viewPosition;
-layout(location = 6) out int  outEnablePCF;
+layout(location = 6) flat out int  outEnablePCF;
 layout(location = 7) out vec4 outShadowCoord;
 layout(location = 8) out vec3 outLightVec;
 layout(location = 9) out vec3 outViewVec;

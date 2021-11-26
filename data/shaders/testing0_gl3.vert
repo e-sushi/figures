@@ -1,7 +1,6 @@
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
+#version 330 core
 
-layout(set = 0, binding = 0) uniform UniformBufferObject{
+uniform UniformBufferObject{
 	mat4  view;
 	mat4  proj;
 	vec4  lights[10];
@@ -12,7 +11,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
 	float time;
 } ubo;
 
-layout(push_constant) uniform PushConsts{
+uniform PushConsts{
 	mat4 model;
 } primitive;
 

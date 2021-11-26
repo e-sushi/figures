@@ -1,7 +1,6 @@
-#version 330
-#extension GL_ARB_separate_shader_objects : enable
+#version 330 core
 
-layout(std140, set = 0) uniform UniformBufferObject{
+layout(std140) uniform UniformBufferObject{
 	mat4  view;
 	mat4  proj;
 	vec4  lights[10];
@@ -14,7 +13,7 @@ layout(std140, set = 0) uniform UniformBufferObject{
 	int   enablePCF;
 } ubo;
 
-layout(push_constant) uniform PushConsts{
+uniform PushConsts{
 	mat4 model;
 } primitive;
 

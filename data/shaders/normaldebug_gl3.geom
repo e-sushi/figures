@@ -1,24 +1,24 @@
-#version 450
+#version 330 core
 
 layout (triangles) in;
 layout (line_strip, max_vertices = 8) out;
 
-layout(set = 0, binding = 1) uniform UBO {
+uniform UBO {
 	mat4 view;
 	mat4 proj;
 } ubo;
 
-layout(push_constant) uniform PushConsts{
+uniform PushConsts{
 	mat4 model;
 } primitive;
 
-layout (location = 0) in vec4 inColor[];
-layout (location = 1) in vec2 inTexCoord[];
-layout (location = 2) in vec3 inNormal[];
+in vec4 inColor[];
+in vec2 inTexCoord[];
+in vec3 inNormal[];
 
-layout(location = 0) out vec4 outColor;
-layout(location = 1) out vec2 outTexCoord;
-layout(location = 2) out vec3 outNormal;
+out vec4 outColor;
+out vec2 outTexCoord;
+out vec3 outNormal;
 
 void main(void){	
 	float normalLength = 0.3f;

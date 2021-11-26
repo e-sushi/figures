@@ -1,7 +1,6 @@
-#version 450
-#extension GL_KHR_vulkan_glsl : enable
+#version 330 core
 
-layout(set = 0, binding = 1) uniform sampler2D shadowMap;
+uniform sampler2D shadowMap;
 
 layout(location = 0) in vec2 inUV;
 

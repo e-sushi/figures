@@ -1,7 +1,6 @@
-#version 450
-#extension GL_ARB_separate_shader_objects : enable
+#version 330 core
 
-layout(push_constant) uniform PushConsts{
+uniform PushConsts{
 	vec2 scale;
 	vec2 translate;
 	int  fontIdx;
