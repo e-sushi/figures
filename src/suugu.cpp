@@ -66,22 +66,22 @@ Parser TODOs
 
 int main() {
 	//suugu vars
-    Canvas canvas;
+	Canvas canvas;
 	
-    //init deshi
-    deshi::init();
+	//init deshi
+	deshi::init();
 	Render::UseDefaultViewProjMatrix();
-    
+	
 	//Memory::Init(Gigabytes(4), Gigabytes(1));
 	
-    //init suugu
+	//init suugu
 	canvas.Init();
 	
-    //start main loop
+	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
 		DeshiImGui::NewFrame();                    //place imgui calls after this
-        Memory::Update();
+		Memory::Update();
 		DeshTime->Update();
 		DeshWindow->Update();
 		DeshInput->Update();
@@ -142,7 +142,7 @@ int main() {
 	}
 	
 	
-    
-    //cleanup deshi
+	
+	//cleanup deshi
 	deshi::cleanup();
 }

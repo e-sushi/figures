@@ -47,8 +47,8 @@ struct Canvas{
 	
 	array<Element> elements;
 	array<Graph> graphs;
-    
-    void HandleInput();
+	
+	void HandleInput();
 	void Init();
 	void Update();
 };

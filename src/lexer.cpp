@@ -26,7 +26,7 @@ array<token> lex(string input) {
 	char currChar = 0;
 	string buff = "";
 	u32 lines = 1;
-    
+	
 	//special comment case
 	if (input[0] == '#') {
 		token t;
@@ -38,7 +38,7 @@ array<token> lex(string input) {
 	else if (input.size == 1) {
 		token t;
 		t.str = buff;
-        
+		
 		//TODO make this cleaner
 		if (isalpha(input[0])) {
 			//if it begins with a letter it must be an identifier
@@ -86,7 +86,7 @@ array<token> lex(string input) {
 				tokens.add(t);
 			}
 		}
-        
+		
 		tokens.add(t);
 	}
 	//any other case
@@ -101,7 +101,7 @@ array<token> lex(string input) {
 				if (buff[0]) {
 					token t;
 					t.str = buff.substr(0, buff.size);
-                    
+					
 					//TODO make this cleaner
 					if (isalpha(buff[0])) {
 						//if it begins with a letter it must be an identifier
@@ -116,10 +116,10 @@ array<token> lex(string input) {
 						if (error) t.type = tok_ERROR;
 						else t.type = tok_Literal;
 					}
-                    
+					
 					tokens.add(t);
 				}
-                
+				
 				//check what our stopping character is 
 				if (currChar != ' ' && currChar != '\n') {
 					token t;
@@ -140,7 +140,7 @@ array<token> lex(string input) {
 						case '^':  t.type = tok_BitXOR;            break;
 						case '?':  t.type = tok_QuestionMark;      break;
 						case ':':  t.type = tok_Colon;             break;
-                        
+						
 						case '&': {
 							if (i != input.size - 1 && input[i + 1] == '&') {
 								t.type = tok_AND;
@@ -150,7 +150,7 @@ array<token> lex(string input) {
 								t.type = tok_BitAND;
 							}
 						}break;
-                        
+						
 						case '|': {
 							if (i != input.size - 1 && input[i + 1] == '|') {
 								t.type = tok_OR;
@@ -160,7 +160,7 @@ array<token> lex(string input) {
 								t.type = tok_BitOR;
 							}
 						}break;
-                        
+						
 						case '!': {
 							if (i != input.size - 1 && input[i + 1] == '=') {
 								t.type = tok_NotEqual;
@@ -170,7 +170,7 @@ array<token> lex(string input) {
 								t.type = tok_LogicalNOT;
 							}
 						}break;
-                        
+						
 						case '=': {
 							if (i != input.size - 1 && input[i + 1] == '=') {
 								t.type = tok_Equal;
@@ -180,7 +180,7 @@ array<token> lex(string input) {
 								t.type = tok_Assignment;
 							}
 						}break;
-                        
+						
 						case '>': {
 							char c = input[i + 1];
 							if (c == '=') {
@@ -195,7 +195,7 @@ array<token> lex(string input) {
 								t.type = tok_GreaterThan;
 							}
 						}break;
-                        
+						
 						case '<': {
 							char c = input[i + 1];
 							if (c == '=') {
@@ -219,7 +219,7 @@ array<token> lex(string input) {
 				if (buff[0]) {
 					token t;
 					t.str = buff.substr(0, buff.size);
-                    
+					
 					//TODO make this cleaner
 					if (isalpha(buff[0])) {
 						//if it begins with a letter it must be an identifier
