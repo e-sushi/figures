@@ -67,7 +67,6 @@ Parser TODOs
 int main() {
 	//suugu vars
     Canvas canvas;
-	Canvas canvas2;
 	
     //init deshi
     deshi::init();
@@ -87,11 +86,53 @@ int main() {
 		DeshWindow->Update();
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
-		canvas.Update();
+		//canvas.Update();
+
+		static Font* font = Storage::CreateFontFromFileBDF("gohufont-11.bdf").second;
 		
-		static Font* font = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Regular.otf", 40).second;
 		
+
 		{//debug area
+			UI::PushFont(font);
+			UI::Begin("testguy", vec2::ONE * 300, vec2::ONE * 300);
+			
+			const char* opt[] = {
+				"opt 1",
+				"opt 2",
+				"opt 3"
+			};
+			static u32 select = 0;
+			
+			//UI::DropDown("dropy", opt, 3, select);
+			
+			UI::PushLayer(7);
+			UI::Text("oh yeah a yest");
+			UI::Button("FUCK");
+			UI::PopLayer();
+			UI::Text("oh yeah a yest");
+			UI::Text("oh yeah a yest");
+			UI::Text("oh yeah a yest");
+			
+			//UI::PushLayer(4);
+			//UI::Button("layer 4");
+			//UI::PushLayer(5);
+			//UI::Text("layer 5");
+			//UI::PushLayer(6);
+			//UI::Text("layer 6");
+			//UI::PushLayer(7);
+			//UI::Text("layer 7");
+			//UI::PushLayer(8);
+			//UI::Text("layer 8");
+			//UI::PopLayer(5);
+
+			UI::End();
+			UI::PopFont();
+
+			Render::DrawTextUI(font, cstr_lit("testin this dude"), vec2::ONE * 300, Color_White, vec2::ONE, 7, vec2::ZERO, DeshWindow->dimensions);
+			Render::DrawTextUI(font, cstr_lit("testin this dude again"), vec2(300, 300 + 60), Color_White, vec2::ONE, 6, vec2::ZERO, DeshWindow->dimensions);
+			Render::DrawTextUI(font, cstr_lit("testin this dude agh"), vec2(300, 300 + 120), Color_White, vec2::ONE, 6, vec2::ZERO, DeshWindow->dimensions);
+			Render::DrawTextUI(font, cstr_lit("testin this dude FUCK"), vec2(300, 300 + 180), Color_White, vec2::ONE, 6, vec2::ZERO, DeshWindow->dimensions);
+
 			
 		}
 		

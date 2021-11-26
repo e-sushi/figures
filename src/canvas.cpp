@@ -282,7 +282,7 @@ DrawPencilStrokes(){
         if(it->pencil_points.count > 1){
             array<vec2> pps(it->pencil_points.count);
             forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color, vec2::ZERO, DeshWindow->dimensions);
+            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
         }
     }
     UI::End();
@@ -330,6 +330,7 @@ DrawGraphGrid(Graph* graph){
     f64 br_y = floor(f64(br.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
 	
     //draw grid lines //TODO try to combine these loops
+    //TODO fix the graph lines overlapping the border
     for(f64 x = tl_x; x < br_x; x += graph->gridMajorLinesIncrement){
         int minor_idx = 0;
 		
@@ -626,8 +627,8 @@ Init(){
 	graph.dimensions = ToWorld(DeshWindow->dimensions);
 	graphs.add(graph);
 	
-    mathfontitalic = Storage::CreateFontFromFileTTF("TeXGyrePagellaX-Italic.otf", 100).second;
-    mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
+    mathfontitalic = Storage::CreateFontFromFileTTF("STIXTwoText-Italic.ttf", 100).second;
+    mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.ttf", 100).second;
     Assert((mathfont != Storage::NullFont()) && (mathfontitalic != Storage::NullFont()), "math fonts failed to load");
 }
 

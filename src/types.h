@@ -475,6 +475,15 @@ namespace Parser {
 union vec2f64{
     f64 arr[2];
     struct{ f64 x; f64 y; };
+
+    static const vec2f64 ZERO;
+    static const vec2f64 ONE;
+    static const vec2f64 UP;
+    static const vec2f64 DOWN;
+    static const vec2f64 LEFT;
+    static const vec2f64 RIGHT;
+    static const vec2f64 UNITX;
+    static const vec2f64 UNITY;
     
 	inline void    operator= (vec2f64 rhs){x=rhs.x;y=rhs.y;}
     inline vec2f64 operator- (vec2f64 rhs){return {x-rhs.x,y-rhs.y};}
@@ -487,5 +496,14 @@ union vec2f64{
     inline void    operator/=(f64 rhs){x/=rhs;y/=rhs;}
 	friend vec2f64 operator* (f64 lhs, vec2f64 rhs){return rhs * lhs;}
 };
+
+inline const vec2f64 vec2f64::ZERO  = vec2f64{ 0,  0};
+inline const vec2f64 vec2f64::ONE   = vec2f64{ 1,  1};
+inline const vec2f64 vec2f64::RIGHT = vec2f64{ 1,  0};
+inline const vec2f64 vec2f64::LEFT  = vec2f64{-1,  0};
+inline const vec2f64 vec2f64::UP    = vec2f64{ 0,  1};
+inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
+inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
+inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
 
 #endif //SUUGU_TYPES_H
