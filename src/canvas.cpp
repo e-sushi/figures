@@ -282,7 +282,7 @@ DrawPencilStrokes(){
         if(it->pencil_points.count > 1){
             array<vec2> pps(it->pencil_points.count);
             forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color);
+            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color, vec2::ZERO, DeshWindow->dimensions);
         }
     }
     UI::End();
@@ -409,18 +409,10 @@ HandleInput(){
     if(DeshInput->KeyPressed(CanvasBind_Camera_Pan)){
 		camera_pan_active = true;
 		camera_pan_mouse_pos = DeshInput->mousePos;
-		if(!activeGraph){
-			camera_pan_start_pos = camera_pos;
-		}else{
-			camera_pan_start_pos = activeGraph->cameraPosition;
-		}
+		camera_pan_start_pos = camera_pos;
     }
     if(DeshInput->KeyDown(CanvasBind_Camera_Pan)){
-		if(!activeGraph){
-			camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-		}else{
-			activeGraph->cameraPosition = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-		}
+		camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
     }
     if(DeshInput->KeyReleased(CanvasBind_Camera_Pan)){
         camera_pan_active = false;
@@ -641,7 +633,6 @@ Init(){
 
 void Canvas::
 Update(){
-	UI::SetNextWindowSize(DeshWindow->dimensions);
     UI::Begin("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
 	
     HandleInput();
