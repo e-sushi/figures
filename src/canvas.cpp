@@ -282,7 +282,7 @@ DrawPencilStrokes(){
         if(it->pencil_points.count > 1){
             array<vec2> pps(it->pencil_points.count);
             forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-            Render::DrawLinesUI(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+            Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
         }
     }
     UI::End();
@@ -343,7 +343,9 @@ DrawGraphGrid(Graph* graph){
 					minor_idx = 1;
 				}
 				if(graph->gridShowAxisCoords){
-					UI::Text(to_string("%g",x).str, GraphToScreen(x,0,graph), PackColorU32(255,255,255,128), UITextFlags_NoWrap);
+                    UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+					UI::Text(to_string("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
+                    UI::PopColor();
 				}
 			}
 		}
@@ -368,7 +370,9 @@ DrawGraphGrid(Graph* graph){
 					minor_idx = 1;
 				}
 				if(graph->gridShowAxisCoords){
-					UI::Text(to_string("%g",y).str, GraphToScreen(0,y,graph), PackColorU32(255,255,255,128), UITextFlags_NoWrap);
+                    UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+					UI::Text(to_string("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
+                    UI::PopColor();
 				}
 			}
 		}
@@ -384,7 +388,9 @@ DrawGraphGrid(Graph* graph){
 	
 	//draw zero text
 	if(0 >= tl.x && 0 <= br.x && 0 >= br.y && 0 <= tl.y){
-		UI::Text("0", GraphToScreen(0,0,graph), PackColorU32(255,255,255,128), UITextFlags_NoWrap);
+        UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+		UI::Text("0", GraphToScreen(0,0,graph), UITextFlags_NoWrap);
+        UI::PopColor();
 	}
 }
 
