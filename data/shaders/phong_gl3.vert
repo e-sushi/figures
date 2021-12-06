@@ -1,4 +1,5 @@
 #version 330 core
+#extension GL_ARB_separate_shader_objects : enable
 //#extension GL_EXT_debug_printf : enable
 
 uniform UniformBufferObject{

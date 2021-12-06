@@ -1,4 +1,5 @@
 #version 330 core
+#extension GL_ARB_separate_shader_objects : enable
 
 layout(std140) uniform UniformBufferObject{
 	mat4  view;
