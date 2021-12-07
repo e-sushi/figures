@@ -30,6 +30,28 @@
     </Expand>
   </Type>
 
+	<Type Name="ring_array&lt;*&gt;">
+		<Intrinsic Name="size"
+			   Expression="count" />
+		<DisplayString Condition="count == 0">{{ empty }}</DisplayString>
+		<DisplayString>{{ size={count} }}</DisplayString>
+		<Expand>
+			<Synthetic Name="info">
+				<DisplayString>start={start}, end={end}</DisplayString>
+				<Expand>
+					<Item Name="space" ExcludeView="simple">capacity</Item>
+					<Item Name="start" ExcludeView="simple">start</Item>
+					<Item Name="end" ExcludeView="simple">end</Item>
+
+				</Expand>
+			</Synthetic>
+			<ArrayItems>
+				<Size>count</Size>
+				<ValuePointer>data</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+
   <Type Name="string">
     <Intrinsic Name="size" Expression="size" />
     <Intrinsic Name="data" Expression="str" />

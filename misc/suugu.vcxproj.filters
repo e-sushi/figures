@@ -84,9 +84,6 @@
     <ClInclude Include="..\deshi\src\utils\optional.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\utils\RingArray.h">
-      <Filter>src\deshi\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\deshi\src\utils\string.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
@@ -118,9 +115,6 @@
       <Filter>src\deshi\math</Filter>
     </ClInclude>
     <ClInclude Include="..\deshi\src\math\vector.h">
-      <Filter>src\deshi\math</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\math\VectorMatrix.h">
       <Filter>src\deshi\math</Filter>
     </ClInclude>
     <ClInclude Include="..\deshi\src\math\InertiaTensors.h">
@@ -246,6 +240,9 @@
     <ClInclude Include="..\deshi\src\external\stb\stb_truetype.h">
       <Filter>src\deshi\external\stb</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\utils\ring_array.h">
+      <Filter>src\deshi\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
@@ -346,96 +343,6 @@
     <None Include="..\deshi\src\math\vec4.inl">
       <Filter>src\deshi\math</Filter>
     </None>
-    <None Include="..\data\shaders\nothing.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\null.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\pbr.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\phong.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\shadowmapDEBUG.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\testing0.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\testing1.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\twod.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\ui.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\wireframe.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\normaldebug.geom">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\utils.glsl">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\base.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\flat.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\lavalamp.frag">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\nothing.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\null.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\offscreen.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\pbr.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\phong.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\shadowmapDEBUG.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\testing0.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\testing1.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\twod.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\ui.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\wireframe.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\base.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\fixedimguishader.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\flat.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
-    <None Include="..\data\shaders\lavalamp.vert">
-      <Filter>extra\shaders</Filter>
-    </None>
     <None Include="suugu.vcxproj">
       <Filter>extra\misc</Filter>
     </None>
@@ -447,6 +354,183 @@
     </None>
     <None Include="..\.gitignore">
       <Filter>extra\misc</Filter>
+    </None>
+    <None Include="..\data\shaders\twod_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\twod_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\ui.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\ui.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\ui_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\ui_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\utils.glsl">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\wireframe.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\wireframe.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\wireframe_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\wireframe_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\base.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\base.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\base_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\base_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\fixedimguishader.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\fixedimguishader_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\flat.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\flat.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\flat_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\flat_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\lavalamp.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\lavalamp.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\lavalamp_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\lavalamp_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\normaldebug.geom">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\normaldebug_gl3.geom">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\nothing.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\nothing.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\nothing_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\nothing_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\null.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\null.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\null_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\null_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\offscreen.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\offscreen_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbr.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbr.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbr_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\pbr_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\phong.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\phong.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\phong_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\phong_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapDEBUG.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapDEBUG.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapDEBUG_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\shadowmapDEBUG_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing0.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing0.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing0_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing0_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing1.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing1.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing1_gl3.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\testing1_gl3.vert">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\twod.frag">
+      <Filter>extra\shaders</Filter>
+    </None>
+    <None Include="..\data\shaders\twod.vert">
+      <Filter>extra\shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

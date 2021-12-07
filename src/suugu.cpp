@@ -76,7 +76,24 @@ int main() {
 	
 	//init suugu
 	canvas.Init();
+
+	matN m(4,1,{ 1,2,3,4 });
+	matN n(1,4,{ 1,2,3,4 });
+
+	matN wow = matN::Diag(5, 5, 1) + matN::Diag(5, 3, -1);
+	Log("wow", wow);
+
+	matN wowr2 = wow.Row(2);
+	wowr2 *= 20;
+	wow.SetRow(2, wowr2);
+
+	Log("wow", wow);
+
+
+	u32 oh = 0;
 	
+	matN yep;
+
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -90,8 +107,23 @@ int main() {
 
 		//ImGui::ShowDemoWindow();
 
+		Font* font = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 400).second;
+
+
+
 		{//debug area
-		
+			UI::PushFont(font);
+			UI::PushVar(UIStyleVar_FontHeight, 100);
+			UI::Begin("ok", vec2(100, 100), vec2(400, 500));
+
+			UI::Text("FUCK");
+
+			UI::RectFilled({ 100,100 }, { 100, 100 });
+			UI::PopFont();
+			UI::RectFilled({ 200,200 }, { 100, 100 });
+			UI::PopVar();
+
+			UI::End();
 		}
 
 		UI::ShowMetricsWindow();

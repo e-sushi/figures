@@ -633,8 +633,8 @@ Init(){
 	graph.dimensions = ToWorld(DeshWindow->dimensions);
 	graphs.add(graph);
 	
-	mathfontitalic = Storage::CreateFontFromFileTTF("STIXTwoText-Italic.ttf", 100).second;
-	mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.ttf", 100).second;
+	mathfontitalic = Storage::CreateFontFromFileTTF("STIXTwoText-Italic.otf", 100).second;
+	mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert((mathfont != Storage::NullFont()) && (mathfontitalic != Storage::NullFont()), "math fonts failed to load");
 }
 
