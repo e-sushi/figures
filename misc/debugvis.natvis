@@ -19,12 +19,11 @@
           <Item Name="data" ExcludeView="simple">data</Item>
           <Item Name="first" ExcludeView="simple">first</Item>
           <Item Name="last" ExcludeView="simple">last</Item>
-          <Item Name="max" ExcludeView="simple">max</Item>
           <Item Name="iter" ExcludeView="simple">iter</Item>
         </Expand>
       </Synthetic>
       <ArrayItems>
-        <Size>size()</Size>
+        <Size>count</Size>
         <ValuePointer>first</ValuePointer>
       </ArrayItems>
     </Expand>

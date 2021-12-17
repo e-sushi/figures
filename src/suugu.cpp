@@ -93,6 +93,7 @@ int main() {
 	u32 oh = 0;
 	
 	matN yep;
+	Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
 
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
@@ -105,25 +106,13 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		//ImGui::ShowDemoWindow();
+		ImGui::ShowDemoWindow();
 
 		Font* font = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 400).second;
 
-
-
 		{//debug area
-			UI::PushFont(font);
-			UI::PushVar(UIStyleVar_FontHeight, 100);
-			UI::Begin("ok", vec2(100, 100), vec2(400, 500));
 
-			UI::Text("FUCK");
 
-			UI::RectFilled({ 100,100 }, { 100, 100 });
-			UI::PopFont();
-			UI::RectFilled({ 200,200 }, { 100, 100 });
-			UI::PopVar();
-
-			UI::End();
 		}
 
 		UI::ShowMetricsWindow();
