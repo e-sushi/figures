@@ -243,6 +243,9 @@
     <ClInclude Include="..\deshi\src\utils\ring_array.h">
       <Filter>src\deshi\utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\utils\array_sorting.h">
+      <Filter>src\deshi\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">

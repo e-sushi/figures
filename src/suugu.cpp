@@ -72,29 +72,21 @@ int main() {
 	deshi::init();
 	Render::UseDefaultViewProjMatrix();
 	
-	//Memory::Init(Gigabytes(4), Gigabytes(1));
+	
 	
 	//init suugu
 	canvas.Init();
 
-	matN m(4,1,{ 1,2,3,4 });
-	matN n(1,4,{ 1,2,3,4 });
-
-	matN wow = matN::Diag(5, 5, 1) + matN::Diag(5, 3, -1);
-	Log("wow", wow);
-
-	matN wowr2 = wow.Row(2);
-	wowr2 *= 20;
-	wow.SetRow(2, wowr2);
-
-	Log("wow", wow);
-
-
-	u32 oh = 0;
+	array<string> images = Assets::iterateDirectory(Assets::dirTextures());
+	array<Texture*> textures;
 	
-	matN yep;
-	Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
+	//for (string& str : images) {
+	//	textures.add(Storage::CreateTextureFromFile(str.str).second);
+	//}
 
+
+
+	
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -106,11 +98,47 @@ int main() {
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 
 		Font* font = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 400).second;
 
 		{//debug area
+			UI::Begin("image", vec2::ONE * 300, vec2::ONE * 300);
+			//for (int i = 0; i < textures.count; i += 2) {
+			//	UI::BeginRow(2, 170);
+			//	UI::RowSetupRelativeColumnWidths({ 1,1 });
+			//	UI::SetNextItemSize(vec2(170, 170));
+			//	UI::Image(textures[i]);
+			//	UI::SetNextItemSize(vec2(170, 170));
+			//	UI::Image(textures[i+1]);
+			//	UI::EndRow();
+			//}
+			
+			
+			static b32 stat[20] = { 0 };
+			for (int i = 0; i < 20; i++) {
+
+				if (UI::Selectable(TOSTRING(i, " ABCD").str, stat[i])) {
+					stat[i] = !stat[i];
+				}
+			}
+			
+
+
+			UI::Line(vec2(0, 0), vec2(100, 100));
+
+			
+			UI::Text("oh yeah an image baby");
+			UI::End();
+
+			UI::Begin("oh yep", vec2::ONE * 300, vec2::ONE * 300);
+			static char buff[255] = { 'a', 'b', 'c'};
+			for (int i = 0; i < 50; i++) {
+				UI::Text(TOSTRING("OH YEAH", i).str);
+				UI::Button("test");
+				UI::InputText(TOSTRING("label", i, i).str, buff, 255);
+			}
+			UI::End();
 
 
 		}

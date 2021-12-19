@@ -71,6 +71,7 @@
     <ClInclude Include="..\deshi\src\math\Quaternion.h" />
     <ClInclude Include="..\deshi\src\math\vector.h" />
     <ClInclude Include="..\deshi\src\utils\array.h" />
+    <ClInclude Include="..\deshi\src\utils\array_sorting.h" />
     <ClInclude Include="..\deshi\src\utils\color.h" />
     <ClInclude Include="..\deshi\src\utils\command.h" />
     <ClInclude Include="..\deshi\src\utils\container_manager.h" />
