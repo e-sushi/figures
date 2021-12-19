@@ -76,16 +76,16 @@ int main() {
 	
 	//init suugu
 	canvas.Init();
-
+	
 	array<string> images = Assets::iterateDirectory(Assets::dirTextures());
 	array<Texture*> textures;
 	
 	//for (string& str : images) {
 	//	textures.add(Storage::CreateTextureFromFile(str.str).second);
 	//}
-
-
-
+	
+	
+	Font* font = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 400).second;
 	
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
@@ -97,11 +97,9 @@ int main() {
 		DeshInput->Update();
 		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
-
+		
 		//ImGui::ShowDemoWindow();
-
-		Font* font = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 400).second;
-
+		
 		{//debug area
 			UI::Begin("image", vec2::ONE * 300, vec2::ONE * 300);
 			//for (int i = 0; i < textures.count; i += 2) {
@@ -117,20 +115,20 @@ int main() {
 			
 			static b32 stat[20] = { 0 };
 			for (int i = 0; i < 20; i++) {
-
+				
 				if (UI::Selectable(TOSTRING(i, " ABCD").str, stat[i])) {
 					stat[i] = !stat[i];
 				}
 			}
 			
-
-
+			
+			
 			UI::Line(vec2(0, 0), vec2(100, 100));
-
+			
 			
 			UI::Text("oh yeah an image baby");
 			UI::End();
-
+			
 			UI::Begin("oh yep", vec2::ONE * 300, vec2::ONE * 300);
 			static char buff[255] = { 'a', 'b', 'c'};
 			for (int i = 0; i < 50; i++) {
@@ -139,8 +137,8 @@ int main() {
 				UI::InputText(TOSTRING("label", i, i).str, buff, 255);
 			}
 			UI::End();
-
-
+			
+			
 		}
 		
 		UI::ShowMetricsWindow();
