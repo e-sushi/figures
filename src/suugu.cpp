@@ -77,22 +77,20 @@ int main() {
 	DeshiImGui::Init();
 	UI::Init();
 	Cmd::Init();
-
+	
 	DeshWindow->ShowWindow();
-
 	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline{}}");
 	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline that is not terminated properly");
-
-
+	
 	//init deshi
 	//deshi::init();
 	Render::UseDefaultViewProjMatrix();
 	
 	//init suugu
 	canvas.Init();
-
+	
 	//Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
-	// 
+	
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -104,19 +102,16 @@ int main() {
 		canvas.Update();
 		
 		{//debug area
-			
+			//UI::DemoWindow();
+			//UI::ShowMetricsWindow();
 		}
-		
-		//UI::DemoWindow();
-		//UI::ShowMetricsWindow();
 		
 		DeshConsole->Update(); Console2::Update();
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
+		Memory::Update();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
-	
-	
 	
 	//cleanup deshi
 	deshi::cleanup();
