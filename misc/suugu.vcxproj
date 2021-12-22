@@ -37,7 +37,7 @@
     <ClInclude Include="..\deshi\src\core\imgui.h" />
     <ClInclude Include="..\deshi\src\core\input.h" />
     <ClInclude Include="..\deshi\src\core\io.h" />
-    <ClInclude Include="..\deshi\src\core\logging.h" />
+    <ClInclude Include="..\deshi\src\core\logger.h" />
     <ClInclude Include="..\deshi\src\core\memory.h" />
     <ClInclude Include="..\deshi\src\core\model.h" />
     <ClInclude Include="..\deshi\src\core\renderer.h" />
@@ -131,7 +131,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsDirectX|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\deshi\src\core\logging.cpp">
+    <ClCompile Include="..\deshi\src\core\logger.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>

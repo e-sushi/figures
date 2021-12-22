@@ -64,7 +64,7 @@ if(expect.has(curt.type)) {
 if(master_logger){ for(int i = 0; i < layer; i++)\
 if(i % 2 == 0) std::cout << "|   ";\
 else std::cout << "!   ";\
-std::cout << TOSTRING("~", __VA_ARGS__, ":").str << std::endl;}
+std::cout << toStr("~", __VA_ARGS__, ":").str << std::endl;}
 
 #define EOICheck 0\
 //if(tokens.iter > tokens.last){ return; }
@@ -378,10 +378,10 @@ vec2 pretty_print_recur(Expression& e) {
 	//if this expression has no children or has run through them all, we can start reporting sizes and pos
 
 	if (e.type == Expression_Literal) {
-		e.text = TOSTRING("literal: ", e.expstr);
+		e.text = toStr("literal: ", e.expstr);
 	}
 	else {
-		e.text = TOSTRING(ExpTypeStrings[e.type]);
+		e.text = toStr(ExpTypeStrings[e.type]);
 	}
 
 	e.size = UI::CalcTextSize(e.text) + vec2::ONE * node_margins;
@@ -418,7 +418,7 @@ local void pretty_print_final(Expression& e, vec2 parent_pos) {
 
 
 	UI::RectFilled(pos, e.size, color(25, 144, 130));
-	UI::Text(TOSTRING(e.cbbx_size).str, pos + vec2::ONE * node_margins / 2);
+	UI::Text(toStr(e.cbbx_size).str, pos + vec2::ONE * node_margins / 2);
 
 }
 
@@ -432,7 +432,7 @@ void Parser::pretty_print(Expression& e) {
 		pretty_print_recur(e);
 		
 		//UI::PushVar(UIStyleVar_FontHeight, 30);
-		UI::Begin(TOSTRING("ASTPRETTYPRINT", (char*)&e).str, vec2(300, 300), vec2(300, 1500), UIWindowFlags_FitAllElements);
+		UI::Begin(toStr("ASTPRETTYPRINT", (char*)&e).str, vec2(300, 300), vec2(300, 1500), UIWindowFlags_FitAllElements);
 			
 		pretty_print_final(e, vec2(150, 0));
 	

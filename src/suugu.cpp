@@ -50,7 +50,7 @@ Parser TODOs
 #include "core/memory.h"
 #include "utils/map.h"
 #include "math/Math.h"
-#include "core/logging.h"
+#include "core/logger.h"
 
 
 //// suugu includes ////
@@ -66,13 +66,33 @@ int main() {
 	//suugu vars
 	Canvas canvas;
 	
+	Assets::enforceDirectories();
+	Memory::Init(Gigabytes(1), Gigabytes(1));
+	Logger::Init(5);
+	DeshConsole->Init();
+	DeshTime->Init();
+	DeshWindow->Init("deshi", 1280, 720);
+	Render::Init();
+	Storage::Init();
+	DeshiImGui::Init();
+	UI::Init();
+	Cmd::Init();
+
+	DeshWindow->ShowWindow();
+
+	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline{}}");
+	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline that is not terminated properly");
+
+
 	//init deshi
-	deshi::init();
+	//deshi::init();
 	Render::UseDefaultViewProjMatrix();
 	
 	//init suugu
 	canvas.Init();
-	
+
+	//Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
+	// 
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
@@ -81,15 +101,16 @@ int main() {
 		DeshTime->Update();
 		DeshWindow->Update();
 		DeshInput->Update();
-		DeshConsole->Update(); Console2::Update();
 		canvas.Update();
 		
 		{//debug area
 			
 		}
 		
-		UI::ShowMetricsWindow();
+		//UI::DemoWindow();
+		//UI::ShowMetricsWindow();
 		
+		DeshConsole->Update(); Console2::Update();
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
