@@ -41,7 +41,7 @@ Parser TODOs
 
 */
 
-
+#define DESHI_DISABLE_IMGUI
 //// deshi includes ////
 #include "defines.h"
 #include "deshi.h"
@@ -65,29 +65,42 @@ Parser TODOs
 int main() {
 	//suugu vars
 	Canvas canvas;
-	
+
 	Assets::enforceDirectories();
 	Memory::Init(Gigabytes(1), Gigabytes(1));
-	Logger::Init(5);
+	Logger::Init(5, 0);
 	DeshConsole->Init();
 	DeshTime->Init();
 	DeshWindow->Init("deshi", 1280, 720);
 	Render::Init();
 	Storage::Init();
-	DeshiImGui::Init();
 	UI::Init();
 	Cmd::Init();
 
 	DeshWindow->ShowWindow();
 
-	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline{}}");
-	DeshConsole->AddLog("{{c=yellow}this is to test\na formatted newline that is not terminated properly");
+	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline{}}");
+	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline that is not terminated properly");
+	DeshConsole->AddLog("{{a,c=red}some red text{}} {{c=green}some green text");
+	DeshConsole->AddLog("some normal text {{c=red}some red text{}}");
+	DeshConsole->AddLog("some more text");
+	Log("tag1", "a collection of the same tags");
+	Log("tag1", "a collection of the same tags");
+	Log("tag1", "a collection of the same tags");
+	Log("tag1", "a collection of the same tags");
+	Log("tag1", "a collection of the same tags");
+	Log("tag2", "a collection of the same tags");
+	Log("tag3", "a collection of the same tags");
+	Log("tag4", "a collection of the same tags");
+	Log("tag5", "a collection of the same tags");
+	Log("tag5", "a collection of the same tags");
+	Log("tag5", "a collection of the same tags");
 
 
-	//init deshi
-	//deshi::init();
+
 	Render::UseDefaultViewProjMatrix();
 	
+
 	//init suugu
 	canvas.Init();
 
@@ -96,19 +109,19 @@ int main() {
 	//start main loop
 	TIMER_START(t_d); TIMER_START(t_f);
 	while (!deshi::shouldClose()) {
-		DeshiImGui::NewFrame();                    //place imgui calls after this
 		Memory::Update();
 		DeshTime->Update();
 		DeshWindow->Update();
 		DeshInput->Update();
-		canvas.Update();
-		
+		//canvas.Update();
+	
 		{//debug area
-			
+
+
 		}
 		
-		//UI::DemoWindow();
-		//UI::ShowMetricsWindow();
+		UI::DemoWindow();
+		UI::ShowMetricsWindow();
 		
 		DeshConsole->Update(); Console2::Update();
 		UI::Update();

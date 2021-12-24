@@ -246,6 +246,9 @@
     <ClInclude Include="..\deshi\src\core\logger.h">
       <Filter>src\deshi\core</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\utils\type.h">
+      <Filter>src\deshi\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
