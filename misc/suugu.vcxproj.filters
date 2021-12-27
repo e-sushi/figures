@@ -174,9 +174,6 @@
     <ClInclude Include="..\deshi\src\core\console.h">
       <Filter>src\deshi\core</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\core\console2.h">
-      <Filter>src\deshi\core</Filter>
-    </ClInclude>
     <ClInclude Include="..\deshi\src\core\imgui.h">
       <Filter>src\deshi\core</Filter>
     </ClInclude>
@@ -279,9 +276,6 @@
       <Filter>src\deshi\core</Filter>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\console.cpp">
-      <Filter>src\deshi\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\core\console2.cpp">
       <Filter>src\deshi\core</Filter>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\storage.cpp">
