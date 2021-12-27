@@ -65,10 +65,10 @@ Parser TODOs
 int main() {
 	//suugu vars
 	Canvas canvas;
-
+	
 	Assets::enforceDirectories();
 	Memory::Init(Gigabytes(1), Gigabytes(1));
-	Logger::Init(5, 0);
+	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
 	DeshWindow->Init("deshi", 1280, 720);
@@ -78,7 +78,7 @@ int main() {
 	Cmd::Init();
 	
 	DeshWindow->ShowWindow();
-
+	
 	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline{}}");
 	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline that is not terminated properly");
 	DeshConsole->AddLog("{{a,c=red}some red text{}} {{c=green}some green text");
@@ -95,12 +95,12 @@ int main() {
 	Log("tag5", "a collection of the same tags");
 	Log("tag5", "a collection of the same tags");
 	Log("tag5", "a collection of the same tags");
-
-
-
+	
+	
+	
 	Render::UseDefaultViewProjMatrix();
 	
-
+	
 	//init suugu
 	canvas.Init();
 	
@@ -113,14 +113,14 @@ int main() {
 		DeshTime->Update();
 		DeshWindow->Update();
 		DeshInput->Update();
-		//canvas.Update();
-	
+		canvas.Update();
+		
 		{//debug area
 			//UI::DemoWindow();
 			//UI::ShowMetricsWindow();
 		}
 		
-		DeshConsole->Update(); Console2::Update();
+		DeshConsole->Update();
 		UI::Update();
 		Render::Update();                          //place imgui calls before this
 		Memory::Update();
