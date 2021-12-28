@@ -11,15 +11,15 @@ REM ____________________________________________________________________________
 
 @set INCLUDES=/I"..\src" /I"..\deshi\src" /I"..\deshi\src\external" /I"C:\src\glfw-3.3.2.bin.WIN64\include" /I"%VULKAN_SDK%\include"
 @set SOURCES=..\deshi\src\deshi.cpp suugu.cpp
-@set LIBS=/LIBPATH:C:\src\glfw-3.3.2.bin.WIN64\lib-vc2019 /libpath:%VULKAN_SDK%\lib glfw3.lib opengl32.lib gdi32.lib shell32.lib vulkan-1.lib shaderc_combined.lib
+@set LIBS=/libpath:C:\src\glfw-3.3.2.bin.WIN64\lib-vc2019 /libpath:%VULKAN_SDK%\lib glfw3.lib opengl32.lib gdi32.lib shell32.lib vulkan-1.lib shaderc_combined.lib
 
 REM _____________________________________________________________________________________________________
 REM                                      Compiler and Linker Flags
 REM _____________________________________________________________________________________________________
 
-@set WARNINGS=/W1 /wd4201 /wd4100 /wd4189 /wd4706 /wd4311
-@set COMPILE_FLAGS=/diagnostics:column /EHsc /nologo /MD /MP /Oi /Gm- /Fm /std:c++17 %WARNINGS%
-@set LINK_FLAGS=/nologo /opt:ref
+@set WARNINGS=/W2 /wd4201 /wd4100 /wd4189 /wd4706 /wd4311
+@set COMPILE_FLAGS=/diagnostics:column /EHsc /nologo /MD /MP /Oi /GR /Gm- /Fm /std:c++17 %WARNINGS%
+@set LINK_FLAGS=/nologo /opt:ref /incremental:no
 @set OUT_EXE=suugu.exe
 
 REM _____________________________________________________________________________________________________
@@ -39,7 +39,7 @@ REM  DESHI_DIRECTX12: build for DirectX12
 @set DEFINES_DEBUG=/D"DESHI_INTERNAL=1" /D"DESHI_SLOW=1" 
 @set DEFINES_RELEASE=
 @set DEFINES_OS=/D"DESHI_WINDOWS=1" /D"DESHI_MAC=0" /D"DESHI_LINUX=0"
-@set DEFINES_RENDERER=/D"DESHI_VULKAN=1" /D"DESHI_OPENGL=0" /D"DESHI_DIRECTX12=0"
+@set DEFINES_RENDERER=/D"DESHI_VULKAN=0" /D"DESHI_OPENGL=1" /D"DESHI_DIRECTX12=0"
 
 REM _____________________________________________________________________________________________________
 REM                                    Command Line Arguments
