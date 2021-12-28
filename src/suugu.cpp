@@ -41,17 +41,24 @@ Parser TODOs
 
 */
 
-#define DESHI_DISABLE_IMGUI
 //// deshi includes ////
+#define DESHI_DISABLE_IMGUI
 #include "defines.h"
-#include "deshi.h"
+#include "core/assets.h"
+#include "core/commands.h"
+#include "core/console.h"
+#include "core/input.h"
+#include "core/logger.h"
+#include "core/memory.h"
+#include "core/renderer.h"
+#include "core/storage.h"
+#include "core/time.h"
+#include "core/ui.h"
+#include "core/window.h"
+#include "math/math.h"
 #include "utils/string.h"
 #include "utils/array.h"
-#include "core/memory.h"
 #include "utils/map.h"
-#include "math/Math.h"
-#include "core/logger.h"
-
 
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION
@@ -62,10 +69,10 @@ Parser TODOs
 #include "solver.cpp"
 #include "canvas.cpp"
 
-int main() {
-	//suugu vars
-	Canvas canvas;
-	
+local Canvas canvas;
+
+int main(){
+	//init deshi
 	Assets::enforceDirectories();
 	Memory::Init(Gigabytes(1), Gigabytes(1));
 	Logger::Init(5, true);
@@ -76,57 +83,53 @@ int main() {
 	Storage::Init();
 	UI::Init();
 	Cmd::Init();
-	
 	DeshWindow->ShowWindow();
-	
-	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline{}}");
-	DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline that is not terminated properly");
-	DeshConsole->AddLog("{{a,c=red}some red text{}} {{c=green}some green text");
-	DeshConsole->AddLog("some normal text {{c=red}some red text{}}");
-	DeshConsole->AddLog("some more text");
-	Log("tag1", "a collection of the same tags");
-	Log("tag1", "a collection of the same tags");
-	Log("tag1", "a collection of the same tags");
-	Log("tag1", "a collection of the same tags");
-	Log("tag1", "a collection of the same tags");
-	Log("tag2", "a collection of the same tags");
-	Log("tag3", "a collection of the same tags");
-	Log("tag4", "a collection of the same tags");
-	Log("tag5", "a collection of the same tags");
-	Log("tag5", "a collection of the same tags");
-	Log("tag5", "a collection of the same tags");
-	
-	
-	
 	Render::UseDefaultViewProjMatrix();
-	
 	
 	//init suugu
 	canvas.Init();
 	
-	//Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
+	{//init debug
+		DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline{}}");
+		DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline that is not terminated properly");
+		DeshConsole->AddLog("{{a,c=red}some red text{}} {{c=green}some green text");
+		DeshConsole->AddLog("some normal text {{c=red}some red text{}}");
+		DeshConsole->AddLog("some more text");
+		Log("tag1", "a collection of the same tags");
+		Log("tag1", "a collection of the same tags");
+		Log("tag1", "a collection of the same tags");
+		Log("tag1", "a collection of the same tags");
+		Log("tag1", "a collection of the same tags");
+		Log("tag2", "a collection of the same tags");
+		Log("tag3", "a collection of the same tags");
+		Log("tag4", "a collection of the same tags");
+		Log("tag5", "a collection of the same tags");
+		Log("tag5", "a collection of the same tags");
+		Log("tag5", "a collection of the same tags");
+		//Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
+	}
 	
 	//start main loop
-	TIMER_START(t_d); TIMER_START(t_f);
-	while (!deshi::shouldClose()) {
-		Memory::Update();
-		DeshTime->Update();
+	TIMER_START(t_f);
+	while(!DeshWindow->ShouldClose()){
 		DeshWindow->Update();
+		DeshTime->Update();
 		DeshInput->Update();
 		canvas.Update();
-		
-		{//debug area
+		{//update debug
 			//UI::DemoWindow();
 			//UI::ShowMetricsWindow();
 		}
-		
 		DeshConsole->Update();
 		UI::Update();
-		Render::Update();                          //place imgui calls before this
+		Render::Update();
 		Memory::Update();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
 	
 	//cleanup deshi
-	deshi::cleanup();
+	Render::Cleanup();
+	DeshWindow->Cleanup();
+	DeshConsole->Cleanup();
+	Logger::Cleanup();
 }
