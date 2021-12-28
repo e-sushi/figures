@@ -70,9 +70,9 @@
     <ClInclude Include="..\deshi\src\math\Quaternion.h" />
     <ClInclude Include="..\deshi\src\math\vector.h" />
     <ClInclude Include="..\deshi\src\utils\array.h" />
-    <ClInclude Include="..\deshi\src\utils\array_sorting.h" />
+    <ClInclude Include="..\deshi\src\utils\array_algorithms.h" />
+    <ClInclude Include="..\deshi\src\utils\carray.h" />
     <ClInclude Include="..\deshi\src\utils\color.h" />
-    <ClInclude Include="..\deshi\src\utils\command.h" />
     <ClInclude Include="..\deshi\src\utils\container_manager.h" />
     <ClInclude Include="..\deshi\src\utils\cstring.h" />
     <ClInclude Include="..\deshi\src\utils\Debug.h" />
@@ -85,7 +85,6 @@
     <ClInclude Include="..\deshi\src\utils\tuple.h" />
     <ClInclude Include="..\deshi\src\utils\type.h" />
     <ClInclude Include="..\deshi\src\utils\utils.h" />
-    <ClInclude Include="..\deshi\src\utils\view.h" />
     <ClInclude Include="..\src\canvas.h" />
     <ClInclude Include="..\src\keybinds.h" />
     <ClInclude Include="..\src\types.h" />
@@ -247,6 +246,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\deshi\src\utils\deshi_utils_tests.cpp" />
     <ClCompile Include="..\src\canvas.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
