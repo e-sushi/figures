@@ -63,7 +63,6 @@
     <ClInclude Include="..\deshi\src\external\stb\stb_truetype.h" />
     <ClInclude Include="..\deshi\src\geometry\Edge.h" />
     <ClInclude Include="..\deshi\src\geometry\Geometry.h" />
-    <ClInclude Include="..\deshi\src\math\InertiaTensors.h" />
     <ClInclude Include="..\deshi\src\math\Math.h" />
     <ClInclude Include="..\deshi\src\math\matN.h" />
     <ClInclude Include="..\deshi\src\math\matrix.h" />
@@ -114,6 +113,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsOpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsDirectX|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\deshi\src\core\deshi_core_tests.cpp" />
     <ClCompile Include="..\deshi\src\core\io.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
@@ -246,7 +246,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\deshi\src\utils\deshi_utils_tests.cpp" />
+    <ClCompile Include="..\deshi\src\utils\deshi_utils_tests.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\src\canvas.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
@@ -370,6 +372,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableUnitySupport>false</EnableUnitySupport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -466,10 +469,10 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level1</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>false</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)src;$(SolutionDir)deshi\src;$(SolutionDir)deshi\src\external;C:\VulkanSDK\1.2.162.1\Include;C:\src\glfw-3.3.2.bin.WIN64\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

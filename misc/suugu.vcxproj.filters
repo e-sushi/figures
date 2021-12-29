@@ -111,9 +111,6 @@
     <ClInclude Include="..\deshi\src\math\vector.h">
       <Filter>src\deshi\math</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\math\InertiaTensors.h">
-      <Filter>src\deshi\math</Filter>
-    </ClInclude>
     <ClInclude Include="..\deshi\src\geometry\Edge.h">
       <Filter>src\deshi\geometry</Filter>
     </ClInclude>
@@ -325,6 +322,9 @@
     </ClCompile>
     <ClCompile Include="..\deshi\src\utils\deshi_utils_tests.cpp">
       <Filter>src\deshi\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\deshi_core_tests.cpp">
+      <Filter>src\deshi\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
