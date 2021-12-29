@@ -69,8 +69,6 @@ Parser TODOs
 #include "solver.cpp"
 #include "canvas.cpp"
 
-#include "utils/deshi_utils_tests.cpp"
-
 local Canvas canvas;
 
 int main(){
@@ -94,7 +92,7 @@ int main(){
 	canvas.Init();
 	
 	{//init debug
-		TEST_deshi_utils_string();
+		 
 	}
 	
 	//start main loop
@@ -106,6 +104,11 @@ int main(){
 		canvas.Update();
 		{//update debug
 			using namespace UI;
+
+			Begin("oh yep");
+
+
+			End();
 
 			UI::DemoWindow();
 			UI::ShowMetricsWindow();
