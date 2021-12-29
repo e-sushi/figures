@@ -211,7 +211,7 @@ Update() {
 	PushScale(vec2::ONE * size.y / camera_zoom * 2);
 	
 	SetNextWindowPos(winpos);
-	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * DeshWindow->width / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag);
+	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * f32(DeshWindow->width) / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag);
 	
 	if (tokens.count) {
 		
@@ -232,7 +232,7 @@ Update() {
 					if (!curt.str[0])
 						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
 					
-					if (InputText((char*)toStr((char)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
+					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						statement = Parser::parse(tokens);
 					}
@@ -551,7 +551,7 @@ HandleInput(){
 			if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
 				activeElement = 0;
 				forE(elements){
-					if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size / (2 * camera_zoom) * DeshWindow->width)){
+					if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size / (2 * camera_zoom) * (f32)DeshWindow->width)){
 						activeElement = it;
 					}
 				}
