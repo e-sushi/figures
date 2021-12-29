@@ -74,7 +74,7 @@ local Canvas canvas;
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
-	Memory::Init(Gigabytes(1), Gigabytes(1));
+	memory_init(Gigabytes(1), Gigabytes(1));
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
@@ -116,7 +116,7 @@ int main(){
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();
-		Memory::Update();
+		memory_clear_temp();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
 	
