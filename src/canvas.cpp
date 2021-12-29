@@ -68,7 +68,7 @@ local vec2f64 camera_pos{0,0};
 local f64     camera_zoom = 1.0;
 local vec2f64 camera_pan_start_pos;
 local vec2    camera_pan_mouse_pos;
-local bool    camera_pan_active = false;
+local b32     camera_pan_active = false;
 
 
 //////////////////
@@ -154,7 +154,7 @@ AddToken(TokenType t) {
 			
 		}
 		//unary op ditto
-		else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || tok_Negation) {
+		else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || t == tok_Negation) {
 			tokens.add(token(t));
 			tokens.add(token(tok_Literal));
 			cursor = 1; //position cursor in the literals box
@@ -180,7 +180,7 @@ AddToken(TokenType t) {
 				cursor = tokens.count - 2; //position cursor inside first tok_Literal box 
 				
 			}
-			else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || tok_Negation) {
+			else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || t==tok_Negation) {
 				tokens.add(token(t));
 				tokens.add(token(tok_Literal));
 				cursor = tokens.count - 2; //position cursor inside first tok_Literal box 

@@ -5,7 +5,7 @@
 local token curt;
 local array<token> tokens;
 local u32 layer = 0;
-local bool master_logger = true;
+local b32 master_logger = true;
 
 local map<TokenType, ExpressionType> binaryOps{
 	{tok_Multiplication,     Expression_BinaryOpMultiply},
@@ -61,7 +61,7 @@ LOG(out);
 if(expect.has(curt.type)) {
 
 #define PrettyPrint(...)\
-if(master_logger){ for(int i = 0; i < layer; i++)\
+if(master_logger){ for(u32 i = 0; i < layer; i++)\
 if(i % 2 == 0) std::cout << "|   ";\
 else std::cout << "!   ";\
 std::cout << toStr("~", __VA_ARGS__, ":").str << std::endl;}
@@ -363,6 +363,7 @@ local f32 node_margins = 10;
 
 
 vec2 pretty_print_recur(Expression& e) {
+#ifdef DESHI_SLOW
 	//we move through the tree using depth-first search
 	//we walk through it twice, first to calculate the positions of all nodes, and second to actually ask
 	//UI to place things in those positions. I'm not sure how to combine these 2 things at least with how
@@ -408,9 +409,11 @@ vec2 pretty_print_recur(Expression& e) {
 	}
 
 	return e.cbbx_size;
+#endif
 }
 
 local void pretty_print_final(Expression& e, vec2 parent_pos) {
+#ifdef DESHI_SLOW
 	forE(e.expressions) pretty_print_final(*it, e.pos + parent_pos);
 	vec2 pos = (e.pos + parent_pos).xAdd(-e.size.x/2);// -e.cbbx_size.ySet(0) / 2).xAdd(-e.size.x / 2);
 	pos.x = floor(pos.x);
@@ -419,7 +422,7 @@ local void pretty_print_final(Expression& e, vec2 parent_pos) {
 
 	UI::RectFilled(pos, e.size, color(25, 144, 130));
 	UI::Text(toStr(e.cbbx_size).str, pos + vec2::ONE * node_margins / 2);
-
+#endif
 }
 
 void Parser::pretty_print(Expression& e) {
