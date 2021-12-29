@@ -69,6 +69,8 @@ Parser TODOs
 #include "solver.cpp"
 #include "canvas.cpp"
 
+#include "utils/deshi_utils_tests.cpp"
+
 local Canvas canvas;
 
 int main(){
@@ -86,27 +88,13 @@ int main(){
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
 	
+	
+
 	//init suugu
 	canvas.Init();
 	
 	{//init debug
-		DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline{}}");
-		DeshConsole->AddLog("{{a,c=yellow}this is to test\na formatted newline that is not terminated properly");
-		DeshConsole->AddLog("{{a,c=red}some red text{}} {{c=green}some green text");
-		DeshConsole->AddLog("some normal text {{c=red}some red text{}}");
-		DeshConsole->AddLog("some more text");
-		Log("tag1", "a collection of the same tags");
-		Log("tag1", "a collection of the same tags");
-		Log("tag1", "a collection of the same tags");
-		Log("tag1", "a collection of the same tags");
-		Log("tag1", "a collection of the same tags");
-		Log("tag2", "a collection of the same tags");
-		Log("tag3", "a collection of the same tags");
-		Log("tag4", "a collection of the same tags");
-		Log("tag5", "a collection of the same tags");
-		Log("tag5", "a collection of the same tags");
-		Log("tag5", "a collection of the same tags");
-		//Texture* tex = Storage::CreateTextureFromFile("lcdpix.png").second;
+		TEST_deshi_utils_string();
 	}
 	
 	//start main loop
@@ -117,8 +105,10 @@ int main(){
 		DeshInput->Update();
 		canvas.Update();
 		{//update debug
-			//UI::DemoWindow();
-			//UI::ShowMetricsWindow();
+			using namespace UI;
+
+			UI::DemoWindow();
+			UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
 		UI::Update();
