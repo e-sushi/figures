@@ -71,6 +71,8 @@ Parser TODOs
 
 local Canvas canvas;
 
+#include "utils/misc_testing.cpp"
+
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
@@ -92,26 +94,26 @@ int main(){
 	canvas.Init();
 	
 	{//init debug
-		 
+		
 	}
 	
 	//start main loop
 	TIMER_START(t_f);
+	TIMER_START(walk);
 	while(!DeshWindow->ShouldClose()){
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		canvas.Update();
+		//canvas.Update();
 		{//update debug
 			using namespace UI;
 
-			Begin("oh yep");
+			random_walk_avoid();
 
+			Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
 
-			End();
-
-			UI::DemoWindow();
-			UI::ShowMetricsWindow();
+			//UI::DemoWindow();
+			//UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
 		UI::Update();

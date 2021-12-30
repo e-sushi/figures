@@ -326,6 +326,9 @@
     <ClCompile Include="..\deshi\src\core\deshi_core_tests.cpp">
       <Filter>src\deshi\core</Filter>
     </ClCompile>
+    <ClCompile Include="..\deshi\src\utils\misc_testing.cpp">
+      <Filter>src\deshi\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\deshi\src\math\mat3.inl">
