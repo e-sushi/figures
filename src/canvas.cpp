@@ -428,10 +428,12 @@ HandleInput(){
 		camera_pan_active = false;
 	}
 	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
-	if(DeshInput->KeyPressed(CanvasBind_Camera_ZoomIn) && !UI::AnyWinHovered()){
+	
+	if(DeshInput->scrollY > 0 && !UI::AnyWinHovered()){
 		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0; 
-			camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+			
 		}else{
 			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
 			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
@@ -454,9 +456,9 @@ HandleInput(){
 			}
 		}
 	}
-	if(DeshInput->KeyPressed(CanvasBind_Camera_ZoomOut) && !UI::AnyWinHovered()){ 
+	if(DeshInput->scrollY < 0 && !UI::AnyWinHovered()){ 
 		if(!activeGraph){
-			camera_zoom += camera_zoom / 10.0; 
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY; 
 			camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
 			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
@@ -559,7 +561,6 @@ HandleInput(){
 					}
 				}
 			}
-			
 			if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
 				elements.add(Element());
 				activeElement = elements.last;

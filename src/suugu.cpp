@@ -99,20 +99,22 @@ int main(){
 	
 	//start main loop
 	TIMER_START(t_f);
-	TIMER_START(walk);
 	while(!DeshWindow->ShouldClose()){
+		TIMER_RESET(walk);
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		//canvas.Update();
+		canvas.Update();
 		{//update debug
 			using namespace UI;
 
-			random_walk_avoid();
+			//random_draw(50);
+			//random_walk_avoid();
+			//vector_field();
 
 			Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
 
-			//UI::DemoWindow();
+			UI::DemoWindow();
 			//UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
