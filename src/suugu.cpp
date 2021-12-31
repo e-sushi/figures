@@ -104,17 +104,17 @@ int main(){
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		canvas.Update();
+		//canvas.Update();
 		{//update debug
 			using namespace UI;
 
-			//random_draw(50);
+			//random_draw(200);
 			//random_walk_avoid();
-			//vector_field();
+			vector_field();
 
-			Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
+			//Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
 
-			UI::DemoWindow();
+			//UI::DemoWindow();
 			//UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
