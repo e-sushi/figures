@@ -232,7 +232,7 @@ Update() {
 					if (!curt.str[0])
 						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
 					
-					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
+					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, "", UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						statement = Parser::parse(tokens);
 					}

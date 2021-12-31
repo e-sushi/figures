@@ -38,7 +38,10 @@ Parser TODOs
 ------------
 - implement a system for adding to an already existing AST tree
 
-
+Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
+---------
+(12/31/21) top-left debug text is drawn overtop of eachother
+(12/31/21) graph colors are darker than they shold be and the major lines are not drawn correctly
 */
 
 //// deshi includes ////
@@ -69,7 +72,8 @@ Parser TODOs
 #include "solver.cpp"
 #include "canvas.cpp"
 
-#include "utils/deshi_utils_tests.cpp"
+//#include "utils/deshi_utils_tests.cpp"
+//#include "core/deshi_core_tests.cpp"
 
 local Canvas canvas;
 
@@ -89,12 +93,13 @@ int main(){
 	Render::UseDefaultViewProjMatrix();
 	
 	
-
+	
 	//init suugu
 	canvas.Init();
 	
 	{//init debug
-		TEST_deshi_utils_string();
+		//TEST_deshi_utils();
+		//TEST_deshi_core();
 	}
 	
 	//start main loop
@@ -106,7 +111,7 @@ int main(){
 		canvas.Update();
 		{//update debug
 			using namespace UI;
-
+			
 			UI::DemoWindow();
 			UI::ShowMetricsWindow();
 		}
