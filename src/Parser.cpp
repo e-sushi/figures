@@ -428,9 +428,6 @@ local void pretty_print_final(Expression& e, vec2 parent_pos) {
 void Parser::pretty_print(Expression& e) {
 #if DESHI_SLOW
 	
-	//local Font* ppfont = Storage::CreateFontFromFileTTF("STIXTwoText-Regular.otf", 30).second;
-
-
 	if (e.expressions.count) {
 		pretty_print_recur(e);
 		

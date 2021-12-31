@@ -77,6 +77,8 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 
 local Canvas canvas;
 
+#include "utils/misc_testing.cpp"
+
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
@@ -105,15 +107,22 @@ int main(){
 	//start main loop
 	TIMER_START(t_f);
 	while(!DeshWindow->ShouldClose()){
+		TIMER_RESET(walk);
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		canvas.Update();
+		//canvas.Update();
 		{//update debug
 			using namespace UI;
-			
-			UI::DemoWindow();
-			UI::ShowMetricsWindow();
+
+			//random_draw(200);
+			//random_walk_avoid();
+			vector_field();
+
+			//Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
+
+			//UI::DemoWindow();
+			//UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
 		UI::Update();

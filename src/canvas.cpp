@@ -231,8 +231,8 @@ Update() {
 					
 					if (!curt.str[0])
 						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-					
-					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, "", UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
+                        
+					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, 0, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						statement = Parser::parse(tokens);
 					}
@@ -261,7 +261,10 @@ Update() {
 	else {
 		//draw initial statement
 		PushFont(mathfontitalic);
+		
+
 		UI::Text("type initial statement...", UITextFlags_NoWrap);
+
 		PopFont();
 	}
 	
@@ -425,10 +428,12 @@ HandleInput(){
 		camera_pan_active = false;
 	}
 	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
-	if(DeshInput->KeyPressed(CanvasBind_Camera_ZoomIn) && !UI::AnyWinHovered()){
+	
+	if(DeshInput->scrollY > 0 && !UI::AnyWinHovered()){
 		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0; 
-			camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+			
 		}else{
 			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
 			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
@@ -451,9 +456,9 @@ HandleInput(){
 			}
 		}
 	}
-	if(DeshInput->KeyPressed(CanvasBind_Camera_ZoomOut) && !UI::AnyWinHovered()){ 
+	if(DeshInput->scrollY < 0 && !UI::AnyWinHovered()){ 
 		if(!activeGraph){
-			camera_zoom += camera_zoom / 10.0; 
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY; 
 			camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
 			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
@@ -556,7 +561,6 @@ HandleInput(){
 					}
 				}
 			}
-			
 			if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
 				elements.add(Element());
 				activeElement = elements.last;
