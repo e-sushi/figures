@@ -111,22 +111,24 @@ int main(){
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		//canvas.Update();
+		canvas.Update();
 		{//update debug
 			using namespace UI;
-
 			//random_draw(200);
 			//random_walk_avoid();
-			vector_field();
-
+			//vector_field();
+			
 			//Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
-
+			
 			//UI::DemoWindow();
 			//UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();
+		
+		//deshi__memory_draw();
+		
 		memory_clear_temp();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
