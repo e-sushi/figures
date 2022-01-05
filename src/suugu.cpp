@@ -32,11 +32,21 @@ ideas for parsing itself:
 
 TODO Board
 ----------------------------------------------------
-- most math should be f64 instead of f32
+most math should be f64 instead of f32
+
+Canvas TODOs
+------------
+graphs should have their own UI windows
+
+Lexer TODOs
+-----------
 
 Parser TODOs
 ------------
-- implement a system for adding to an already existing AST tree
+implement a system for adding to an already existing AST tree
+
+Solver TODOs
+------------
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
@@ -91,8 +101,6 @@ int main(){
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
 	
-	
-	
 	//init suugu
 	canvas.Init();
 	
@@ -109,22 +117,16 @@ int main(){
 		DeshInput->Update();
 		canvas.Update();
 		{//update debug
-			using namespace UI;
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
-			
-
-
 			//UI::DemoWindow();
 			UI::ShowMetricsWindow();
+			//deshi__memory_draw(); //NOTE ideally this would be right before memory_clear_temp(), but it doesnt get drawn if after UI::Update()
 		}
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();
-		
-		//deshi__memory_draw();
-		
 		memory_clear_temp();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
