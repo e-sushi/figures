@@ -644,6 +644,7 @@ Init(){
 
 void Canvas::
 Update(){
+	UI::PushVar(UIStyleVar_WindowPadding, vec2::ZERO);
 	UI::Begin("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
 	
 	HandleInput();
@@ -664,4 +665,5 @@ Update(){
 	UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
 	
 	UI::End();
+	UI::PopVar();
 }

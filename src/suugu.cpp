@@ -32,7 +32,7 @@ ideas for parsing itself:
 
 TODO Board
 ----------------------------------------------------
-most math should be f64 instead of f32
+- most math should be f64 instead of f32
 
 Parser TODOs
 ------------
@@ -40,8 +40,6 @@ Parser TODOs
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
-(12/31/21) top-left debug text is drawn overtop of eachother
-(12/31/21) graph colors are darker than they shold be and the major lines are not drawn correctly
 */
 
 //// deshi includes ////
@@ -74,10 +72,9 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 
 //#include "utils/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
+//#include "utils/misc_testing.cpp"
 
 local Canvas canvas;
-
-#include "utils/misc_testing.cpp"
 
 int main(){
 	//init deshi
@@ -107,7 +104,6 @@ int main(){
 	//start main loop
 	TIMER_START(t_f);
 	while(!DeshWindow->ShouldClose()){
-		TIMER_RESET(walk);
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
@@ -118,10 +114,10 @@ int main(){
 			//random_walk_avoid();
 			//vector_field();
 			
-			//Math::LineIntersect2(vec2::ZERO, vec2(3, 3), vec2(0, 1), vec2(5, 7));
-			
+
+
 			//UI::DemoWindow();
-			//UI::ShowMetricsWindow();
+			UI::ShowMetricsWindow();
 		}
 		DeshConsole->Update();
 		UI::Update();
