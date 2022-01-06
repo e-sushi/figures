@@ -17,7 +17,7 @@ REM ____________________________________________________________________________
 REM                                      Compiler and Linker Flags
 REM _____________________________________________________________________________________________________
 
-@set WARNINGS=/W2 /wd4201 /wd4100 /wd4189 /wd4706 /wd4311
+@set WARNINGS=/wd4201 /wd4100 /wd4189 /wd4706 /wd4311
 @set COMPILE_FLAGS=/diagnostics:column /EHsc /nologo /MD /MP /Oi /GR /Gm- /Fm /std:c++17 %WARNINGS%
 @set LINK_FLAGS=/nologo /opt:ref /incremental:no
 @set OUT_EXE=suugu.exe
@@ -59,7 +59,7 @@ ECHO %DATE% %TIME%    Debug
 ECHO ---------------------------------
 @set OUT_DIR="..\build\debug"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /Z7 /Od %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
+cl /Z7 /Od /W1 %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
 GOTO DONE
 
 REM _____________________________________________________________________________________________________
@@ -74,7 +74,7 @@ ECHO [93mWarning: debugging might not work with one-file compilation[0m
 
 @set OUT_DIR="..\build\debug"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /c /Z7 %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %~2 /Fo%OUT_DIR%/
+cl /c /Z7 /W1 %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %~2 /Fo%OUT_DIR%/
 pushd ..\build\Debug
 link %LINK_FLAGS% *.obj %LIBS% /OUT:%OUT_EXE% 
 popd
@@ -100,7 +100,7 @@ REM ____________________________________________________________________________
 ECHO %DATE% %TIME%    Release
 @set OUT_DIR="..\build\release"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /O2 %COMPILE_FLAGS% %DEFINES_RELEASE% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
+cl /O2 /W4 %COMPILE_FLAGS% %DEFINES_RELEASE% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
 GOTO DONE
 
 :DONE

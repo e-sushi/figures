@@ -37,6 +37,7 @@ most math should be f64 instead of f32
 Canvas TODOs
 ------------
 graphs should have their own UI windows
+add checks to discard things early from UI if they wont be drawn
 
 Lexer TODOs
 -----------
@@ -50,6 +51,7 @@ Solver TODOs
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
+(01/06/22) pencil strokes are not visisble
 */
 
 //// deshi includes ////

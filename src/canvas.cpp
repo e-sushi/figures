@@ -215,7 +215,7 @@ Update() {
 	
 	if (tokens.count) {
 		
-		UI::BeginRow(tokens.count, 30);
+		UI::BeginRow("tokens_row", tokens.count, 30);
 		for (int i = 0; i < tokens.count; i++) {
 			token curt = tokens[i];
 			
