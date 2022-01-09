@@ -115,6 +115,11 @@
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\deshi_core_tests.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsDirectX|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\io.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
@@ -251,10 +256,18 @@
     <ClCompile Include="..\deshi\src\utils\deshi_utils_tests.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsDirectX|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\deshi\src\utils\misc_testing.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsVulkan|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsVulkan|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsOpenGL|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsDirectX|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseWindowsDirectX|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\src\canvas.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugWindowsOpenGL|x64'">true</ExcludedFromBuild>
