@@ -54,6 +54,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (01/06/22) pencil strokes are not visisble
 */
 
+
 //// deshi includes ////
 #define DESHI_DISABLE_IMGUI
 #include "defines.h"
@@ -63,6 +64,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
+#include "core/imgui.h"
 #include "core/renderer.h"
 #include "core/storage.h"
 #include "core/time.h"
@@ -72,6 +74,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "utils/string.h"
 #include "utils/array.h"
 #include "utils/map.h"
+
 
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION
@@ -91,12 +94,15 @@ local Canvas canvas;
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
-	memory_init(Gigabytes(1), Gigabytes(1));
+	memory_init(Gigabytes(1), Gigabytes(4));
+	u8* some = (u8*)memalloc(20 * 20 * u8size);
+
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
 	DeshWindow->Init("deshi", 1280, 720);
 	Render::Init();
+	//DeshiImGui::Init();
 	Storage::Init();
 	UI::Init();
 	Cmd::Init();
@@ -110,9 +116,20 @@ int main(){
 		//TEST_deshi_utils();
 		//TEST_deshi_core();
 	}
+	array<u32*> random;
+
+	Texture* yep = Storage::CreateTextureFromFile("UV_Grid_Sm.jpg").second;
 	
+	
+	forI(400) {
+		some[i] = rand() % 255;
+	}
+
+	srand(time(0));
+
 	//start main loop
 	TIMER_START(t_f);
+	TIMER_START(fun);
 	while(!DeshWindow->ShouldClose()){
 		DeshWindow->Update();
 		DeshTime->Update();

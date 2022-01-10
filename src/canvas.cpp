@@ -13,6 +13,19 @@ local const char* canvas_tool_strings[] = {
 local CanvasTool active_tool   = CanvasTool_Navigation;
 local CanvasTool previous_tool = CanvasTool_Navigation;
 
+///////////////////
+//// @textures ////
+///////////////////
+
+enum MathTextures {
+	MathTexture_Plus,
+	MathTexture_Minus,
+	MathTexture_Multiply,
+	MathTexture_Divide,
+}; 
+
+
+
 
 ////////////////
 //// @binds ////
@@ -203,7 +216,7 @@ Update() {
 	Font* font = mathfont;
 	vec2 winpos = ToScreen(pos.x, pos.y);
 	
-	PushVar(UIStyleVar_WindowPadding,      vec2{ 0,0 });
+	PushVar(UIStyleVar_WindowPadding,      vec2{ 4,4 });
 	PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
 	PushVar(UIStyleVar_RowItemAlign,       vec2{ 0.5, 0.5 });
 	PushVar(UIStyleVar_FontHeight,         80);
@@ -211,7 +224,7 @@ Update() {
 	PushScale(vec2::ONE * size.y / camera_zoom * 2);
 	
 	SetNextWindowPos(winpos);
-	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * f32(DeshWindow->width) / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag);
+	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * f32(DeshWindow->width) / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_FitAllElements);
 	
 	if (tokens.count) {
 		
@@ -231,47 +244,40 @@ Update() {
 					
 					if (!curt.str[0])
 						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-					
 					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, 0, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
 						tokens[i].strSize = CalcTextSize(tokens[i].str);
 						statement = Parser::parse(tokens);
 					}
-					
 					//selection outline
-					Rect(GetLastItemScreenPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
-					
+					Rect(GetLastItemPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
 				}
 				//underline anything else for now
 				else {
-					
 					Text(tokens[i].str, UITextFlags_NoWrap);
-					Line(vec2{ GetLastItemScreenPos().x + font->max_width, GetLastItemScreenPos().y + (f32)font->max_height + 1 }, vec2{ GetLastItemScreenPos().x, GetLastItemScreenPos().y + (f32)font->max_height + 1 }, 1);
+					Line(vec2{ GetLastItemPos().x + font->max_width, GetLastItemPos().y + (f32)font->max_height + 1 }, vec2{ GetLastItemPos().x, GetLastItemPos().y + (f32)font->max_height + 1 }, 1);
 				}
 			}
 			else {
 				if (!curt.str[0])
 					SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-				UI::Text(tokens[i].str, UITextFlags_NoWrap);
+				Text(tokens[i].str, UITextFlags_NoWrap);
 				
 				
 			}
 		}
-		UI::EndRow();
+		EndRow();
 	}
 	else {
 		//draw initial statement
 		PushFont(mathfontitalic);
-		
-		
-		UI::Text("type initial statement...", UITextFlags_NoWrap);
-		
+		Text("type initial statement...", UITextFlags_NoWrap);
 		PopFont();
 	}
 	
 	End();
-	UI::PopVar(4);
-	UI::PopFont();
-	UI::PopScale();
+	PopVar(4);
+	PopFont();
+	PopScale();
 }
 
 
@@ -429,10 +435,12 @@ HandleInput(){
 	}
 	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
 	
+	camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+	camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 	if(DeshInput->scrollY > 0 && !UI::AnyWinHovered()){
 		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+			//camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+			
 			
 		}else{
 			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
@@ -458,8 +466,8 @@ HandleInput(){
 	}
 	if(DeshInput->scrollY < 0 && !UI::AnyWinHovered()){ 
 		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY; 
-			camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
+			//camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY; 
+			//camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
 			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
 			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
@@ -565,7 +573,7 @@ HandleInput(){
 				elements.add(Element());
 				activeElement = elements.last;
 				activeElement->pos = vec2(mouse_pos_world.x, mouse_pos_world.y);
-				activeElement->size = vec2(2, 1);
+				activeElement->size = vec2(0.5, 0.25);
 			}
 			
 			//handle token inputs
