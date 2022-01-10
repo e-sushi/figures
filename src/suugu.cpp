@@ -124,7 +124,8 @@ int main(){
 			//vector_field();
 			//UI::DemoWindow();
 			UI::ShowMetricsWindow();
-			//deshi__memory_draw(); //NOTE ideally this would be right before memory_clear_temp(), but it doesnt get drawn if after UI::Update()
+			//Storage::StorageBrowserUI();
+			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}
 		DeshConsole->Update();
 		UI::Update();
@@ -136,6 +137,5 @@ int main(){
 	//cleanup deshi
 	Render::Cleanup();
 	DeshWindow->Cleanup();
-	DeshConsole->Cleanup();
 	Logger::Cleanup();
 }
