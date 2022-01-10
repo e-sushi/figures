@@ -32,14 +32,26 @@ ideas for parsing itself:
 
 TODO Board
 ----------------------------------------------------
-- most math should be f64 instead of f32
+most math should be f64 instead of f32
+
+Canvas TODOs
+------------
+graphs should have their own UI windows
+add checks to discard things early from UI if they wont be drawn
+
+Lexer TODOs
+-----------
 
 Parser TODOs
 ------------
-- implement a system for adding to an already existing AST tree
+implement a system for adding to an already existing AST tree
+
+Solver TODOs
+------------
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
+(01/06/22) pencil strokes are not visisble
 */
 
 
@@ -97,8 +109,6 @@ int main(){
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
 	
-	
-	
 	//init suugu
 	canvas.Init();
 	
@@ -121,74 +131,23 @@ int main(){
 	TIMER_START(t_f);
 	TIMER_START(fun);
 	while(!DeshWindow->ShouldClose()){
-		//if (TIMER_END(fun) > 1.f / 15.f * 1000) {
-			TIMER_RESET(fun);
-			DeshWindow->Update();
-			DeshTime->Update();
-			DeshInput->Update();
-			canvas.Update();
-			{//update debug
-				using namespace UI;
-				UI::ShowMetricsWindow();
-
-				//ImGui::ShowDemoWindow();
-
-				Storage::StorageBrowserUI();
-
-				Begin("unitest");
-				Text("ok");
-
-				SetNextItemSize(vec2::ONE * 80);
-				Image(yep);
-				SetNextItemSize(vec2::ONE * 80);
-
-				Image(yep, 1, UIImageFlags_FlipX);
-				SetNextItemSize(vec2::ONE * 80);
-
-				Image(yep, 1, UIImageFlags_FlipY);
-
-
-				if (BeginTabBar("some guy")) {
-
-					if (BeginTab("a tab")) {
-						Text("ok hi");
-						EndTab();
-					}
-					if (BeginTab("tab 2")) {
-						Text("ok hi, heres some text ok!");
-						EndTab();
-					}
-
-					EndTabBar();
-				}
-
-				if (BeginTabBar("some guy again")) {
-
-					if (BeginTab("Meshes")) {
-						Text("aight");
-						Separator(7);
-						Text("ok");
-						EndTab();
-					}
-					if (BeginTab("Textures")) {
-						Text("ok hi, heres some text again ok!");
-						EndTab();
-					}
-
-					EndTabBar();
-				}
-				
-				End();
-
-			}
-			DeshConsole->Update();
-			UI::Update();
-			Render::Update();
-
-
-			memory_clear_temp();
-			DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
-		//}
+		DeshWindow->Update();
+		DeshTime->Update();
+		DeshInput->Update();
+		canvas.Update();
+		{//update debug
+			//random_draw(200);
+			//random_walk_avoid();
+			//vector_field();
+			//UI::DemoWindow();
+			UI::ShowMetricsWindow();
+			//deshi__memory_draw(); //NOTE ideally this would be right before memory_clear_temp(), but it doesnt get drawn if after UI::Update()
+		}
+		DeshConsole->Update();
+		UI::Update();
+		Render::Update();
+		memory_clear_temp();
+		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
 	
 	//cleanup deshi

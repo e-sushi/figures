@@ -228,7 +228,7 @@ Update() {
 	
 	if (tokens.count) {
 		
-		BeginRow(toStr("token_align__", u64(this)).str , tokens.count, 85);
+		UI::BeginRow("tokens_row", tokens.count, 30);
 		for (int i = 0; i < tokens.count; i++) {
 			token curt = tokens[i];
 			

@@ -375,25 +375,25 @@ vec2 pretty_print_recur(Expression& e) {
 		e.cbbx_size.x = Max(e.cbbx_size.x, ret.x);
 		e.cbbx_size.y = Max(e.cbbx_size.y, ret.y);
 	}
-
+	
 	//if this expression has no children or has run through them all, we can start reporting sizes and pos
-
+	
 	if (e.type == Expression_Literal) {
 		e.text = toStr("literal: ", e.expstr);
 	}
 	else {
 		e.text = toStr(ExpTypeStrings[e.type]);
 	}
-
+	
 	e.size = UI::CalcTextSize(e.text) + vec2::ONE * node_margins;
-
+	
 	if (!e.expressions.count) 
 		e.cbbx_size = e.size;
 	else {
-
+		
 		//now that we've finished doing a bunch of sizing, we have to walk our child elements again to give them
 		//their relative positions
-
+		
 		vec2 sum;
 		forI(e.expressions.count) {
 			Expression& ex = e.expressions[i];
@@ -401,14 +401,16 @@ vec2 pretty_print_recur(Expression& e) {
 			sum.x += ex.cbbx_size.x;
 			sum.y = Max(sum.y, ex.cbbx_size.y);
 		}
-
 		
-
+		
+		
 		e.cbbx_size = sum;
 		e.cbbx_size += vec2(0, e.size.y + vertical_separation);
 	}
-
+	
 	return e.cbbx_size;
+#else
+	return vec2{};
 #endif
 }
 
@@ -418,8 +420,8 @@ local void pretty_print_final(Expression& e, vec2 parent_pos) {
 	vec2 pos = (e.pos + parent_pos).xAdd(-e.size.x/2);// -e.cbbx_size.ySet(0) / 2).xAdd(-e.size.x / 2);
 	pos.x = floor(pos.x);
 	pos.y = floor(pos.y);
-
-
+	
+	
 	UI::RectFilled(pos, e.size, color(25, 144, 130));
 	UI::Text(toStr(e.cbbx_size).str, pos + vec2::ONE * node_margins / 2);
 #endif
@@ -433,13 +435,13 @@ void Parser::pretty_print(Expression& e) {
 		
 		//UI::PushVar(UIStyleVar_FontHeight, 30);
 		UI::Begin(toStr("ASTPRETTYPRINT", (char*)&e).str, vec2(300, 300), vec2(300, 1500), UIWindowFlags_FitAllElements);
-			
+		
 		pretty_print_final(e, vec2(150, 0));
-	
+		
 		UI::End();
 		//UI::PopVar();
 	}
-
+	
 #else
 	LogW("SUUGUDEBUG", "Function 'pretty_print_AST' called from somewhere when DESHI_SLOW not set!");
 #endif
