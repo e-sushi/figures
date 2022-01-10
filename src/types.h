@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #ifndef SUUGU_TYPES_H
 #define SUUGU_TYPES_H
 

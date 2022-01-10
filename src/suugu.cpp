@@ -42,6 +42,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
 */
 
+
 //// deshi includes ////
 #define DESHI_DISABLE_IMGUI
 #include "defines.h"
@@ -51,6 +52,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
+#include "core/imgui.h"
 #include "core/renderer.h"
 #include "core/storage.h"
 #include "core/time.h"
@@ -60,6 +62,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "utils/string.h"
 #include "utils/array.h"
 #include "utils/map.h"
+
 
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION
@@ -79,12 +82,15 @@ local Canvas canvas;
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
-	memory_init(Gigabytes(1), Gigabytes(1));
+	memory_init(Gigabytes(1), Gigabytes(4));
+	u8* some = (u8*)memalloc(20 * 20 * u8size);
+
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
 	DeshWindow->Init("deshi", 1280, 720);
 	Render::Init();
+	//DeshiImGui::Init();
 	Storage::Init();
 	UI::Init();
 	Cmd::Init();
@@ -100,33 +106,89 @@ int main(){
 		//TEST_deshi_utils();
 		//TEST_deshi_core();
 	}
+	array<u32*> random;
+
+	Texture* yep = Storage::CreateTextureFromFile("UV_Grid_Sm.jpg").second;
 	
+	
+	forI(400) {
+		some[i] = rand() % 255;
+	}
+
+	srand(time(0));
+
 	//start main loop
 	TIMER_START(t_f);
+	TIMER_START(fun);
 	while(!DeshWindow->ShouldClose()){
-		DeshWindow->Update();
-		DeshTime->Update();
-		DeshInput->Update();
-		canvas.Update();
-		{//update debug
-			using namespace UI;
-			//random_draw(200);
-			//random_walk_avoid();
-			//vector_field();
-			
+		//if (TIMER_END(fun) > 1.f / 15.f * 1000) {
+			TIMER_RESET(fun);
+			DeshWindow->Update();
+			DeshTime->Update();
+			DeshInput->Update();
+			canvas.Update();
+			{//update debug
+				using namespace UI;
+				UI::ShowMetricsWindow();
+
+				//ImGui::ShowDemoWindow();
+
+				Storage::StorageBrowserUI();
+
+				Begin("unitest");
+				Text("ok");
+
+				SetNextItemSize(vec2::ONE * 80);
+				Image(yep);
+				SetNextItemSize(vec2::ONE * 80);
+
+				Image(yep, 1, UIImageFlags_FlipX);
+				SetNextItemSize(vec2::ONE * 80);
+
+				Image(yep, 1, UIImageFlags_FlipY);
 
 
-			//UI::DemoWindow();
-			UI::ShowMetricsWindow();
-		}
-		DeshConsole->Update();
-		UI::Update();
-		Render::Update();
-		
-		//deshi__memory_draw();
-		
-		memory_clear_temp();
-		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
+				if (BeginTabBar("some guy")) {
+
+					if (BeginTab("a tab")) {
+						Text("ok hi");
+						EndTab();
+					}
+					if (BeginTab("tab 2")) {
+						Text("ok hi, heres some text ok!");
+						EndTab();
+					}
+
+					EndTabBar();
+				}
+
+				if (BeginTabBar("some guy again")) {
+
+					if (BeginTab("Meshes")) {
+						Text("aight");
+						Separator(7);
+						Text("ok");
+						EndTab();
+					}
+					if (BeginTab("Textures")) {
+						Text("ok hi, heres some text again ok!");
+						EndTab();
+					}
+
+					EndTabBar();
+				}
+				
+				End();
+
+			}
+			DeshConsole->Update();
+			UI::Update();
+			Render::Update();
+
+
+			memory_clear_temp();
+			DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
+		//}
 	}
 	
 	//cleanup deshi
