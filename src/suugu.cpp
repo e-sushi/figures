@@ -96,7 +96,7 @@ int main(){
 	Assets::enforceDirectories();
 	memory_init(Gigabytes(1), Gigabytes(4));
 	u8* some = (u8*)memalloc(20 * 20 * u8size);
-
+	
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
@@ -117,16 +117,16 @@ int main(){
 		//TEST_deshi_core();
 	}
 	array<u32*> random;
-
+	
 	Texture* yep = Storage::CreateTextureFromFile("UV_Grid_Sm.jpg").second;
 	
 	
 	forI(400) {
 		some[i] = rand() % 255;
 	}
-
+	
 	srand(time(0));
-
+	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -155,4 +155,5 @@ int main(){
 	Render::Cleanup();
 	DeshWindow->Cleanup();
 	Logger::Cleanup();
+	memory_cleanup();
 }
