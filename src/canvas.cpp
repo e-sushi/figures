@@ -286,15 +286,15 @@ Update() {
 /////////////////
 local void 
 DrawPencilStrokes(){
-    UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
-    forE(pencil_strokes){
-        if(it->pencil_points.count > 1){
-            array<vec2> pps(it->pencil_points.count);
-            forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-            Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
-        }
-    }
-    UI::End();
+	UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	forE(pencil_strokes){
+		if(it->pencil_points.count > 1){
+			array<vec2> pps(it->pencil_points.count);
+			forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
+			Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+		}
+	}
+	UI::End();
 }
 
 
@@ -352,9 +352,9 @@ DrawGraphGrid(Graph* graph){
 					minor_idx = 1;
 				}
 				if(graph->gridShowAxisCoords){
-                    UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
 					UI::Text(to_string("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
-                    UI::PopColor();
+					UI::PopColor();
 				}
 			}
 		}
@@ -379,9 +379,9 @@ DrawGraphGrid(Graph* graph){
 					minor_idx = 1;
 				}
 				if(graph->gridShowAxisCoords){
-                    UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
 					UI::Text(to_string("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
-                    UI::PopColor();
+					UI::PopColor();
 				}
 			}
 		}
@@ -397,9 +397,9 @@ DrawGraphGrid(Graph* graph){
 	
 	//draw zero text
 	if(0 >= tl.x && 0 <= br.x && 0 >= br.y && 0 <= tl.y){
-        UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+		UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
 		UI::Text("0", GraphToScreen(0,0,graph), UITextFlags_NoWrap);
-        UI::PopColor();
+		UI::PopColor();
 	}
 }
 
