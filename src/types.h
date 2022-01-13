@@ -225,136 +225,239 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 	result with the right result
 */
 
-enum TokenType{
-	tok_ERROR,              // when something doesnt make sense during lexing
-	tok_EOF,                // end of file
-	tok_Keyword,            // int, float, etc.
-	tok_Identifier,         // function/variable names
-	tok_OpenParen,          // (
-	tok_CloseParen,         // )
-	tok_OpenBrace,          // {
-	tok_CloseBrace,         // }
-	tok_Comma,              // ,
-	tok_Semicolon,          // ;
-	tok_Literal,            // any fixed numerical value
-	tok_Assignment,         // =
-	tok_Plus,               // +
-	tok_Negation,           // -
-	tok_Multiplication,     // *
-	tok_Division,           // /
-	tok_Modulo,             // %
-	tok_LessThan,           // <
-	tok_GreaterThan,        // >
-	tok_LessThanOrEqual,    // <=
-	tok_GreaterThanOrEqual, // >=
-	tok_AND,                // &&
-	tok_BitAND,             // &
-	tok_OR,                 // ||
-	tok_BitOR,              // |
-	tok_Equal,              // ==
-	tok_NotEqual,           // !=
-	tok_BitXOR,             // ^
-	tok_BitShiftLeft,       // <<
-	tok_BitShiftRight,      // >>
-	tok_LogicalNOT,         // !
-	tok_BitwiseComplement,  // ~
-	tok_QuestionMark,       // ?
-	tok_Colon,              // :
-	tok_If,                 // if
-	tok_Else,               // else
-	tok_Comment             // a comment, use #
-}; //typedef u32 TokenType; leave this out for a min because when i try to debug it shows the numerical vaule instead of the name of the token_type
-global_ map<TokenType, const char*> tokToStr{
-	{tok_ERROR,              ""},
-	{tok_EOF,                ""},			       
-	{tok_Keyword,            ""},
-	{tok_Identifier,         ""},
-	{tok_OpenParen,          "("},
-	{tok_CloseParen,         ")"},
-	{tok_OpenBrace,          "{"},
-	{tok_CloseBrace,         "}"},
-	{tok_Comma,              ","},
-	{tok_Semicolon,          ";"},
-	{tok_Literal,            ""},
-	{tok_Assignment,         "="},
-	{tok_Plus,               "+"},
-	{tok_Negation,           "-"},
-	{tok_Multiplication,     "*"},
-	{tok_Division,           "/"},
-	{tok_LogicalNOT,         "!"},
-	{tok_BitwiseComplement,  "~"},
-	{tok_LessThan,           "<"},
-	{tok_GreaterThan,        ">"},
-	{tok_LessThanOrEqual,    "<="},
-	{tok_GreaterThanOrEqual, ">="},
-	{tok_AND,                "&"},
-	{tok_BitAND,             "&&"},
-	{tok_OR,                 "|"},
-	{tok_BitOR,              "||"},
-	{tok_Equal,              "=="},
-	{tok_NotEqual,           "!="},
-	{tok_BitXOR,             "^"},
-	{tok_BitShiftLeft,       "<<"},
-	{tok_BitShiftRight,      ">>"},
-	{tok_Modulo,             "%"},
-	{tok_QuestionMark,       "?"},
-	{tok_Colon,              ":"},
-	{tok_If,                 ""},
-	{tok_Else,               ""},
-	{tok_Comment,            ""}
-};
-global_ map<const char*, TokenType> strToTok{
-	{"",     tok_ERROR},
-	{"",     tok_EOF},
-	{"",     tok_Keyword},
-	{"",     tok_Identifier},
-	{"(",    tok_OpenParen},
-	{")",    tok_CloseParen},
-	{"{",    tok_OpenBrace},
-	{"}",    tok_CloseBrace},
-	{",",    tok_Comma},
-	{";",    tok_Semicolon},
-	{"",     tok_Literal},
-	{"=",    tok_Assignment},
-	{"+",    tok_Plus},
-	{"-",    tok_Negation},
-	{"*",    tok_Multiplication},
-	{"/",    tok_Division},
-	{"!",    tok_LogicalNOT},
-	{"~",    tok_BitwiseComplement},
-	{"<",    tok_LessThan},
-	{">",    tok_GreaterThan},
-	{"<=",   tok_LessThanOrEqual},
-	{">=",   tok_GreaterThanOrEqual},
-	{"&",    tok_AND},
-	{"&&",   tok_BitAND},
-	{"|",    tok_OR},
-	{"||",   tok_BitOR},
-	{"==",   tok_Equal},
-	{"!=",   tok_NotEqual},
-	{"^",    tok_BitXOR},
-	{"<<",   tok_BitShiftLeft},
-	{">>",   tok_BitShiftRight},
-	{"%",    tok_Modulo},
-	{"?",    tok_QuestionMark},
-	{":",    tok_Colon},
-	{"",     tok_If},
-	{"",     tok_Else},
-	{"",     tok_Comment}
+//abstract node tree struct
+struct TreeNode {
+	TreeNode* next = 0;
+	TreeNode* prev = 0;
+
+	TreeNode* parent = 0;
+	TreeNode* first_child = 0;
+	TreeNode* last_child = 0;
+	u32 child_count = 0;
+
+	string debug_str;
+
+	TreeNode() {
+		next = prev = this;
+	}
 };
 
-enum ExpressionType{
+inline TreeNode* NewTreeNode() {
+	//TODO eventually these TreeNodes should be stored somewhere so they're not randomly alloced all over the place
+	return new TreeNode;
+}
+
+inline void TreeNodeInsertNext(TreeNode* to, TreeNode* from, string debugstr = "") {
+	if (to->next != to) from->next = to->next;
+	from->prev = to;
+	from->next->prev = from;
+	to->next = from;
+	from->parent = to->parent; //this maybe should just be done on insert child
+	from->debug_str = debugstr;
+}
+
+inline void TreeNodeInsertPrev(TreeNode* to, TreeNode* from, string debugstr = "") {
+	if (to->prev != to) from->prev = to->prev;
+	from->next = to;
+	from->prev->next = from;
+	to->prev = from;
+	from->parent = to->parent;
+	from->debug_str = debugstr;
+}
+
+inline void TreeNodeRemove(TreeNode* node, string debugstr = "") {
+	node->next->prev = node->prev;
+	node->prev->next = node->next;
+}
+
+inline void TreeNodeInsertChild(TreeNode* parent, TreeNode* child, string debugstr = "") {
+	//TODO maybe we can avoid these checks ?
+	if (!parent->first_child) parent->first_child = child;
+	child->prev = parent->last_child;
+	if (parent->last_child) parent->last_child->next = child;
+	parent->last_child = child;
+	child->parent = parent;
+	parent->child_count++;
+	child->debug_str = debugstr;
+}
+//TODO remove child node
+
+struct ParseArena {
+	u8* data = 0;
+	u8* cursor = 0;
+	upt size = 0;
+
+	void init(upt bytes) {
+		data = (u8*)memalloc(bytes);
+		cursor = data;
+		size = bytes;
+	}
+
+	template<typename T>
+	void* add(const T& in) {
+		if (cursor - data < sizeof(T) + size) {
+			data = (u8*)memalloc(size);
+			cursor = data;
+		}
+		memcpy(cursor, &in, sizeof(T));
+		cursor += sizeof(T);
+		return cursor - sizeof(T);
+	}
+};
+
+enum Token_Type {
+	Token_ERROR,                    // when something doesnt make sense during lexing
+	Token_EOF,                      // end of file
+	Token_Identifier,               // function/variable names
+	Token_Return,                   // return
+	Token_Literal,                  // 1, 2, 3.221, "string", 'c'
+	Token_Signed32,                 // s32 
+	Token_Signed64,                 // s64 
+	Token_Unsigned32,               // u32 
+	Token_Unsigned64,               // u64 
+	Token_Float32,                  // f32 
+	Token_Float64,                  // f64 
+	Token_Semicolon,                // ;
+	Token_OpenBrace,                // {
+	Token_CloseBrace,               // }
+	Token_OpenParen,                // (
+	Token_CloseParen,               // )
+	Token_Comma,                    // ,
+	Token_Plus,                     // +
+	Token_PlusAssignment,           // +=
+	Token_Negation,                 // -
+	Token_NegationAssignment,       // -=
+	Token_Multiplication,           // *
+	Token_MultiplicationAssignment, // *=
+	Token_Division,                 // /
+	Token_DivisionAssignment,       // /=
+	Token_BitNOT,                   // ~
+	Token_BitNOTAssignment,         // ~=
+	Token_BitAND,                   // &
+	Token_BitANDAssignment,         // &=
+	Token_AND,                      // &&
+	Token_BitOR,                    // |
+	Token_BitORAssignment,          // |=
+	Token_OR,                       // ||
+	Token_BitXOR,                   // ^
+	Token_BitXORAssignment,         // ^=
+	Token_BitShiftLeft,             // <<
+	Token_BitShiftRight,            // >>
+	Token_Modulo,                   // %
+	Token_ModuloAssignment,         // %=
+	Token_Assignment,               // =
+	Token_Equal,                    // ==
+	Token_LogicalNOT,               // !
+	Token_NotEqual,                 // !=
+	Token_LessThan,                 // <
+	Token_LessThanOrEqual,          // <=
+	Token_GreaterThan,              // >
+	Token_GreaterThanOrEqual,       // >=
+	Token_QuestionMark,             // ?
+	Token_Colon,                    // :
+	Token_If,                       // if
+	Token_Else,                     // else
+	Token_Comment,                  // no syntax yet
+};
+
+global_ map<Token_Type, const char*> tokToStr{
+	{Token_ERROR,              ""},
+	{Token_EOF,                ""},			       
+	{Token_Identifier,         ""},
+	{Token_OpenParen,          "("},
+	{Token_CloseParen,         ")"},
+	{Token_OpenBrace,          "{"},
+	{Token_CloseBrace,         "}"},
+	{Token_Comma,              ","},
+	{Token_Semicolon,          ";"},
+	{Token_Literal,            ""},
+	{Token_Assignment,         "="},
+	{Token_Plus,               "+"},
+	{Token_Negation,           "-"},
+	{Token_Multiplication,     "*"},
+	{Token_Division,           "/"},
+	{Token_LogicalNOT,         "!"},
+	{Token_BitNOT,             "~"},
+	{Token_LessThan,           "<"},
+	{Token_GreaterThan,        ">"},
+	{Token_LessThanOrEqual,    "<="},
+	{Token_GreaterThanOrEqual, ">="},
+	{Token_AND,                "&"},
+	{Token_BitAND,             "&&"},
+	{Token_OR,                 "|"},
+	{Token_BitOR,              "||"},
+	{Token_Equal,              "=="},
+	{Token_NotEqual,           "!="},
+	{Token_BitXOR,             "^"},
+	{Token_BitShiftLeft,       "<<"},
+	{Token_BitShiftRight,      ">>"},
+	{Token_Modulo,             "%"},
+	{Token_QuestionMark,       "?"},
+	{Token_Colon,              ":"},
+	{Token_If,                 ""},
+	{Token_Else,               ""},
+	{Token_Comment,            ""}
+};
+global_ map<const char*, Token_Type> strToTok{
+	{"",     Token_ERROR},
+	{"",     Token_EOF},
+	{"",     Token_Identifier},
+	{"(",    Token_OpenParen},
+	{")",    Token_CloseParen},
+	{"{",    Token_OpenBrace},
+	{"}",    Token_CloseBrace},
+	{",",    Token_Comma},
+	{";",    Token_Semicolon},
+	{"",     Token_Literal},
+	{"=",    Token_Assignment},
+	{"+",    Token_Plus},
+	{"-",    Token_Negation},
+	{"*",    Token_Multiplication},
+	{"/",    Token_Division},
+	{"!",    Token_LogicalNOT},
+	{"~",    Token_BitNOT},
+	{"<",    Token_LessThan},
+	{">",    Token_GreaterThan},
+	{"<=",   Token_LessThanOrEqual},
+	{">=",   Token_GreaterThanOrEqual},
+	{"&",    Token_AND},
+	{"&&",   Token_BitAND},
+	{"|",    Token_OR},
+	{"||",   Token_BitOR},
+	{"==",   Token_Equal},
+	{"!=",   Token_NotEqual},
+	{"^",    Token_BitXOR},
+	{"<<",   Token_BitShiftLeft},
+	{">>",   Token_BitShiftRight},
+	{"%",    Token_Modulo},
+	{"?",    Token_QuestionMark},
+	{":",    Token_Colon},
+	{"",     Token_If},
+	{"",     Token_Else},
+	{"",     Token_Comment}
+};
+
+struct token {
+	Token_Type type;
+	char str[255] = "";
+	vec2 strSize; //the strings size on screen in px
+
+	token() {}
+	token(Token_Type _type) : type(_type) { strcpy(str, *tokToStr.at(_type)); }
+};
+
+enum ExpressionType : u32 {
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
-	
+
 	//Types
-	Expression_Literal,
-	
+	Expression_IntegerLiteral,
+
 	//Unary Operators
 	Expression_UnaryOpBitComp,
 	Expression_UnaryOpLogiNOT,
 	Expression_UnaryOpNegate,
-	
+
 	//Binary Operators
 	Expression_BinaryOpPlus,
 	Expression_BinaryOpMinus,
@@ -371,15 +474,19 @@ enum ExpressionType{
 	Expression_BinaryOpEqual,
 	Expression_BinaryOpNotEqual,
 	Expression_BinaryOpModulo,
-	Expression_BinaryOpXOR,
+	Expression_BinaryOpBitXOR,
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
-	
-	//Special
+	Expression_BinaryOpAssignment,
+
 	Expression_Empty,
-	
+
 	//Expression Guards
-	ExpressionGuard_Preface, //i set the first expression in the tree to be a preface so that when we switch on these, the name of the switches and what we actually do in them makes sense
+	ExpressionGuard_Assignment,
+	ExpressionGuard_HEAD, //to align expression guards correctly with their evaluations
+	ExpressionGuard_Conditional,
+	ExpressionGuard_LogicalOR,
+	ExpressionGuard_LogicalAND,
 	ExpressionGuard_BitOR,
 	ExpressionGuard_BitXOR,
 	ExpressionGuard_BitAND,
@@ -389,18 +496,18 @@ enum ExpressionType{
 	ExpressionGuard_Additive,
 	ExpressionGuard_Term,
 	ExpressionGuard_Factor,
-	ExpressionGuard_Unary
-}; //typedef u32 ExpressionType; look at TokenType typedef to see y
-global_ const char* ExpTypeStrings[] = {
-	"Expression_IdentifierLHS",
-	"Expression_IdentifierRHS",
-	
-	"literal",
-	
+};
+
+static const char* ExTypeStrings[] = {
+	"IdentifierLHS",
+	"IdentifierRHS",
+
+	"IntegerLiteral",
+
 	"~",
 	"!",
 	"-",
-	
+
 	"+",
 	"-",
 	"*",
@@ -419,52 +526,38 @@ global_ const char* ExpTypeStrings[] = {
 	"^",
 	"<<",
 	">>",
-	
+	"=",
+
 	"empty",
-	
-	"preface",
-	"bitor",
-	"bitxor",
-	"bitand",
+
+	"assignment",
+	"head",
+	"conditional",
+	"logical or",
+	"logical and",
+	"bit or",
+	"bit xor",
+	"bit and",
 	"equality",
 	"relational",
-	"bitshift",
+	"bit shift",
 	"additive",
 	"term",
 	"factor",
-	"unary"
 };
 
-struct token{
-	TokenType type;
-	char str[255] = "";
-	vec2 strSize; //the strings size on screen in px
-	
-	token(){}
-	token(TokenType _type) : type(_type) { strcpy(str, *tokToStr.at(_type)); }
-};
+struct Expression {
+	char expstr[255];
+	ExpressionType type;
 
-//defines arithmatic
-struct Expression{
-	ExpressionType type = Expression_Empty;
-	string expstr;
-	array<Expression> expressions;
-	
-	f32 literalValue; //for storing a literals value if thats what this expression defines
-	
-	Expression() {};
-	Expression(string str, ExpressionType _type) : expstr(str), type(_type){}
-	
-	//all stuff relating to pretty printing, so doesnt need to be avaliable in release, however could be later
-#if DESHI_SLOW
-	vec2 pos; //position of element in AST relative to parent
-	vec2 size;
-	vec2 cbbx_pos; 
-	vec2 cbbx_size;  //children bounding box size
-	string text; // the text that will be in the node 
-	
-#endif
-	
+	TreeNode node;
+
+	Expression() {}
+
+	Expression(char* str, ExpressionType type) {
+		this->type = type;
+		strcpy(expstr, str);
+	}
 };
 
 namespace Parser {

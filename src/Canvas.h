@@ -15,10 +15,12 @@ struct Element{
 	array<token> tokens; //list of tokens the user has input and their strings to show 
 	Expression statement;
 	
-	void AddToken(TokenType t);
+	void AddToken(Token_Type t);
 	//draws input boxes and tokens
 	//TODO(sushi) add parameter for if element is active
 	void Update();
+
+	Element() {};
 };
 
 struct Graph{ //TODO maybe inherit Element?

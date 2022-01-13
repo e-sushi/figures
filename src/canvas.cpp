@@ -24,9 +24,6 @@ enum MathTextures {
 	MathTexture_Divide,
 }; 
 
-
-
-
 ////////////////
 //// @binds ////
 ////////////////
@@ -150,26 +147,26 @@ WorldViewArea(){
 //// @element ////
 //////////////////
 void Element::
-AddToken(TokenType t) {
+AddToken(Token_Type t) {
 	//special initial case
 	if (tokens.count == 0) {
 		//check if we are inserting a literal
-		if (t == tok_Literal) {
-			tokens.add(token(tok_Literal));
+		if (t == Token_Literal) {
+			tokens.add(token{ Token_Literal });
 			cursor = 0; //position cursor in literal's box
 		}
 		//if we are dealing with a binop make a binop case
-		else if (t >= tok_Plus && t <= tok_Modulo) {
-			tokens.add(token(tok_Literal));
+		else if (t >= Token_Plus && t <= Token_Modulo) {
+			tokens.add(token{Token_Literal});
 			tokens.add(token(t));
-			tokens.add(token(tok_Literal));
-			cursor = 0; //position cursor inside first tok_Literal box 
+			tokens.add(token{Token_Literal});
+			cursor = 0; //position cursor inside first Token_Literal box 
 			
 		}
 		//unary op ditto
-		else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || t == tok_Negation) {
-			tokens.add(token(t));
-			tokens.add(token(tok_Literal));
+		else if (t == Token_LogicalNOT || t == Token_BitNOT || t == Token_Negation) {
+			tokens.add(token{t});
+			tokens.add(token{Token_Literal});
 			cursor = 1; //position cursor in the literals box
 		}
 		
@@ -180,23 +177,23 @@ AddToken(TokenType t) {
 		//TODO(sushi) handle inputting operators when we are within
 		if (cursor == -1) {
 			//insert new token at beginning 
-			tokens.insert(token(t), 0);
-			tokens.insert(token(tok_Literal), 0);
+			tokens.insert(token{t}, 0);
+			tokens.insert(token{Token_Literal}, 0);
 			cursor = 0;
 		}
 		else if (cursor == tokens.count) {
 			//keeping these 2 cases separate for now
 			//if its a long time after 08/15/2021 and i havent merged them u can do that
-			if (t >= tok_Plus && t <= tok_Modulo) {
-				tokens.add(token(t));
-				tokens.add(token(tok_Literal));
-				cursor = tokens.count - 2; //position cursor inside first tok_Literal box 
+			if (t >= Token_Plus && t <= Token_Modulo) {
+				tokens.add(token{t});
+				tokens.add(token{Token_Literal});
+				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
 				
 			}
-			else if (t == tok_LogicalNOT || t == tok_BitwiseComplement || t==tok_Negation) {
-				tokens.add(token(t));
-				tokens.add(token(tok_Literal));
-				cursor = tokens.count - 2; //position cursor inside first tok_Literal box 
+			else if (t == Token_LogicalNOT || t == Token_BitNOT || t==Token_Negation) {
+				tokens.add(token{t});
+				tokens.add(token{Token_Literal});
+				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
 			}
 		}
 	}
@@ -209,7 +206,7 @@ void Element::
 Update() {
 	using namespace UI;
 	
-	Parser::pretty_print(statement);
+	//Parser::pretty_print(statement);
 	
 	PushFont(mathfont);
 	
@@ -232,14 +229,14 @@ Update() {
 		for (int i = 0; i < tokens.count; i++) {
 			token curt = tokens[i];
 			
-			if (curt.type != tok_Literal)
-				RowSetupRelativeColumnWidth(i + 1, 2);
+			if (curt.type != Token_Literal)
+				RowSetupRelativeColumnWidth(i, 2);
 			else
-				RowSetupRelativeColumnWidth(i + 1, 1);
+				RowSetupRelativeColumnWidth(i, 1);
 			
 			//cases where the user has the token selected
 			if (i == cursor) {
-				if (curt.type == tok_Literal) {
+				if (curt.type == Token_Literal) {
 					SetNextItemActive();
 					
 					if (!curt.str[0])
@@ -589,13 +586,13 @@ HandleInput(){
 				
 				//check for token inputs
 				if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) 
-					activeElement->AddToken(tok_Plus);
+					activeElement->AddToken(Token_Plus);
 				if(DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     
-					activeElement->AddToken(tok_Multiplication);
+					activeElement->AddToken(Token_Multiplication);
 				if(DeshInput->KeyPressed(Key::SLASH))                      
-					activeElement->AddToken(tok_Division);
+					activeElement->AddToken(Token_Division);
 				if(DeshInput->KeyPressed(Key::MINUS))                      
-					activeElement->AddToken(tok_Negation);
+					activeElement->AddToken(Token_Negation);
 			}
 		}break;
 		///////////////////////////////////////////////////////////////////////////////////////////////
@@ -662,7 +659,8 @@ Update(){
 	forE(graphs) DrawGraphGrid(it);
 	for(Element& e : elements){
 		e.Update();
-	}						
+	}					
+	Parser::pretty_print(Expression());
 	
 	UI::TextF("Active Tool:   %s", canvas_tool_strings[active_tool]);
 	UI::TextF("Previous Tool: %s", canvas_tool_strings[previous_tool]);
