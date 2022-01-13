@@ -70,20 +70,26 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/time.h"
 #include "core/ui.h"
 #include "core/window.h"
+#include "core/io.h"
 #include "math/math.h"
 #include "utils/string.h"
 #include "utils/array.h"
 #include "utils/map.h"
+#include "utils/cstring.h"
 
 
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION
+#ifdef SUUGU_USE_GRAPHVIZ
+#include "graphviz/gvc.h"
+#endif
 #include "types.h"
 #include "canvas.h"
 #include "lexer.cpp"
 #include "parser.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
+
 
 //#include "utils/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
@@ -111,8 +117,7 @@ int main(){
 	canvas.Init();
 	
 	{//init debug
-		//TEST_deshi_utils();
-		//TEST_deshi_core();
+
 	}
 
 	//start main loop
@@ -125,6 +130,9 @@ int main(){
 		//DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
+
+
+
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
