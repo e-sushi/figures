@@ -518,7 +518,8 @@ void Parser::pretty_print(Expression& e) {
 	return;
 }
 
-#else 
-void Parser::pretty_print(Expression& e) {LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when DESHI_SLOW not set!");}
-
-#endif
+#else //SUUGU_USE_GRAPHVIZ
+void Parser::pretty_print(Expression& e){
+	LogW("suugu-debug", "Function 'pretty_print' called from somewhere when SUUGU_USE_GRAPHVIZ not set!");
+}
+#endif //SUUGU_USE_GRAPHVIZ

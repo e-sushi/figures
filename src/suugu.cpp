@@ -117,7 +117,8 @@ int main(){
 	canvas.Init();
 	
 	{//init debug
-
+		//TEST_deshi_core();
+		//TEST_deshi_utils();
 	}
 
 	//start main loop
@@ -130,9 +131,6 @@ int main(){
 		//DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
-
-
-
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
