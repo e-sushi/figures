@@ -58,6 +58,9 @@
     <Filter Include="src\deshi\external\d3dx12">
       <UniqueIdentifier>{3782a311-bc4b-4948-a8a5-57e1b9a43184}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\deshi\core\platforms">
+      <UniqueIdentifier>{36462850-20df-4064-bed4-3443c626a3db}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\deshi\src\defines.h">
@@ -119,30 +122,6 @@
     </ClInclude>
     <ClInclude Include="..\deshi\src\external\stb\stb_image.h">
       <Filter>src\deshi\external\stb</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_vulkan.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imgui_internal.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imstb_rectpack.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imstb_textedit.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imstb_truetype.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imconfig.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imgui.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_glfw.h">
-      <Filter>src\deshi\external\imgui</Filter>
     </ClInclude>
     <ClInclude Include="..\deshi\src\external\draudio\dr_flac.h">
       <Filter>src\deshi\external\draudio</Filter>
@@ -210,9 +189,6 @@
     <ClInclude Include="..\deshi\src\external\d3dx12\d3dx12.h">
       <Filter>src\deshi\external\d3dx12</Filter>
     </ClInclude>
-    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_dx12.h">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClInclude>
     <ClInclude Include="..\deshi\src\core\io.h">
       <Filter>src\deshi\core</Filter>
     </ClInclude>
@@ -240,31 +216,49 @@
     <ClInclude Include="..\src\types.h">
       <Filter>src\suugu</Filter>
     </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_opengl3.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_vulkan.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_win32.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_internal.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imstb_rectpack.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imstb_textedit.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imstb_truetype.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imconfig.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_dx12.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\external\imgui\imgui_impl_glfw.h">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\deshi\src\utils\unicode.h">
+      <Filter>src\deshi\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\deshi\src\deshi.cpp">
       <Filter>src\deshi</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_vulkan.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_tables.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_widgets.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_demo.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_draw.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_glfw.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\assets.cpp">
       <Filter>src\deshi\core</Filter>
@@ -276,9 +270,6 @@
       <Filter>src\deshi\core</Filter>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\ui.cpp">
-      <Filter>src\deshi\core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\deshi\src\core\window.cpp">
       <Filter>src\deshi\core</Filter>
     </ClCompile>
     <ClCompile Include="..\deshi\src\core\renderers\opengl.cpp">
@@ -305,9 +296,6 @@
     <ClCompile Include="..\deshi\src\core\renderers\directx.cpp">
       <Filter>src\deshi\core\renderers</Filter>
     </ClCompile>
-    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_dx12.cpp">
-      <Filter>src\deshi\external\imgui</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\canvas.cpp">
       <Filter>src\suugu</Filter>
     </ClCompile>
@@ -328,6 +316,45 @@
     </ClCompile>
     <ClCompile Include="..\deshi\src\utils\misc_testing.cpp">
       <Filter>src\deshi\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\platforms\osx_deshi.cpp">
+      <Filter>src\deshi\core\platforms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\platforms\win32_deshi.cpp">
+      <Filter>src\deshi\core\platforms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\core\platforms\linux_deshi.cpp">
+      <Filter>src\deshi\core\platforms</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_vulkan.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_win32.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_tables.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_widgets.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_demo.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_draw.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_dx12.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_glfw.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\deshi\src\external\imgui\imgui_impl_opengl3.cpp">
+      <Filter>src\deshi\external\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

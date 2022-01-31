@@ -71,6 +71,10 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/ui.h"
 #include "core/window.h"
 #include "core/io.h"
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
+#include "core/profiling.h"
 #include "math/math.h"
 #include "utils/string.h"
 #include "utils/array.h"
@@ -97,41 +101,80 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 
 local Canvas canvas;
 
+typedef f64 (*MathFunc)(f64);
+
+f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
+	f64 x2 = 0;
+	u32 it = 0;
+	while (true) {
+		x2 = x1 - func(x0) * (x1 - x0) / (func(x1) - func(x0));
+		Log("", x2, " with func is ", func(x2));
+		x0 = x1; x1 = x2;
+		if (abs(func(x2)) < tol) return x2;
+		if (it++ > 3000) return x2;
+	}
+}
+
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
-	memory_init(Gigabytes(1), Gigabytes(4));
+	memory_init(Gigabytes(1), Gigabytes(1));
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
-	DeshWindow->Init("deshi", 1280, 720);
+	DeshWindow->Init("deshi", 1280, 720, 100, 100);
 	Render::Init();
-	//DeshiImGui::Init();
+	DeshiImGui::Init();
 	Storage::Init();
 	UI::Init();
 	Cmd::Init();
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
-	
+
 	//init suugu
 	canvas.Init();
 	
 	{//init debug
-
+		PRINTBASICTYPESIZES;
 	}
+
+//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
+//	Render::RegisterChildWindow(1, child);
+//	child->ShowWindow();
 
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
-	while(!DeshWindow->ShouldClose()){
+	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
 		DeshTime->Update();
 		DeshInput->Update();
-		//DeshiImGui::NewFrame();
+		DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
 
+			//Render::SetSurfaceDrawTargetByIdx(1);
+			//Render::StartNewTwodCmd(Render::GetZZeroLayerIndex(), 0, vec2::ZERO, DeshWinSize);
+			//Render::FillRect2D(vec2::ONE * 300, vec2::ONE * 300, Color_White, Render::GetZZeroLayerIndex(), vec2::ZERO, DeshWinSize);
 
+
+			//using namespace UI;
+			//PushDrawTarget(child);
+			UI::Begin("ok");
+			UI::Text(toStr("time:     ", DeshTime->timeTime).str);
+			UI::Text(toStr("window:   ", DeshTime->windowTime).str);
+			UI::Text(toStr("input:    ", DeshTime->inputTime).str);
+			UI::Text(toStr("console:  ", DeshTime->consoleTime).str);
+			UI::Text(toStr("renderer: ", DeshTime->renderTime).str);
+			UI::Text(toStr("frame:    ", DeshTime->frameTime).str);
+			UI::Text(toStr("setupcmd: ", DeshTime->miscDebugTime1).str);
+			UI::Text(toStr("buildcmd: ", DeshTime->miscDebugTime2).str);
+			UI::Text(toStr("queuesub: ", DeshTime->miscDebugTime3).str);
+			UI::Text(toStr("queuepre: ", DeshTime->miscDebugTime4).str);
+			UI::Text(toStr("iteratef: ", DeshTime->miscDebugTime5).str);
+
+			UI::End();
+			//PopDrawTarget();
 
 			//random_draw(200);
 			//random_walk_avoid();

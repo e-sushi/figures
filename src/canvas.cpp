@@ -288,7 +288,7 @@ DrawPencilStrokes(){
 		if(it->pencil_points.count > 1){
 			array<vec2> pps(it->pencil_points.count);
 			forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-			Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
 		}
 	}
 	UI::End();
@@ -650,7 +650,8 @@ Init(){
 void Canvas::
 Update(){
 	UI::PushVar(UIStyleVar_WindowPadding, vec2::ZERO);
-	UI::Begin("main_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
+	UI::SetNextWindowSize(DeshWindow->dimensions);
+	UI::Begin("main_canvas", vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
 	
 	HandleInput();
 	DrawPencilStrokes();

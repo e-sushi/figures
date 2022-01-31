@@ -6,9 +6,6 @@ token curt;
 
 array<token> tokens;
 
-
-
-
 local map<Token_Type, ExpressionType> binaryOps{
 	{Token_Multiplication,     Expression_BinaryOpMultiply},
 	{Token_Division,           Expression_BinaryOpDivision},
@@ -474,7 +471,7 @@ void Parser::pretty_print(Expression& e) {
 
 		gvgraph = agopen("exp ast tree", Agdirected, 0);
 		make_dot_file(&e.node, 0);
-
+		agattr(gvgraph, AGRAPH, "splines", "line");
 		gvLayout(gvc, gvgraph, "dot");
 		gvRenderData(gvc, gvgraph, "plain", &gout, &gout_size);
 
@@ -519,6 +516,6 @@ void Parser::pretty_print(Expression& e) {
 }
 
 #else 
-void Parser::pretty_print(Expression& e) {LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when DESHI_SLOW not set!");}
+void Parser::pretty_print(Expression& e) {}//LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when DESHI_SLOW not set!");}
 
 #endif
