@@ -135,7 +135,8 @@ int main(){
 	canvas.Init();
 	
 	{//init debug
-		PRINTBASICTYPESIZES;
+		//TEST_deshi_core();
+		//TEST_deshi_utils();
 	}
 
 //	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
@@ -152,30 +153,6 @@ int main(){
 		DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
-
-			//Render::SetSurfaceDrawTargetByIdx(1);
-			//Render::StartNewTwodCmd(Render::GetZZeroLayerIndex(), 0, vec2::ZERO, DeshWinSize);
-			//Render::FillRect2D(vec2::ONE * 300, vec2::ONE * 300, Color_White, Render::GetZZeroLayerIndex(), vec2::ZERO, DeshWinSize);
-
-
-			//using namespace UI;
-			//PushDrawTarget(child);
-			UI::Begin("ok");
-			UI::Text(toStr("time:     ", DeshTime->timeTime).str);
-			UI::Text(toStr("window:   ", DeshTime->windowTime).str);
-			UI::Text(toStr("input:    ", DeshTime->inputTime).str);
-			UI::Text(toStr("console:  ", DeshTime->consoleTime).str);
-			UI::Text(toStr("renderer: ", DeshTime->renderTime).str);
-			UI::Text(toStr("frame:    ", DeshTime->frameTime).str);
-			UI::Text(toStr("setupcmd: ", DeshTime->miscDebugTime1).str);
-			UI::Text(toStr("buildcmd: ", DeshTime->miscDebugTime2).str);
-			UI::Text(toStr("queuesub: ", DeshTime->miscDebugTime3).str);
-			UI::Text(toStr("queuepre: ", DeshTime->miscDebugTime4).str);
-			UI::Text(toStr("iteratef: ", DeshTime->miscDebugTime5).str);
-
-			UI::End();
-			//PopDrawTarget();
-
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
