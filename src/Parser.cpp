@@ -83,10 +83,10 @@ else if (curt.type == Token_Type)
 #define ElseExpectSignature(...)  else if(check_signature(__VA_ARGS__))
 
 #define ExpectFail(error)\
- else { ParseFail(error); }
+else { ParseFail(error); }
 
 #define ExpectFailCode(failcode)\
- else { failcode }
+else { failcode }
 
 Expression* expression;
 
@@ -119,9 +119,9 @@ TreeNode* debugprogramnode = 0;
 
 #define EarlyOut goto emergency_exit
 void parser(ParseState state, TreeNode* node) {
-
+	
 	switch (state) {
-
+		
 		case psExpression: {/////////////////////////////////////////////////////////////////// @Expression
 			switch (curt.type) {
 				case Token_Identifier: {
@@ -133,7 +133,7 @@ void parser(ParseState state, TreeNode* node) {
 						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[Expression_BinaryOpAssignment]); token_next();
 						new_expression(curt.str, ExpressionGuard_Assignment);
 						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Assignment]);
-
+						
 						parser(psExpression, &expression->node);
 					}
 					else {
@@ -149,17 +149,17 @@ void parser(ParseState state, TreeNode* node) {
 					TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_HEAD]);
 					parser(psConditional, &expression->node);
 				}break;
-
+				
 			}
 			//pop_expression();
 		}break;
-
+		
 		case psConditional: {////////////////////////////////////////////////////////////////// @Conditional
 			
 			new_expression(curt.str, ExpressionGuard_Conditional);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Conditional]);
 			parser(psLogicalOR, &expression->node);
-
+			
 			//while (next_match(Token_QuestionMark)) {
 			//	token_next();
 			//	
@@ -176,13 +176,13 @@ void parser(ParseState state, TreeNode* node) {
 			//	}ExpectFail("Expected : for ternary conditional")
 			//}
 		}break;
-
+		
 		case psLogicalOR: {//////////////////////////////////////////////////////////////////// @Logical OR
 			
 			new_expression(curt.str, ExpressionGuard_LogicalOR);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalOR]);
 			parser(psLogicalAND, &expression->node);
-
+			
 			while (next_match(Token_OR)) {
 				token_next();
 				
@@ -192,13 +192,13 @@ void parser(ParseState state, TreeNode* node) {
 				parser(psLogicalAND, &expression->node);
 			}
 		}break;
-
+		
 		case psLogicalAND: {/////////////////////////////////////////////////////////////////// @Logical AND
 			
 			new_expression(curt.str, ExpressionGuard_LogicalAND);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalAND]);
 			parser(psBitwiseOR, &expression->node);
-
+			
 			while (next_match(Token_AND)) {
 				token_next();
 				
@@ -208,13 +208,13 @@ void parser(ParseState state, TreeNode* node) {
 				parser(psBitwiseOR, &expression->node);
 			}
 		}break;
-
+		
 		case psBitwiseOR: {//////////////////////////////////////////////////////////////////// @Bitwise OR
 			
 			new_expression(curt.str, ExpressionGuard_BitOR);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitOR]);
 			parser(psBitwiseXOR, &expression->node);
-
+			
 			while (next_match(Token_BitOR)) {
 				token_next();
 				
@@ -224,13 +224,13 @@ void parser(ParseState state, TreeNode* node) {
 				parser(psBitwiseXOR, &expression->node);
 			}
 		}break;
-
+		
 		case psBitwiseXOR: {/////////////////////////////////////////////////////////////////// @Bitwise XOR
 			
 			new_expression(curt.str, ExpressionGuard_BitXOR);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitXOR]);
 			parser(psBitwiseAND, &expression->node);
-
+			
 			while (next_match(Token_BitXOR)) {
 				token_next();
 				
@@ -240,14 +240,14 @@ void parser(ParseState state, TreeNode* node) {
 				parser(psBitwiseAND, &expression->node);
 			}
 		}break;
-
+		
 		case psBitwiseAND: {/////////////////////////////////////////////////////////////////// @Bitwise AND
 			
 			new_expression(curt.str, ExpressionGuard_BitAND);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitAND]);
 			parser(psEquality, &expression->node);
-
-
+			
+			
 			while (next_match(Token_BitAND)) {
 				token_next();
 				
@@ -257,7 +257,7 @@ void parser(ParseState state, TreeNode* node) {
 				parser(psEquality, &expression->node);
 			}
 		}break;
-
+		
 		case psEquality: {///////////////////////////////////////////////////////////////////// @Equality
 			new_expression(curt.str, ExpressionGuard_Equality);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Equality]);
@@ -265,89 +265,89 @@ void parser(ParseState state, TreeNode* node) {
 			while (next_match(Token_NotEqual) || next_match(Token_Equal)) {
 				token_next();
 				
-				new_expression(curt.str, *binaryOps.at(curt.type));
+				new_expression(curt.str, binaryOps[curt.type]);
 				token_next();
 				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Equality]);
 				parser(psRelational, &expression->node);
 			}
 		}break;
-
+		
 		case psRelational: {/////////////////////////////////////////////////////////////////// @Relational
 			new_expression(curt.str, ExpressionGuard_Relational);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Relational]);
 			parser(psBitshift, &expression->node);
-
+			
 			while (next_match(Token_LessThan) || next_match(Token_GreaterThan) || next_match(Token_LessThanOrEqual) || next_match(Token_GreaterThanOrEqual)) {
 				token_next();
 				
-				new_expression(curt.str, *binaryOps.at(curt.type));
+				new_expression(curt.str, binaryOps[curt.type]);
 				token_next();
 				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Relational]);
 				parser(psBitshift, &expression->node);
 			}
 		}break;
-
+		
 		case psBitshift: {///////////////////////////////////////////////////////////////////// @Bitshift
 			new_expression(curt.str, ExpressionGuard_BitShift);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitShift]);
 			parser(psAdditive, &expression->node);
-
+			
 			while (next_match(Token_BitShiftLeft) || next_match(Token_BitShiftRight)) {
 				token_next();
 				
-				new_expression(curt.str, *binaryOps.at(curt.type));
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[*binaryOps.at(curt.type)]); token_next();
+				new_expression(curt.str, binaryOps[curt.type]);
+				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
 				new_expression(curt.str, ExpressionGuard_BitShift);
 				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitShift]);
 				parser(psAdditive, &expression->node);
 			}
 		}break;
-
+		
 		case psAdditive: {///////////////////////////////////////////////////////////////////// @Additive
 			new_expression(curt.str, ExpressionGuard_Additive);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Additive]);
 			parser(psTerm, &expression->node);
-
+			
 			while (next_match(Token_Plus) || next_match(Token_Negation)) {
 				token_next();
 				
-				new_expression(curt.str, *binaryOps.at(curt.type));
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[*binaryOps.at(curt.type)]); token_next();
+				new_expression(curt.str, binaryOps[curt.type]);
+				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
 				new_expression(curt.str, ExpressionGuard_Additive);
 				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Additive]);
 				parser(psTerm, &expression->node);
 			}
 		}break;
-
+		
 		case psTerm: {///////////////////////////////////////////////////////////////////////// @Term
 			new_expression(curt.str, ExpressionGuard_Term);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Term]);
 			parser(psFactor, &expression->node);
-
+			
 			while (next_match(Token_Multiplication) || next_match(Token_Division) || next_match(Token_Modulo)) {
 				token_next();
 				
-				new_expression(curt.str, *binaryOps.at(curt.type));
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[*binaryOps.at(curt.type)]); token_next();
+				new_expression(curt.str, binaryOps[curt.type]);
+				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
 				new_expression(curt.str, ExpressionGuard_Term);
 				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Term]);
 				parser(psFactor, &expression->node);
 			}
 		}break;
-
+		
 		case psFactor: {/////////////////////////////////////////////////////////////////////// @Factor
 			
 			new_expression(curt.str, ExpressionGuard_Factor);
 			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Factor]);
 			node = &expression->node;
-
+			
 			switch (curt.type) {
 				case Token_Literal: {
 					
 					new_expression(curt.str, Expression_IntegerLiteral);
 					TreeNodeInsertChild(node, &expression->node, toStr(ExTypeStrings[Expression_IntegerLiteral], " ", curt.str));
 				}break;
-
+				
 				case Token_OpenParen: {
 					
 					//new_expression(curt.str, ExpressionGuard_HEAD);
@@ -357,28 +357,28 @@ void parser(ParseState state, TreeNode* node) {
 					token_next();
 					Expect(Token_CloseParen) {}
 					ExpectFail("expected a )");
-
+					
 				}break;
-
+				
 				case Token_Identifier: {
 					new_expression(curt.str, Expression_IdentifierRHS);
 					TreeNodeInsertChild(node, &expression->node, toStr(ExTypeStrings[Expression_IdentifierRHS], " ", curt.str));
 				}break;
-
+				
 				default: {
 					ExpectOneOf(unaryOps) {
-						new_expression(curt.str, *unaryOps.at(curt.type));
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[*unaryOps.at(curt.type)]);
+						new_expression(curt.str, unaryOps[curt.type]);
+						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[unaryOps[curt.type]]);
 						token_next();
 						parser(psFactor, &expression->node);
 					}
 					ExpectFail("unexpected token found in factor");
 				}break;
 			}
-
-
+			
+			
 		}break;
-
+		
 		case psUnary: {//////////////////////////////////////////////////////////////////////// @Unary
 			
 		}break;
@@ -407,7 +407,7 @@ Expression Parser::parse(array<token> _tokens) {
 	curt = tokens[0];
 	Expression exp("", Expression_Empty);
 	exp.node.debug_str = "start";
-
+	
 	parser(psExpression, &exp.node);
 	pretty_print(exp);
 	return exp;
@@ -441,42 +441,42 @@ void make_dot_file(TreeNode* node, Agnode_t* parent) {
 	static u32 i = 0;
 	i++;
 	u32 save = i;
-
+	
 	string send = node->debug_str;
 	send.replace('&', "&amp;");
 	send.replace('<', "&lt;");
 	send.replace('>', "&gt;");
-
+	
 	Agnode_t* me = agnode(gvgraph, (send + "-" + to_string(i)).str, 1);
 	TreeNode* stage = node;
-
+	
 	if (stage->first_child)   make_dot_file(stage->first_child, me);
 	if (stage->next != stage) make_dot_file(stage->next, parent);
-
+	
 	if (parent)
 		agedge(gvgraph, parent, me, "", 1);
-
+	
 }
 
 
 
 void Parser::pretty_print(Expression& e) {
-
+	
 	if (!gvc) gvc = gvContext();
 	if (!gout) gout = (char*)memtalloc(Kilobytes(2)); //arbitrary size, maybe should be changed later
-
+	
 	if (e.node.first_child) {
 		graph.nodes.clear();
 		graph.edges.clear();
-
+		
 		gvgraph = agopen("exp ast tree", Agdirected, 0);
 		make_dot_file(&e.node, 0);
 		agattr(gvgraph, AGRAPH, "splines", "line");
 		gvLayout(gvc, gvgraph, "dot");
 		gvRenderData(gvc, gvgraph, "plain", &gout, &gout_size);
-
+		
 		FileReader reader = init_reader(gout, gout_size);
-
+		
 		forI(reader.lines.count) {
 			next_line(reader);
 			if (str_begins_with(reader.read, "node")) {
@@ -497,7 +497,7 @@ void Parser::pretty_print(Expression& e) {
 				edge.pos2.x = stod(reader.chunks[10]);
 				edge.pos2.y = stod(reader.chunks[11]);
 				graph.edges.add(edge);
-
+				
 			}
 		}
 	}

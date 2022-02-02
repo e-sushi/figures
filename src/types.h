@@ -229,14 +229,14 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 struct TreeNode {
 	TreeNode* next = 0;
 	TreeNode* prev = 0;
-
+	
 	TreeNode* parent = 0;
 	TreeNode* first_child = 0;
 	TreeNode* last_child = 0;
 	u32 child_count = 0;
-
+	
 	string debug_str;
-
+	
 	TreeNode() {
 		next = prev = this;
 	}
@@ -286,15 +286,15 @@ struct ParseArena {
 	u8* data = 0;
 	u8* cursor = 0;
 	upt size = 0;
-
+	
 	void init(upt bytes) {
 		data = (u8*)memalloc(bytes);
 		cursor = data;
 		size = bytes;
 	}
-
+	
 	template<typename T>
-	void* add(const T& in) {
+		void* add(const T& in) {
 		if (cursor - data < sizeof(T) + size) {
 			data = (u8*)memalloc(size);
 			cursor = data;
@@ -441,23 +441,23 @@ struct token {
 	Token_Type type;
 	char str[255] = "";
 	vec2 strSize; //the strings size on screen in px
-
+	
 	token() {}
-	token(Token_Type _type) : type(_type) { strcpy(str, *tokToStr.at(_type)); }
+	token(Token_Type _type) : type(_type) { strcpy(str, tokToStr[_type]); }
 };
 
 enum ExpressionType : u32 {
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
-
+	
 	//Types
 	Expression_IntegerLiteral,
-
+	
 	//Unary Operators
 	Expression_UnaryOpBitComp,
 	Expression_UnaryOpLogiNOT,
 	Expression_UnaryOpNegate,
-
+	
 	//Binary Operators
 	Expression_BinaryOpPlus,
 	Expression_BinaryOpMinus,
@@ -478,9 +478,9 @@ enum ExpressionType : u32 {
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
 	Expression_BinaryOpAssignment,
-
+	
 	Expression_Empty,
-
+	
 	//Expression Guards
 	ExpressionGuard_Assignment,
 	ExpressionGuard_HEAD, //to align expression guards correctly with their evaluations
@@ -501,13 +501,13 @@ enum ExpressionType : u32 {
 static const char* ExTypeStrings[] = {
 	"IdentifierLHS",
 	"IdentifierRHS",
-
+	
 	"IntegerLiteral",
-
+	
 	"~",
 	"!",
 	"-",
-
+	
 	"+",
 	"-",
 	"*",
@@ -527,9 +527,9 @@ static const char* ExTypeStrings[] = {
 	"<<",
 	">>",
 	"=",
-
+	
 	"empty",
-
+	
 	"assignment",
 	"head",
 	"conditional",
@@ -549,11 +549,11 @@ static const char* ExTypeStrings[] = {
 struct Expression {
 	char expstr[255];
 	ExpressionType type;
-
+	
 	TreeNode node;
-
+	
 	Expression() {}
-
+	
 	Expression(char* str, ExpressionType type) {
 		this->type = type;
 		strcpy(expstr, str);
@@ -568,7 +568,7 @@ namespace Parser {
 union vec2f64{
 	f64 arr[2];
 	struct{ f64 x; f64 y; };
-
+	
 	static const vec2f64 ZERO;
 	static const vec2f64 ONE;
 	static const vec2f64 UP;

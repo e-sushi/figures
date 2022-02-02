@@ -350,7 +350,7 @@ DrawGraphGrid(Graph* graph){
 				}
 				if(graph->gridShowAxisCoords){
 					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-					UI::Text(to_string("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
+					UI::Text(stringf("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
 					UI::PopColor();
 				}
 			}
@@ -377,7 +377,7 @@ DrawGraphGrid(Graph* graph){
 				}
 				if(graph->gridShowAxisCoords){
 					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-					UI::Text(to_string("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
+					UI::Text(stringf("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
 					UI::PopColor();
 				}
 			}
