@@ -516,5 +516,5 @@ void Parser::pretty_print(Expression& e) {
 }
 
 #else 
-void Parser::pretty_print(Expression& e) {}//LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when DESHI_SLOW not set!");}
+void Parser::pretty_print(Expression& e) {}//LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when BUILD_SLOW not set!");}
 #endif

@@ -3,10 +3,10 @@
 #define SUUGU_CANVAS_H
 
 #include "types.h"
-#include "utils/array.h"
-#include "utils/string.h"
-#include "math/Math.h"
 #include "core/ui.h"
+#include "kigu/array.h"
+#include "kigu/string.h"
+#include "math/math.h"
 
 struct Element{
 	vec2 pos; //NOTE world space //TODO maybe cache a screen position for elements 
@@ -19,7 +19,7 @@ struct Element{
 	//draws input boxes and tokens
 	//TODO(sushi) add parameter for if element is active
 	void Update();
-
+	
 	Element() {};
 };
 

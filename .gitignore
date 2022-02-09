@@ -19,6 +19,7 @@
 
 #folders
 .vs/
+.vscode/
 build/
 docs/doxygen/
 

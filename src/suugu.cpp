@@ -54,10 +54,15 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (01/06/22) pencil strokes are not visisble
 */
 
+//// kigu includes ////
+#include "kigu/array.h"
+#include "kigu/common.h"
+#include "kigu/cstring.h"
+#include "kigu/map.h"
+#include "kigu/string.h"
 
 //// deshi includes ////
 #define DESHI_DISABLE_IMGUI
-#include "defines.h"
 #include "core/assets.h"
 #include "core/commands.h"
 #include "core/console.h"
@@ -77,10 +82,6 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #endif
 #include "core/profiling.h"
 #include "math/math.h"
-#include "utils/string.h"
-#include "utils/array.h"
-#include "utils/map.h"
-#include "utils/cstring.h"
 
 
 //// suugu includes ////
@@ -98,9 +99,9 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include <windows.h>
 
 
-//#include "utils/deshi_utils_tests.cpp"
+//#include "kigu/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
-//#include "utils/misc_testing.cpp"
+//#include "kigu/misc_testing.cpp"
 
 local Canvas canvas;
 
@@ -119,7 +120,7 @@ f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
 }
 
 void RandBusyWork(u32 time){
-	ZoneScoped;
+	DPZoneScoped;
 	PRINTLN("working for " << time << " ms");
 	WaitFor(time);
 }
@@ -139,19 +140,19 @@ int main(){
 	Cmd::Init();
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
-
+	
 	//init suugu
 	canvas.Init();
-
+	
 	{//init debug
 		//TEST_deshi_core();
-		//TEST_deshi_utils();
+		//TEST_kigu();
 	}
-
-//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
-//	Render::RegisterChildWindow(1, child);
-//	child->ShowWindow();
-
+	
+	//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
+	//	Render::RegisterChildWindow(1, child);
+	//	child->ShowWindow();
+	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -162,9 +163,9 @@ int main(){
 		DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
-
+			
 			using namespace UI;
-
+			
 			Begin("test");{
 				Text("some text here");
 				SetCursor(vec2(50,50));
@@ -181,7 +182,7 @@ int main(){
 				PopVar();
 				EndRow();
 			}End();
-
+			
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();

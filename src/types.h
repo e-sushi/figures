@@ -2,7 +2,7 @@
 #ifndef SUUGU_TYPES_H
 #define SUUGU_TYPES_H
 
-#include "defines.h"
+#include "kigu/common.h"
 
 /*
 here im going to write out some examples of what our trees look like
