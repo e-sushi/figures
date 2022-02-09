@@ -67,6 +67,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/imgui.h"
 #include "core/renderer.h"
 #include "core/storage.h"
+#include "core/threading.h"
 #include "core/time.h"
 #include "core/ui.h"
 #include "core/window.h"
@@ -94,6 +95,8 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "solver.cpp"
 #include "canvas.cpp"
 
+#include <windows.h>
+
 
 //#include "utils/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
@@ -115,6 +118,12 @@ f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
 	}
 }
 
+void RandBusyWork(u32 time){
+	ZoneScoped;
+	PRINTLN("working for " << time << " ms");
+	WaitFor(time);
+}
+
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
@@ -133,7 +142,7 @@ int main(){
 
 	//init suugu
 	canvas.Init();
-	
+
 	{//init debug
 		//TEST_deshi_core();
 		//TEST_deshi_utils();
@@ -153,6 +162,26 @@ int main(){
 		DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
+
+			using namespace UI;
+
+			Begin("test");{
+				Text("some text here");
+				SetCursor(vec2(50,50));
+				Text("some more text here");
+				SetCursorY(200);
+				Text("another text");
+				SetCursorX(50);
+				Text("and one last");
+				BeginRow("buttoncenter", 1, 20);
+				PushVar(UIStyleVar_RowItemAlign, vec2(1, 0.5));
+				RowSetupColumnWidth(0, GetMarginedArea().second.x);
+				Button("test");
+				Text("some text");
+				PopVar();
+				EndRow();
+			}End();
+
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
