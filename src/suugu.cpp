@@ -165,29 +165,16 @@ int main(){
 		{//update debug
 			
 			using namespace UI;
-			
+			static char buff[255]={0};
 			Begin("test");{
-				Text("some text here");
-				SetCursor(vec2(50,50));
-				Text("some more text here");
-				SetCursorY(200);
-				Text("another text");
-				SetCursorX(50);
-				Text("and one last");
-				BeginRow("buttoncenter", 1, 20);
-				PushVar(UIStyleVar_RowItemAlign, vec2(1, 0.5));
-				RowSetupColumnWidth(0, GetMarginedArea().second.x);
-				Button("test");
-				Text("some text");
-				PopVar();
-				EndRow();
+				InputText("testiknput", buff, 255);
 			}End();
 			
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
-			//UI::DemoWindow();
-			//UI::ShowMetricsWindow();
+			UI::DemoWindow();
+			UI::ShowMetricsWindow();
 			//Storage::StorageBrowserUI();
 			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}

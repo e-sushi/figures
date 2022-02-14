@@ -213,7 +213,7 @@ Update() {
 	Font* font = mathfont;
 	vec2 winpos = ToScreen(pos.x, pos.y);
 	
-	PushVar(UIStyleVar_WindowPadding,      vec2{ 4,4 });
+	PushVar(UIStyleVar_WindowMargins,      vec2{ 4,4 });
 	PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
 	PushVar(UIStyleVar_RowItemAlign,       vec2{ 0.5, 0.5 });
 	PushVar(UIStyleVar_FontHeight,         80);
@@ -649,7 +649,7 @@ Init(){
 
 void Canvas::
 Update(){
-	UI::PushVar(UIStyleVar_WindowPadding, vec2::ZERO);
+	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
 	UI::SetNextWindowSize(DeshWindow->dimensions);
 	UI::Begin("main_canvas", vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
 	
