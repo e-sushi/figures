@@ -63,8 +63,6 @@ void token_next(u32 count = 1) {
 #define token_peek tokens.peek()
 #define token_look_back(i) tokens.lookback(i)
 
-#define next_match(tok) (tokens.peek().type == tok)
-#define next_match_any(tok_type) (tok_type.has(tokens.peek().type))
 #define curr_atch(tok) (curt.type == tok)
 
 #define ParseFail(error)\
@@ -92,13 +90,12 @@ Expression* expression;
 
 ParseArena arena;
 
-inline void new_expression(char* str, ExpressionType type) {
-	expression = (Expression*)arena.add(Expression(str, type));
-	expression->node.prev = expression->node.next = &expression->node;
+template<typename... T> inline b32
+next_match(T... in) {
+	return ((tokens.peek().type == in) || ...);
 }
 
-
-enum ParseState {
+enum ParseStage {
 	psExpression,	// <exp>           :: = <id> "=" <exp> | <conditional>
 	psConditional,	// <conditional>   :: = <logical or> [ "?" <exp> ":" <conditional> ]
 	psLogicalOR,	// <logical or>    :: = <logical and> { "||" <logical and> } 
@@ -115,272 +112,249 @@ enum ParseState {
 	psUnary,        // <unary>         :: = "!" | "~" | "-"
 };
 
-TreeNode* debugprogramnode = 0;
+TreeNode* parser(ParseStage stage, TreeNode* node);
 
-#define EarlyOut goto emergency_exit
-void parser(ParseState state, TreeNode* node) {
+local map<Token_Type, ExpressionType> tokToExp{
+	{Token_Multiplication,     Expression_BinaryOpMultiply},
+	{Token_Division,           Expression_BinaryOpDivision},
+	{Token_Negation,           Expression_BinaryOpMinus},
+	{Token_Plus,               Expression_BinaryOpPlus},
+	{Token_AND,                Expression_BinaryOpAND},
+	{Token_OR,                 Expression_BinaryOpOR},
+	{Token_LessThan,           Expression_BinaryOpLessThan},
+	{Token_GreaterThan,        Expression_BinaryOpGreaterThan},
+	{Token_LessThanOrEqual,    Expression_BinaryOpLessThanOrEqual},
+	{Token_GreaterThanOrEqual, Expression_BinaryOpGreaterThanOrEqual},
+	{Token_Equal,              Expression_BinaryOpEqual},
+	{Token_NotEqual,           Expression_BinaryOpNotEqual},
+	{Token_BitAND,             Expression_BinaryOpBitAND},
+	{Token_BitOR,              Expression_BinaryOpBitOR},
+	{Token_BitXOR,             Expression_BinaryOpBitXOR},
+	{Token_BitShiftLeft,       Expression_BinaryOpBitShiftLeft},
+	{Token_BitShiftRight,      Expression_BinaryOpBitShiftRight},
+	{Token_Modulo,             Expression_BinaryOpModulo},
+	{Token_BitNOT,             Expression_UnaryOpBitComp},
+	{Token_LogicalNOT,         Expression_UnaryOpLogiNOT},
+	{Token_Negation,           Expression_UnaryOpNegate},
+};
+
+template<typename... T>
+TreeNode* binopParse(TreeNode* node, TreeNode* ret, ParseStage next_stage, T... tokcheck) {
+	token_next();
+	TreeNode* me = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[*tokToExp.at(curt.type)]);
+	change_parent(me, ret);
+	insert_last(node, me);
+	token_next();
+	ret = parser(next_stage, me);
+
+	while (next_match(tokcheck...)) {
+		token_next();
+		TreeNode* me2 = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[tokToExp[curt.type]]);
+		token_next();
+		ret = parser(next_stage, node);
+
+		change_parent(me2, me);
+		change_parent(me2, ret);
+		insert_last(node, me2);
+		me = me2;
+		
+	}
+	return me;
+}
+	
+inline TreeNode* new_expression(const cstring& str, ExpressionType type, const string& node_str = "") {
+		expression = (Expression*)arena.add(Expression());
+		expression->expstr = str;
+		expression->type = type;
+		//expression->node.type = NodeType_Expression;
+		if (!node_str.count) expression->node.comment = ExTypeStrings[type];
+		else                 expression->node.comment = node_str;
+		return &expression->node;
+}
+
+TreeNode* parser(ParseStage state, TreeNode* node) {
 	
 	switch (state) {
 		
 		case psExpression: {/////////////////////////////////////////////////////////////////// @Expression
 			switch (curt.type) {
-				case Token_Identifier: {
-					if (next_match(Token_Assignment)) {
-						
-						new_expression(curt.str, Expression_IdentifierLHS);
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[Expression_IdentifierLHS]); token_next();
-						new_expression(curt.str, Expression_BinaryOpAssignment);
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[Expression_BinaryOpAssignment]); token_next();
-						new_expression(curt.str, ExpressionGuard_Assignment);
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Assignment]);
-						
-						parser(psExpression, &expression->node);
-					}
-					else {
-						//new_expression_on_expression(curt.str, ExpressionGuard_HEAD);
-						new_expression(curt.str, ExpressionGuard_HEAD);
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_HEAD]);
-						parser(psConditional, &expression->node);
-					}
-				}break;
+				//left over from su, though we may allow varaibles later
+				//case Token_Identifier: {
+				//	if (next_match(Token_Assignment)) {
+				//		new_expression(curt.str, Expression_IdentifierLHS);
+				//		insert_first(node, &expression->node); token_next();
+				//		new_expression(curt.str, Expression_BinaryOpAssignment);
+				//		insert_first(node, &expression->node); token_next();
+				//		new_expression(curt.str, ExpressionGuard_Assignment);
+				//		insert_first(node, &expression->node);
+				//		
+				//		parser(psExpression, &expression->node);
+				//	}
+				//	else {
+				//		new_expression(curt.str, ExpressionGuard_HEAD);
+				//		insert_first(node, &expression->node);
+				//		parser(psConditional, &expression->node);
+				//	}
+				//}break;
 				default: {
-					
-					new_expression(curt.str, ExpressionGuard_HEAD);
-					TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_HEAD]);
-					parser(psConditional, &expression->node);
+					TreeNode* ret = parser(psConditional, node); 
+					return ret;
 				}break;
 				
 			}
-			//pop_expression();
 		}break;
 		
 		case psConditional: {////////////////////////////////////////////////////////////////// @Conditional
-			
-			new_expression(curt.str, ExpressionGuard_Conditional);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Conditional]);
-			parser(psLogicalOR, &expression->node);
-			
-			//while (next_match(Token_QuestionMark)) {
+			//again a bunch of code left over from su, but useful if we ever allow ternarys
+			//Expect(Token_If) {
+			//	Node* me = new_expression(curt.raw, Expression_TernaryConditional,  "if exp");
+			//	insert_last(node, me);
 			//	token_next();
-			//	
-			//	new_expression(curt.str, Expression_TernaryConditional);
-			//	token_next();
-			//	TreeNodeInsertChild(node, &expression->node, ExTypeStrings[Expression_TernaryConditional]);
-			//	parser(psExpression, &expression->node);
-			//	token_next();
-			//	Expect(Token_Colon) {
-			//		new_expression(curt.str, ExpressionGuard_Conditional);
+			//	Expect(Token_OpenParen) {
 			//		token_next();
-			//		TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Conditional]);
-			//		parser(psConditional, &expression->node);
-			//	}ExpectFail("Expected : for ternary conditional")
+			//		Define(psExpression, me);
+			//		token_next();
+			//		Expect(Token_CloseParen) {
+			//			token_next();
+			//			Define(psExpression, me);
+			//			token_next();
+			//			Expect(Token_Else) {
+			//				token_next();
+			//				Define(psExpression, me);
+			//				return me;
+			//			}ExpectFail("conditional if's are required to have an else");
+			//		}ExpectFail("expected ) for if expression")
+			//	}ExpectFail("expected ( for if expression")
 			//}
+			return parser(psLogicalOR, node);
 		}break;
+
 		
 		case psLogicalOR: {//////////////////////////////////////////////////////////////////// @Logical OR
-			
-			new_expression(curt.str, ExpressionGuard_LogicalOR);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalOR]);
-			parser(psLogicalAND, &expression->node);
-			
-			while (next_match(Token_OR)) {
-				token_next();
-				
-				new_expression(curt.str, Expression_BinaryOpOR);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalOR]);
-				parser(psLogicalAND, &expression->node);
-			}
+			TreeNode* ret = parser(psLogicalAND, node);
+			if (!next_match(Token_OR))
+				return ret;
+			return binopParse(node, ret, psLogicalAND, Token_OR);
 		}break;
 		
 		case psLogicalAND: {/////////////////////////////////////////////////////////////////// @Logical AND
-			
-			new_expression(curt.str, ExpressionGuard_LogicalAND);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalAND]);
-			parser(psBitwiseOR, &expression->node);
-			
-			while (next_match(Token_AND)) {
-				token_next();
-				
-				new_expression(curt.str, Expression_BinaryOpAND);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_LogicalAND]);
-				parser(psBitwiseOR, &expression->node);
-			}
+			TreeNode* ret = parser(psBitwiseOR, node);
+			if (!next_match(Token_AND))
+				return ret;
+			return binopParse(node, ret, psBitwiseOR);
 		}break;
 		
 		case psBitwiseOR: {//////////////////////////////////////////////////////////////////// @Bitwise OR
-			
-			new_expression(curt.str, ExpressionGuard_BitOR);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitOR]);
-			parser(psBitwiseXOR, &expression->node);
-			
-			while (next_match(Token_BitOR)) {
-				token_next();
-				
-				new_expression(curt.str, Expression_BinaryOpBitOR);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitOR]);
-				parser(psBitwiseXOR, &expression->node);
-			}
+			TreeNode* ret = parser(psBitwiseXOR, node);
+			if (!next_match(Token_BitOR))
+				return ret;
+			return binopParse(node, ret, psBitwiseXOR, Token_BitOR);
 		}break;
 		
 		case psBitwiseXOR: {/////////////////////////////////////////////////////////////////// @Bitwise XOR
-			
-			new_expression(curt.str, ExpressionGuard_BitXOR);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitXOR]);
-			parser(psBitwiseAND, &expression->node);
-			
-			while (next_match(Token_BitXOR)) {
-				token_next();
-				
-				new_expression(curt.str, Expression_BinaryOpBitXOR);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitXOR]);
-				parser(psBitwiseAND, &expression->node);
-			}
+			TreeNode* ret = parser(psBitwiseAND, node);
+			if (!next_match(Token_BitXOR))
+				return ret;
+			return binopParse(node, ret, psBitwiseAND, Token_BitXOR);
 		}break;
 		
 		case psBitwiseAND: {/////////////////////////////////////////////////////////////////// @Bitwise AND
-			
-			new_expression(curt.str, ExpressionGuard_BitAND);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitAND]);
-			parser(psEquality, &expression->node);
-			
-			
-			while (next_match(Token_BitAND)) {
-				token_next();
-				
-				new_expression(curt.str, Expression_BinaryOpBitAND);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitAND]);
-				parser(psEquality, &expression->node);
-			}
+			TreeNode* ret = parser(psEquality, node);
+			if (!next_match(Token_BitAND))
+				return ret;
+			return binopParse(node, ret, psEquality, Token_BitAND);
 		}break;
 		
 		case psEquality: {///////////////////////////////////////////////////////////////////// @Equality
-			new_expression(curt.str, ExpressionGuard_Equality);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Equality]);
-			parser(psRelational, &expression->node);
-			while (next_match(Token_NotEqual) || next_match(Token_Equal)) {
-				token_next();
-				
-				new_expression(curt.str, binaryOps[curt.type]);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Equality]);
-				parser(psRelational, &expression->node);
-			}
+			TreeNode* ret = parser(psRelational, node);
+			if (!next_match(Token_NotEqual, Token_Equal))
+				return ret;
+			return binopParse(node, ret, psRelational, Token_NotEqual, Token_Equal);
 		}break;
 		
 		case psRelational: {/////////////////////////////////////////////////////////////////// @Relational
-			new_expression(curt.str, ExpressionGuard_Relational);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Relational]);
-			parser(psBitshift, &expression->node);
-			
-			while (next_match(Token_LessThan) || next_match(Token_GreaterThan) || next_match(Token_LessThanOrEqual) || next_match(Token_GreaterThanOrEqual)) {
-				token_next();
-				
-				new_expression(curt.str, binaryOps[curt.type]);
-				token_next();
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Relational]);
-				parser(psBitshift, &expression->node);
-			}
+			TreeNode* ret = parser(psBitshift, node);
+			if (!next_match(Token_LessThan, Token_GreaterThan, Token_LessThanOrEqual, Token_GreaterThanOrEqual))
+				return ret;
+			return binopParse(node, ret, psBitshift, Token_LessThan, Token_GreaterThan, Token_LessThanOrEqual, Token_GreaterThanOrEqual);
 		}break;
 		
 		case psBitshift: {///////////////////////////////////////////////////////////////////// @Bitshift
-			new_expression(curt.str, ExpressionGuard_BitShift);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitShift]);
-			parser(psAdditive, &expression->node);
-			
-			while (next_match(Token_BitShiftLeft) || next_match(Token_BitShiftRight)) {
-				token_next();
-				
-				new_expression(curt.str, binaryOps[curt.type]);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
-				new_expression(curt.str, ExpressionGuard_BitShift);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_BitShift]);
-				parser(psAdditive, &expression->node);
-			}
+			TreeNode* ret = parser(psAdditive, node);
+			if (!next_match(Token_BitShiftLeft, Token_BitShiftRight))
+				return ret;
+			return binopParse(node, ret, psAdditive, Token_BitShiftLeft, Token_BitShiftRight);
 		}break;
 		
 		case psAdditive: {///////////////////////////////////////////////////////////////////// @Additive
-			new_expression(curt.str, ExpressionGuard_Additive);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Additive]);
-			parser(psTerm, &expression->node);
-			
-			while (next_match(Token_Plus) || next_match(Token_Negation)) {
-				token_next();
-				
-				new_expression(curt.str, binaryOps[curt.type]);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
-				new_expression(curt.str, ExpressionGuard_Additive);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Additive]);
-				parser(psTerm, &expression->node);
-			}
+			TreeNode* ret = parser(psTerm, node);
+			if (!next_match(Token_Plus, Token_Negation))
+				return ret;
+			return binopParse(node, ret, psTerm, Token_Plus, Token_Negation);
 		}break;
 		
-		case psTerm: {///////////////////////////////////////////////////////////////////////// @Term
-			new_expression(curt.str, ExpressionGuard_Term);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Term]);
-			parser(psFactor, &expression->node);
-			
-			while (next_match(Token_Multiplication) || next_match(Token_Division) || next_match(Token_Modulo)) {
-				token_next();
-				
-				new_expression(curt.str, binaryOps[curt.type]);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[binaryOps[curt.type]]); token_next();
-				new_expression(curt.str, ExpressionGuard_Term);
-				TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Term]);
-				parser(psFactor, &expression->node);
-			}
+		case psTerm: {
+			TreeNode* ret = parser(psFactor, node);
+			if (!next_match(Token_Multiplication, Token_Division, Token_Modulo))
+				return ret;
+			return binopParse(node, ret, psFactor, Token_Multiplication, Token_Division, Token_Modulo);
 		}break;
 		
 		case psFactor: {/////////////////////////////////////////////////////////////////////// @Factor
-			
-			new_expression(curt.str, ExpressionGuard_Factor);
-			TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_Factor]);
-			node = &expression->node;
-			
 			switch (curt.type) {
+				
+				//TODO implicitly change types here when applicable, or do that where they're returned
 				case Token_Literal: {
-					
-					new_expression(curt.str, Expression_IntegerLiteral);
-					TreeNodeInsertChild(node, &expression->node, toStr(ExTypeStrings[Expression_IntegerLiteral], " ", curt.str));
+					TreeNode* var = new_expression(cstring{}, Expression_Literal, toStr(ExTypeStrings[Expression_Literal], " ", curt.str));
+					expression->val = stod(curt.str); //TODO detect f64
+					insert_last(node, &expression->node);
+					return var;
 				}break;
+				
 				
 				case Token_OpenParen: {
-					
-					//new_expression(curt.str, ExpressionGuard_HEAD);
-					//TreeNodeInsertChild(node, &expression->node, ExTypeStrings[ExpressionGuard_HEAD]);
 					token_next();
-					parser(psExpression, &expression->node);
+					TreeNode* ret = parser(psExpression, &expression->node);
+					change_parent(node, ret);
 					token_next();
-					Expect(Token_CloseParen) {}
+					Expect(Token_CloseParen) { return ret; }
 					ExpectFail("expected a )");
-					
 				}break;
 				
-				case Token_Identifier: {
-					new_expression(curt.str, Expression_IdentifierRHS);
-					TreeNodeInsertChild(node, &expression->node, toStr(ExTypeStrings[Expression_IdentifierRHS], " ", curt.str));
+				case Token_Negation: {
+					new_expression(curt.raw, Expression_UnaryOpNegate);
+					insert_last(node, &expression->node);
+					token_next();
+					TreeNode* ret = &expression->node;
+					parser(psFactor, &expression->node);
+					return ret;
 				}break;
+				
+				case Token_LogicalNOT: {
+					new_expression(curt.raw, Expression_UnaryOpLogiNOT);
+					insert_last(node, &expression->node);
+					token_next();
+					TreeNode* ret = &expression->node;
+					parser(psFactor, &expression->node);
+					return ret;
+				}break;
+				
+				case Token_BitNOT: {
+					new_expression(curt.raw, Expression_UnaryOpBitComp);
+					insert_last(node, &expression->node);
+					token_next();
+					TreeNode* ret = &expression->node;
+					parser(psFactor, &expression->node);
+					return ret;
+				}break;
+				
+
+				
 				
 				default: {
-					ExpectOneOf(unaryOps) {
-						new_expression(curt.str, unaryOps[curt.type]);
-						TreeNodeInsertChild(node, &expression->node, ExTypeStrings[unaryOps[curt.type]]);
-						token_next();
-						parser(psFactor, &expression->node);
-					}
-					ExpectFail("unexpected token found in factor");
+					ParseFail("unexpected token found in factor");
 				}break;
 			}
-			
-			
-		}break;
-		
-		case psUnary: {//////////////////////////////////////////////////////////////////////// @Unary
-			
 		}break;
 	}
 }
@@ -405,8 +379,7 @@ Expression Parser::parse(array<token> _tokens) {
 	arena.init(Kilobytes(1));
 	tokens = _tokens;
 	curt = tokens[0];
-	Expression exp("", Expression_Empty);
-	exp.node.debug_str = "start";
+	Expression exp("", Expression_NONE);
 	
 	parser(psExpression, &exp.node);
 	pretty_print(exp);

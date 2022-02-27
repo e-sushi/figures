@@ -32,13 +32,13 @@ struct Graph{ //TODO maybe inherit Element?
 	f64 gridZoomFit               = 5.0;
 	f64 gridZoomFitIncrements[3]  = {2.0, 2.5, 2.0};
 	u32 gridZoomFitIncrementIndex = 0;
-	u32 gridMajorLinesCount     = 12;
-	f64 gridMajorLinesIncrement = 1.0;
-	u32 gridMinorLinesCount     = 4;
-	f64 gridMinorLinesIncrement = 0.2;
-	b32 gridShowMajorLines = true;
-	b32 gridShowMinorLines = true;
-	b32 gridShowAxisCoords = true;
+	u32 gridMajorLinesCount       = 12;
+	f64 gridMajorLinesIncrement   = 1.0;
+	u32 gridMinorLinesCount       = 4;
+	f64 gridMinorLinesIncrement   = 0.2;
+	b32 gridShowMajorLines        = true;
+	b32 gridShowMinorLines        = true;
+	b32 gridShowAxisCoords        = true;
 };
 
 //maybe make it so the canvas can store its own windows as well

@@ -101,7 +101,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 
 //#include "kigu/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
-//#include "kigu/misc_testing.cpp"
+#include "kigu/misc_testing.cpp"
 
 local Canvas canvas;
 
@@ -164,17 +164,14 @@ int main(){
 		canvas.Update();
 		{//update debug
 			
-			using namespace UI;
-			static char buff[255]={0};
-			Begin("test");{
-				InputText("testiknput", buff, 255);
-			}End();
 			
+
+			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
-			UI::DemoWindow();
-			UI::ShowMetricsWindow();
+			//UI::DemoWindow();
+			//UI::ShowMetricsWindow();
 			//Storage::StorageBrowserUI();
 			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}

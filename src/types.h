@@ -225,62 +225,129 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 	result with the right result
 */
 
+enum TreeNodeType {
+	//TODO set this up if we end up going beyond expressions
+};
+
 //abstract node tree struct
 struct TreeNode {
 	TreeNode* next = 0;
 	TreeNode* prev = 0;
-	
 	TreeNode* parent = 0;
 	TreeNode* first_child = 0;
 	TreeNode* last_child = 0;
-	u32 child_count = 0;
+	u32   child_count = 0;
 	
-	string debug_str;
-	
-	TreeNode() {
-		next = prev = this;
-	}
+	//debug vars
+	string comment;
 };
 
-inline TreeNode* NewTreeNode() {
-	//TODO eventually these TreeNodes should be stored somewhere so they're not randomly alloced all over the place
-	return new TreeNode;
+#define for_node(node) for(TreeNode* it = node; it != 0; it = it->next)
+#define for_node_reverse(node) for(TreeNode* it = node; it != 0; it = it->prev)
+
+inline void insert_after(TreeNode* target, TreeNode* node) {
+	if (target->next) target->next->prev = node;
+	node->next = target->next;
+	node->prev = target;
+	target->next = node;
 }
 
-inline void TreeNodeInsertNext(TreeNode* to, TreeNode* from, string debugstr = "") {
-	if (to->next != to) from->next = to->next;
-	from->prev = to;
-	from->next->prev = from;
-	to->next = from;
-	from->parent = to->parent; //this maybe should just be done on insert child
-	from->debug_str = debugstr;
+inline void insert_before(TreeNode* target, TreeNode* node) {
+	if (target->prev) target->prev->next = node;
+	node->prev = target->prev;
+	node->next = target;
+	target->prev = node;
 }
 
-inline void TreeNodeInsertPrev(TreeNode* to, TreeNode* from, string debugstr = "") {
-	if (to->prev != to) from->prev = to->prev;
-	from->next = to;
-	from->prev->next = from;
-	to->prev = from;
-	from->parent = to->parent;
-	from->debug_str = debugstr;
+inline void remove_horizontally(TreeNode* node) {
+	if (node->next) node->next->prev = node->prev;
+	if (node->prev) node->prev->next = node->next;
+	node->next = node->prev = 0;
 }
 
-inline void TreeNodeRemove(TreeNode* node, string debugstr = "") {
-	node->next->prev = node->prev;
-	node->prev->next = node->next;
-}
-
-inline void TreeNodeInsertChild(TreeNode* parent, TreeNode* child, string debugstr = "") {
-	//TODO maybe we can avoid these checks ?
-	if (!parent->first_child) parent->first_child = child;
-	child->prev = parent->last_child;
-	if (parent->last_child) parent->last_child->next = child;
-	parent->last_child = child;
+void insert_last(TreeNode* parent, TreeNode* child) {
+	if (parent == 0) { child->parent = 0; return; }
+	
 	child->parent = parent;
+	if (parent->first_child) {
+		insert_after(parent->last_child, child);
+		parent->last_child = child;
+	}
+	else {
+		parent->first_child = child;
+		parent->last_child = child;
+	}
 	parent->child_count++;
-	child->debug_str = debugstr;
 }
-//TODO remove child node
+
+void insert_first(TreeNode* parent, TreeNode* child) {
+	if (parent == 0) { child->parent = 0; return; }
+	
+	child->parent = parent;
+	if (parent->first_child) {
+		insert_before(parent->first_child, child);
+		parent->first_child = child;
+	}
+	else {
+		parent->first_child = child;
+		parent->last_child = child;
+	}
+	parent->child_count++;
+}
+
+void remove(TreeNode* node) {
+	//remove self from parent
+	if (node->parent) {
+		if (node->parent->child_count > 1) {
+			if (node == node->parent->first_child) node->parent->first_child = node->next;
+			if (node == node->parent->last_child)  node->parent->last_child = node->prev;
+		}
+		else {
+			Assert(node == node->parent->first_child && node == node->parent->last_child, "if node is the only child node, it should be both the first and last child nodes");
+			node->parent->first_child = 0;
+			node->parent->last_child = 0;
+		}
+		node->parent->child_count--;
+	}
+	
+	//add children to parent (and remove self from children)
+	if (node->child_count > 1) {
+		for (TreeNode* child = node->first_child; child != 0; child = child->next) {
+			insert_last(node->parent, child);
+		}
+	}
+	
+	//remove self horizontally
+	remove_horizontally(node);
+	
+	//reset self  //TODO not necessary if we are deleting this node, so exclude this logic in another function TreeNodeDelete?
+	node->parent = node->first_child = node->last_child = 0;
+	node->child_count = 0;
+}
+
+void change_parent(TreeNode* new_parent, TreeNode* node) {
+	//if old parent, remove self from it 
+	if (node->parent) {
+		if (node->parent->child_count > 1) {
+			if (node == node->parent->first_child) node->parent->first_child = node->next;
+			if (node == node->parent->last_child)  node->parent->last_child = node->prev;
+		}
+		else {
+			Assert(node == node->parent->first_child && node == node->parent->last_child, "if node is the only child node, it should be both the first and last child nodes");
+			node->parent->first_child = 0;
+			node->parent->last_child = 0;
+		}
+		node->parent->child_count--;
+	}
+	
+	//remove self horizontally
+	remove_horizontally(node);
+	
+	//add self to new parent
+	insert_last(new_parent, node);
+}
+
+
 
 struct ParseArena {
 	u8* data = 0;
@@ -439,7 +506,9 @@ global_ map<const char*, Token_Type> strToTok{
 
 struct token {
 	Token_Type type;
+	//TODO get rid of this static carray in favor of cstring
 	char str[255] = "";
+	cstring raw;
 	vec2 strSize; //the strings size on screen in px
 	
 	token() {}
@@ -447,16 +516,27 @@ struct token {
 };
 
 enum ExpressionType : u32 {
+	Expression_NONE,
+
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
 	
+	//Special ternary conditional expression type
+	//maybe used when/if we allow scripting type stuff
+	//or yknow, just finish su and make it embedded :)
+	//Expression_TernaryConditional,
+	
 	//Types
-	Expression_IntegerLiteral,
+	Expression_Literal,
 	
 	//Unary Operators
 	Expression_UnaryOpBitComp,
 	Expression_UnaryOpLogiNOT,
 	Expression_UnaryOpNegate,
+	//Expression_IncrementPrefix,
+	//Expression_IncrementPostfix,
+	//Expression_DecrementPrefix,
+	//Expression_DecrementPostfix,
 	
 	//Binary Operators
 	Expression_BinaryOpPlus,
@@ -478,35 +558,26 @@ enum ExpressionType : u32 {
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
 	Expression_BinaryOpAssignment,
-	
-	Expression_Empty,
-	
-	//Expression Guards
-	ExpressionGuard_Assignment,
-	ExpressionGuard_HEAD, //to align expression guards correctly with their evaluations
-	ExpressionGuard_Conditional,
-	ExpressionGuard_LogicalOR,
-	ExpressionGuard_LogicalAND,
-	ExpressionGuard_BitOR,
-	ExpressionGuard_BitXOR,
-	ExpressionGuard_BitAND,
-	ExpressionGuard_Equality,
-	ExpressionGuard_Relational,
-	ExpressionGuard_BitShift,
-	ExpressionGuard_Additive,
-	ExpressionGuard_Term,
-	ExpressionGuard_Factor,
+	Expression_BinaryOpMemberAccess,
 };
 
 static const char* ExTypeStrings[] = {
-	"IdentifierLHS",
-	"IdentifierRHS",
+	"NONE",
+
+	"idLHS: ",
+	"idRHS: ",
 	
-	"IntegerLiteral",
+	//"tern: ",
+	
+	"literal: ",
 	
 	"~",
 	"!",
 	"-",
+	//"++ pre",
+	//"++ post",
+	//"-- pre",
+	//"-- post",
 	
 	"+",
 	"-",
@@ -527,36 +598,23 @@ static const char* ExTypeStrings[] = {
 	"<<",
 	">>",
 	"=",
-	
-	"empty",
-	
-	"assignment",
-	"head",
-	"conditional",
-	"logical or",
-	"logical and",
-	"bit or",
-	"bit xor",
-	"bit and",
-	"equality",
-	"relational",
-	"bit shift",
-	"additive",
-	"term",
-	"factor",
+	"accessor",
 };
 
 struct Expression {
-	char expstr[255];
+	cstring expstr;
 	ExpressionType type;
 	
+	//TODO support different types
+	f64 val;
+
 	TreeNode node;
 	
 	Expression() {}
 	
 	Expression(char* str, ExpressionType type) {
 		this->type = type;
-		strcpy(expstr, str);
+		expstr={str, strlen(str)};
 	}
 };
 
