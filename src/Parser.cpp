@@ -406,25 +406,23 @@ struct gvEdge {
 struct gvGraph {
 	array<gvNode> nodes;
 	array<gvEdge> edges;
+	f64 xmax=0,ymax=0;
 };
 
 gvGraph graph;
-
+u32 i = 0;
 void make_dot_file(TreeNode* node, Agnode_t* parent) {
-	static u32 i = 0;
 	i++;
 	u32 save = i;
 	
-	string send = node->debug_str;
-	send.replace('&', "&amp;");
-	send.replace('<', "&lt;");
-	send.replace('>', "&gt;");
-	
-	Agnode_t* me = agnode(gvgraph, (send + "-" + to_string(i)).str, 1);
+	Agnode_t* me = agnode(gvgraph, toStr(i).str, 1);
+	agset(me, "label", node->comment.str);
 	TreeNode* stage = node;
-	
-	if (stage->first_child)   make_dot_file(stage->first_child, me);
-	if (stage->next != stage) make_dot_file(stage->next, parent);
+	for_node(node->first_child){
+		make_dot_file(it, me);
+	}
+	//if (stage->first_child)   make_dot_file(stage->first_child, me);
+	//if (stage->next != stage) make_dot_file(stage->next, parent);
 	
 	if (parent)
 		agedge(gvgraph, parent, me, "", 1);
@@ -436,15 +434,18 @@ void make_dot_file(TreeNode* node, Agnode_t* parent) {
 void Parser::pretty_print(Expression& e) {
 	
 	if (!gvc) gvc = gvContext();
-	if (!gout) gout = (char*)memtalloc(Kilobytes(2)); //arbitrary size, maybe should be changed later
+	if (!gout) gout = (char*)memtalloc(Kilobytes(1)); //arbitrary size, maybe should be changed later
 	
 	if (e.node.first_child) {
 		graph.nodes.clear();
 		graph.edges.clear();
-		
+		i=0;
 		gvgraph = agopen("exp ast tree", Agdirected, 0);
-		make_dot_file(&e.node, 0);
-		agattr(gvgraph, AGRAPH, "splines", "line");
+		Agnode_t* prog = agnode(gvgraph, "head", 1);
+		for_node(e.node.first_child){
+			make_dot_file(it, prog);
+		}
+		//agattr(gvgraph, AGRAPH, "splines", "line");
 		gvLayout(gvc, gvgraph, "dot");
 		gvRenderData(gvc, gvgraph, "plain", &gout, &gout_size);
 		
@@ -455,11 +456,15 @@ void Parser::pretty_print(Expression& e) {
 			if (str_begins_with(reader.read, "node")) {
 				gvNode node;
 				chunk_line(reader, i, ' ');
-				node.label = reader.chunks[1];
+				node.label = reader.chunks[6];
+				if(node.label.beginsWith("\"")) node.label.erase(0);
+				if(node.label.endsWith("\"")) node.label.erase(node.label.count-1);
 				node.pos.x = stod(reader.chunks[2]);
 				node.pos.y = stod(reader.chunks[3]);
 				node.siz.x = stod(reader.chunks[4]);
 				node.siz.y = stod(reader.chunks[5]);
+				graph.xmax=Max(f64(graph.xmax),f64(node.pos.x+node.siz.x));
+				graph.ymax=Max(f64(graph.ymax),f64(node.pos.y+node.siz.y));
 				graph.nodes.add(node);
 			}
 			else if (str_begins_with(reader.read, "edge")){
@@ -476,12 +481,30 @@ void Parser::pretty_print(Expression& e) {
 	}
 	else {
 		using namespace UI;
-		Begin("suuguprettyprint"); {
-			static f32 zoom = 20;
-			zoom += 10 * DeshInput->scrollY;
+		Begin("suuguprettyprint", UIWindowFlags_FitAllElements); {
+			static f32 zoom = 17;
+			static f32 ppi = 50; //pixels per inch, becasue graphviz's plaintext format returns everything in inches
+			if(IsWinHovered()){
+				ppi += 10 * DeshInput->scrollY;
+			}
 			for (gvNode node : graph.nodes) {
-				Rect((node.pos - vec2(0, node.siz.y)) * zoom, node.siz * zoom);
-				Text(node.label.str, (node.pos - vec2(0, node.siz.y)) * zoom);
+				vec2 np = vec2(
+					ppi*(node.pos.x),
+					ppi*(node.pos.y)
+				);
+				vec2 ns = vec2(
+					ppi*(node.siz.x),
+					ppi*(node.siz.y)
+				);
+				//convert from lowerleft origin to topleft origin
+				np.y=ppi*graph.ymax-(np.y+node.siz.y);
+				Rect(np, ns);
+				f32 cts = CalcTextSize(node.label.str).x;
+				f32 ts = ns.x / cts;
+
+				PushVar(UIStyleVar_FontHeight, GetStyle().fontHeight*ts);
+				Text(node.label.str,  GetLastItem()->position);
+				PopVar();
 			}
 		}End();
 	}
