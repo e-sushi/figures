@@ -225,128 +225,6 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 	result with the right result
 */
 
-enum TreeNodeType {
-	//TODO set this up if we end up going beyond expressions
-};
-
-//abstract node tree struct
-struct TreeNode {
-	TreeNode* next = 0;
-	TreeNode* prev = 0;
-	TreeNode* parent = 0;
-	TreeNode* first_child = 0;
-	TreeNode* last_child = 0;
-	u32   child_count = 0;
-	
-	//debug vars
-	string comment;
-};
-
-#define for_node(node) for(TreeNode* it = node; it != 0; it = it->next)
-#define for_node_reverse(node) for(TreeNode* it = node; it != 0; it = it->prev)
-
-inline void insert_after(TreeNode* target, TreeNode* node) {
-	if (target->next) target->next->prev = node;
-	node->next = target->next;
-	node->prev = target;
-	target->next = node;
-}
-
-inline void insert_before(TreeNode* target, TreeNode* node) {
-	if (target->prev) target->prev->next = node;
-	node->prev = target->prev;
-	node->next = target;
-	target->prev = node;
-}
-
-inline void remove_horizontally(TreeNode* node) {
-	if (node->next) node->next->prev = node->prev;
-	if (node->prev) node->prev->next = node->next;
-	node->next = node->prev = 0;
-}
-
-void insert_last(TreeNode* parent, TreeNode* child) {
-	if (parent == 0) { child->parent = 0; return; }
-	
-	child->parent = parent;
-	if (parent->first_child) {
-		insert_after(parent->last_child, child);
-		parent->last_child = child;
-	}
-	else {
-		parent->first_child = child;
-		parent->last_child = child;
-	}
-	parent->child_count++;
-}
-
-void insert_first(TreeNode* parent, TreeNode* child) {
-	if (parent == 0) { child->parent = 0; return; }
-	
-	child->parent = parent;
-	if (parent->first_child) {
-		insert_before(parent->first_child, child);
-		parent->first_child = child;
-	}
-	else {
-		parent->first_child = child;
-		parent->last_child = child;
-	}
-	parent->child_count++;
-}
-
-void remove(TreeNode* node) {
-	//remove self from parent
-	if (node->parent) {
-		if (node->parent->child_count > 1) {
-			if (node == node->parent->first_child) node->parent->first_child = node->next;
-			if (node == node->parent->last_child)  node->parent->last_child = node->prev;
-		}
-		else {
-			Assert(node == node->parent->first_child && node == node->parent->last_child, "if node is the only child node, it should be both the first and last child nodes");
-			node->parent->first_child = 0;
-			node->parent->last_child = 0;
-		}
-		node->parent->child_count--;
-	}
-	
-	//add children to parent (and remove self from children)
-	if (node->child_count > 1) {
-		for (TreeNode* child = node->first_child; child != 0; child = child->next) {
-			insert_last(node->parent, child);
-		}
-	}
-	
-	//remove self horizontally
-	remove_horizontally(node);
-	
-	//reset self  //TODO not necessary if we are deleting this node, so exclude this logic in another function TreeNodeDelete?
-	node->parent = node->first_child = node->last_child = 0;
-	node->child_count = 0;
-}
-
-void change_parent(TreeNode* new_parent, TreeNode* node) {
-	//if old parent, remove self from it 
-	if (node->parent) {
-		if (node->parent->child_count > 1) {
-			if (node == node->parent->first_child) node->parent->first_child = node->next;
-			if (node == node->parent->last_child)  node->parent->last_child = node->prev;
-		}
-		else {
-			Assert(node == node->parent->first_child && node == node->parent->last_child, "if node is the only child node, it should be both the first and last child nodes");
-			node->parent->first_child = 0;
-			node->parent->last_child = 0;
-		}
-		node->parent->child_count--;
-	}
-	
-	//remove self horizontally
-	remove_horizontally(node);
-	
-	//add self to new parent
-	insert_last(new_parent, node);
-}
-
 
 
 struct ParseArena {
@@ -608,7 +486,7 @@ struct Expression {
 	//TODO support different types
 	f64 val;
 
-	TreeNode node;
+	TNode node;
 	
 	Expression() {}
 	

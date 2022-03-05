@@ -112,7 +112,7 @@ enum ParseStage {
 	psUnary,        // <unary>         :: = "!" | "~" | "-"
 };
 
-TreeNode* parser(ParseStage stage, TreeNode* node);
+TNode* parser(ParseStage stage, TNode* node);
 
 local map<Token_Type, ExpressionType> tokToExp{
 	{Token_Multiplication,     Expression_BinaryOpMultiply},
@@ -139,9 +139,9 @@ local map<Token_Type, ExpressionType> tokToExp{
 };
 
 template<typename... T>
-TreeNode* binopParse(TreeNode* node, TreeNode* ret, ParseStage next_stage, T... tokcheck) {
+TNode* binopParse(TNode* node, TNode* ret, ParseStage next_stage, T... tokcheck) {
 	token_next();
-	TreeNode* me = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[*tokToExp.at(curt.type)]);
+	TNode* me = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[*tokToExp.at(curt.type)]);
 	change_parent(me, ret);
 	insert_last(node, me);
 	token_next();
@@ -149,7 +149,7 @@ TreeNode* binopParse(TreeNode* node, TreeNode* ret, ParseStage next_stage, T... 
 
 	while (next_match(tokcheck...)) {
 		token_next();
-		TreeNode* me2 = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[tokToExp[curt.type]]);
+		TNode* me2 = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[tokToExp[curt.type]]);
 		token_next();
 		ret = parser(next_stage, node);
 
@@ -162,17 +162,17 @@ TreeNode* binopParse(TreeNode* node, TreeNode* ret, ParseStage next_stage, T... 
 	return me;
 }
 	
-inline TreeNode* new_expression(const cstring& str, ExpressionType type, const string& node_str = "") {
+inline TNode* new_expression(const cstring& str, ExpressionType type, const string& node_str = "") {
 		expression = (Expression*)arena.add(Expression());
 		expression->expstr = str;
 		expression->type = type;
 		//expression->node.type = NodeType_Expression;
-		if (!node_str.count) expression->node.comment = ExTypeStrings[type];
-		else                 expression->node.comment = node_str;
+		if (!node_str.count) expression->node.comment = (char*)ExTypeStrings[type];
+		else                 expression->node.comment = node_str.str;
 		return &expression->node;
 }
 
-TreeNode* parser(ParseStage state, TreeNode* node) {
+TNode* parser(ParseStage state, TNode* node) {
 	
 	switch (state) {
 		
@@ -197,7 +197,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 				//	}
 				//}break;
 				default: {
-					TreeNode* ret = parser(psConditional, node); 
+					TNode* ret = parser(psConditional, node); 
 					return ret;
 				}break;
 				
@@ -231,70 +231,70 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 
 		
 		case psLogicalOR: {//////////////////////////////////////////////////////////////////// @Logical OR
-			TreeNode* ret = parser(psLogicalAND, node);
+			TNode* ret = parser(psLogicalAND, node);
 			if (!next_match(Token_OR))
 				return ret;
 			return binopParse(node, ret, psLogicalAND, Token_OR);
 		}break;
 		
 		case psLogicalAND: {/////////////////////////////////////////////////////////////////// @Logical AND
-			TreeNode* ret = parser(psBitwiseOR, node);
+			TNode* ret = parser(psBitwiseOR, node);
 			if (!next_match(Token_AND))
 				return ret;
 			return binopParse(node, ret, psBitwiseOR);
 		}break;
 		
 		case psBitwiseOR: {//////////////////////////////////////////////////////////////////// @Bitwise OR
-			TreeNode* ret = parser(psBitwiseXOR, node);
+			TNode* ret = parser(psBitwiseXOR, node);
 			if (!next_match(Token_BitOR))
 				return ret;
 			return binopParse(node, ret, psBitwiseXOR, Token_BitOR);
 		}break;
 		
 		case psBitwiseXOR: {/////////////////////////////////////////////////////////////////// @Bitwise XOR
-			TreeNode* ret = parser(psBitwiseAND, node);
+			TNode* ret = parser(psBitwiseAND, node);
 			if (!next_match(Token_BitXOR))
 				return ret;
 			return binopParse(node, ret, psBitwiseAND, Token_BitXOR);
 		}break;
 		
 		case psBitwiseAND: {/////////////////////////////////////////////////////////////////// @Bitwise AND
-			TreeNode* ret = parser(psEquality, node);
+			TNode* ret = parser(psEquality, node);
 			if (!next_match(Token_BitAND))
 				return ret;
 			return binopParse(node, ret, psEquality, Token_BitAND);
 		}break;
 		
 		case psEquality: {///////////////////////////////////////////////////////////////////// @Equality
-			TreeNode* ret = parser(psRelational, node);
+			TNode* ret = parser(psRelational, node);
 			if (!next_match(Token_NotEqual, Token_Equal))
 				return ret;
 			return binopParse(node, ret, psRelational, Token_NotEqual, Token_Equal);
 		}break;
 		
 		case psRelational: {/////////////////////////////////////////////////////////////////// @Relational
-			TreeNode* ret = parser(psBitshift, node);
+			TNode* ret = parser(psBitshift, node);
 			if (!next_match(Token_LessThan, Token_GreaterThan, Token_LessThanOrEqual, Token_GreaterThanOrEqual))
 				return ret;
 			return binopParse(node, ret, psBitshift, Token_LessThan, Token_GreaterThan, Token_LessThanOrEqual, Token_GreaterThanOrEqual);
 		}break;
 		
 		case psBitshift: {///////////////////////////////////////////////////////////////////// @Bitshift
-			TreeNode* ret = parser(psAdditive, node);
+			TNode* ret = parser(psAdditive, node);
 			if (!next_match(Token_BitShiftLeft, Token_BitShiftRight))
 				return ret;
 			return binopParse(node, ret, psAdditive, Token_BitShiftLeft, Token_BitShiftRight);
 		}break;
 		
 		case psAdditive: {///////////////////////////////////////////////////////////////////// @Additive
-			TreeNode* ret = parser(psTerm, node);
+			TNode* ret = parser(psTerm, node);
 			if (!next_match(Token_Plus, Token_Negation))
 				return ret;
 			return binopParse(node, ret, psTerm, Token_Plus, Token_Negation);
 		}break;
 		
 		case psTerm: {
-			TreeNode* ret = parser(psFactor, node);
+			TNode* ret = parser(psFactor, node);
 			if (!next_match(Token_Multiplication, Token_Division, Token_Modulo))
 				return ret;
 			return binopParse(node, ret, psFactor, Token_Multiplication, Token_Division, Token_Modulo);
@@ -305,7 +305,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 				
 				//TODO implicitly change types here when applicable, or do that where they're returned
 				case Token_Literal: {
-					TreeNode* var = new_expression(cstring{}, Expression_Literal, toStr(ExTypeStrings[Expression_Literal], " ", curt.str));
+					TNode* var = new_expression(cstring{}, Expression_Literal, toStr(ExTypeStrings[Expression_Literal], " ", curt.str));
 					expression->val = stod(curt.str); //TODO detect f64
 					insert_last(node, &expression->node);
 					return var;
@@ -314,7 +314,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 				
 				case Token_OpenParen: {
 					token_next();
-					TreeNode* ret = parser(psExpression, &expression->node);
+					TNode* ret = parser(psExpression, &expression->node);
 					change_parent(node, ret);
 					token_next();
 					Expect(Token_CloseParen) { return ret; }
@@ -325,7 +325,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 					new_expression(curt.raw, Expression_UnaryOpNegate);
 					insert_last(node, &expression->node);
 					token_next();
-					TreeNode* ret = &expression->node;
+					TNode* ret = &expression->node;
 					parser(psFactor, &expression->node);
 					return ret;
 				}break;
@@ -334,7 +334,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 					new_expression(curt.raw, Expression_UnaryOpLogiNOT);
 					insert_last(node, &expression->node);
 					token_next();
-					TreeNode* ret = &expression->node;
+					TNode* ret = &expression->node;
 					parser(psFactor, &expression->node);
 					return ret;
 				}break;
@@ -343,7 +343,7 @@ TreeNode* parser(ParseStage state, TreeNode* node) {
 					new_expression(curt.raw, Expression_UnaryOpBitComp);
 					insert_last(node, &expression->node);
 					token_next();
-					TreeNode* ret = &expression->node;
+					TNode* ret = &expression->node;
 					parser(psFactor, &expression->node);
 					return ret;
 				}break;
@@ -411,13 +411,13 @@ struct gvGraph {
 
 gvGraph graph;
 u32 i = 0;
-void make_dot_file(TreeNode* node, Agnode_t* parent) {
+void make_dot_file(TNode* node, Agnode_t* parent) {
 	i++;
 	u32 save = i;
 	
 	Agnode_t* me = agnode(gvgraph, toStr(i).str, 1);
-	agset(me, "label", node->comment.str);
-	TreeNode* stage = node;
+	agset(me, "label", node->comment);
+	TNode* stage = node;
 	for_node(node->first_child){
 		make_dot_file(it, me);
 	}

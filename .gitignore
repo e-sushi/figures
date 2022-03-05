@@ -16,6 +16,7 @@
 *.tmp
 *.ctm
 *.diagsession
+*.svg
 
 #folders
 .vs/
@@ -40,3 +41,4 @@ misc/suugu.vcxproj.user
 
 #delle specifics
 misc/shell.bat
+

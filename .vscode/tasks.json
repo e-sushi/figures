@@ -29,6 +29,7 @@
                 "/D\"DESHI_INTERNAL=1\"",
                 "/D\"DESHI_WINDOWS=1\"",
                 "/D\"DESHI_VULKAN=1\"",
+                //"/D\"KIGU_ENABLE_PROFILER\"",
                 "/I\"C:/src/tracy-0.7.8\"",
                 "/I\"C:/src/graphviz/include/\"",
                 "/I\"C:/src/suugu/src\"",
