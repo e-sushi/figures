@@ -205,27 +205,20 @@ AddToken(Token_Type t) {
 void Element::
 Update() {
 	using namespace UI;
-	
 	//Parser::pretty_print(statement);
-	
-	PushFont(mathfont);
-	
 	Font* font = mathfont;
 	vec2 winpos = ToScreen(pos.x, pos.y);
 	
+	PushFont(mathfont);
 	PushVar(UIStyleVar_WindowMargins,      vec2{ 4,4 });
 	PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
 	PushVar(UIStyleVar_RowItemAlign,       vec2{ 0.5, 0.5 });
 	PushVar(UIStyleVar_FontHeight,         80);
-	
 	PushScale(vec2::ONE * size.y / camera_zoom * 2);
-	
 	SetNextWindowPos(winpos);
 	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * f32(DeshWindow->width) / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_FitAllElements);
-	
-	if (tokens.count) {
+	if(tokens.count){
 		
-		//if(tokens.count > 3) DebugBreakpoint;
 		//HACK new row each for each token count b/c UI rows cant change column size
 		UI::BeginRow(toStr("canvas_element_",tokens.count).str, tokens.count, 80);
 		
@@ -266,18 +259,16 @@ Update() {
 			}
 		}
 		EndRow();
-	}
-	else {
+	}else{
 		//draw initial statement
 		PushFont(mathfontitalic);
 		Text("type initial statement...", UITextFlags_NoWrap);
 		PopFont();
 	}
-	
 	End();
+	PopScale();
 	PopVar(4);
 	PopFont();
-	PopScale();
 }
 
 

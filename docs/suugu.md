@@ -92,6 +92,7 @@ equation   | collection of expressions with    an explicit equals expression
     - [] exponentials
 	- [] equals/assignment
 - [] complex math input
+    - [] implicit multiplication between variables (and constants)
     - [] variable super/sub script
 	- [] inequalities
     - [] integrals/derivatives
@@ -100,15 +101,6 @@ equation   | collection of expressions with    an explicit equals expression
     - [] patterns
     - [] vectors/matrices
     - [] ± (plus or minus)
-- [] programmer math input
-    - [] literals
-    - [] variables
-    - [] addition/subtraction
-    - [] multiplication/division
-    - [] parenthesis
-    - [] exponentials
-	- [] equals/assignment
-    - [] functions
 - [] hotstrings (turn into symbols or place slots in non-linear ways)
     - [] matMN  expands to a MxN matrix eg mat22 expands to an empty 2x2 matrix
     - [] vecN   expands to a vector with N values
@@ -169,9 +161,51 @@ equation   | collection of expressions with    an explicit equals expression
 </details>
 </div>
 
+[//]: # (///////////////////////////////////////////////////////////////////////////////////////// Parsing)
+## Parsing
+### Lexing and parsing the math input into an AST
+##### types.h, lexer.cpp, parser.cpp
+<div class="indent">
+
+&#9679; The exponent operator in programmer input is `**`.
+
+<details class="container"> <summary>todos</summary>
+
+- [] simple math
+    - [] literals
+    - [] variables
+    - [] addition/subtraction
+    - [] multiplication/division
+    - [] parenthesis
+    - [] exponentials
+	- [] equals/assignment
+- [] complex math
+    - [] implicit multiplication between variables (and constants)
+    - [] variable super/sub script
+	- [] inequalities
+    - [] integrals/derivatives
+    - [] function notation
+    - [] sum
+    - [] patterns
+    - [] vectors/matrices
+    - [] ± (plus or minus)
+- [] programmer math
+    - [] literals
+    - [] variables
+    - [] addition/subtraction
+    - [] multiplication/division
+    - [] parenthesis
+    - [] exponentials
+	- [] equals/assignment
+- [] hotstrings (turn into symbols or place slots in non-linear ways)
+- [] functions (argument based functions like coding)
+</details>
+</div>
+
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Solving)
 ## Solving
-### Methods for solving various kinds of math
+### Solving the AST received from Parsing
+##### types.h, solver.cpp
 <div class="indent">
 
 <details> <summary>It might be confusing to define variables with the = operators, so we could use : instead.</summary>
@@ -185,14 +219,24 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 ```
 </details>
 
-&#9679; Solving should be on a different thread so that it doesnt interrupt input/rendering.  
+&#9679; Solving should be on a different thread so that it doesnt interrupt input/rendering. 
+&#9679; Expressions are evaluated into an AST as you type.
+&#9679; Automatic solving if = is present with nothing to one side.
 
 <details class="container"> <summary>todos</summary>
 
-- [] expressions are evaluated into an AST as you type
-- [] automatic solving if = is present with nothing to one side
-- [] user defined functions
-- [] ability to include units in calculations
+- [] addition/subtraction
+- [] multiplication/division
+- [] exponentials
+- [] inequalities
+- [] integrals/derivatives
+- [] differential equations
+- [] sum
+- [] patterns
+- [] vectors/matrices
+- [] ± (plus or minus)
+- [] functions
+- [] units solving
 </details>
 </div>
 
