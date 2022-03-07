@@ -54,7 +54,12 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (01/06/22) pencil strokes are not visisble
 */
 
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
+
 //// kigu includes ////
+#include "kigu/profiling.h"
 #include "kigu/array.h"
 #include "kigu/common.h"
 #include "kigu/cstring.h"
@@ -77,12 +82,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/ui.h"
 #include "core/window.h"
 #include "core/io.h"
-#ifdef TRACY_ENABLE
-#include "Tracy.hpp"
-#endif
-#include "core/profiling.h"
 #include "math/math.h"
-
 
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION

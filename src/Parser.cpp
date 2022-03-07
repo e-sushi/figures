@@ -163,19 +163,19 @@ TNode* binopParse(TNode* node, TNode* ret, ParseStage next_stage, T... tokcheck)
 }
 	
 inline TNode* new_expression(const cstring& str, ExpressionType type, const string& node_str = "") {
-		expression = (Expression*)arena.add(Expression());
-		expression->expstr = str;
-		expression->type = type;
-		//expression->node.type = NodeType_Expression;
-		if (!node_str.count) expression->node.comment = (char*)ExTypeStrings[type];
-		else                 expression->node.comment = node_str.str;
-		return &expression->node;
+	expression = (Expression*)arena.add(Expression());
+	expression->expstr = str;
+	expression->type = type;
+	//expression->node.type = NodeType_Expression;
+#if 0
+	if (!node_str.count) expression->node.comment = (char*)ExTypeStrings[type];
+	else                 expression->node.comment = node_str.str;
+#endif
+	return &expression->node;
 }
 
 TNode* parser(ParseStage state, TNode* node) {
-	
 	switch (state) {
-		
 		case psExpression: {/////////////////////////////////////////////////////////////////// @Expression
 			switch (curt.type) {
 				//left over from su, though we may allow varaibles later
@@ -196,11 +196,11 @@ TNode* parser(ParseStage state, TNode* node) {
 				//		parser(psConditional, &expression->node);
 				//	}
 				//}break;
+
 				default: {
 					TNode* ret = parser(psConditional, node); 
 					return ret;
 				}break;
-				
 			}
 		}break;
 		
@@ -228,7 +228,6 @@ TNode* parser(ParseStage state, TNode* node) {
 			//}
 			return parser(psLogicalOR, node);
 		}break;
-
 		
 		case psLogicalOR: {//////////////////////////////////////////////////////////////////// @Logical OR
 			TNode* ret = parser(psLogicalAND, node);
@@ -348,15 +347,17 @@ TNode* parser(ParseStage state, TNode* node) {
 					return ret;
 				}break;
 				
-
-				
-				
 				default: {
 					ParseFail("unexpected token found in factor");
 				}break;
 			}
 		}break;
+
+		default:{
+			LogE("parser", "Unknown ParseStage");
+		}break;
 	}
+	return 0;
 }
 
 #undef token_next
