@@ -83,81 +83,81 @@ equation   | collection of expressions with    an explicit equals expression
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
-- [] simple math input (operators)
+- [ ] simple math input (operators)
     - [x] literals
-    - [] variables
+    - [ ] variables
     - [x] addition/subtraction
     - [x] multiplication/division
-    - [] parenthesis
-    - [] exponentials
-	- [] equals/assignment
-- [] complex math input
-    - [] implicit multiplication between variables (and constants)
-    - [] variable super/sub script
-	- [] inequalities
-    - [] integrals/derivatives
-    - [] function notation
-    - [] sum
-    - [] patterns
-    - [] vectors/matrices
-    - [] ± (plus or minus)
-- [] hotstrings (turn into symbols or place slots in non-linear ways)
-    - [] matMN  expands to a MxN matrix eg mat22 expands to an empty 2x2 matrix
-    - [] vecN   expands to a vector with N values
-    - [] sumNI  expands to a sum starting at n = N to i = I (ideally with a way to change the sum var)
-    - [] prodNI same concept but with product
-    - [] intI   expands to an indefinite integral of a given expression
-    - [] intAB  expands to a definite integral evaluated from A to B of a given expression
-    - [] ddX    expands to a derivative of a given expression of variable X
-    - [] pdX    expands to a partial derivative of a given expression of variable X
-    - [] sqrtN  expands to a square root to the power of N
-	- [] logN   expands to a log of base N
-	- [] abs    expands to absolute value
-    - [] deg    expands to degrees symbol
-- [] builtin functions (argument based functions like coding)
-    - [] sin/cos/tan (inverse/hyperbolic versions)
-    - [] ceil/floor/round
-	- [] min/max
-	- [] logarithms
-- [] symbols menu
-- [] ability to quickly switch between math and programmer inputs
-- [] TeX input (and other math syntax)
-- [] drag-n-drop elements of an equation
-- [] box select on matrices to grab out rows/columns/sub-matrices
-- [] button to move the view of a graph to an equation
-- [] mouse-equation interactions
-    - [] single left click:        select element and deselect any previously selected (keybinds target selected)
-    - [] single shift left click:  select another element (multiple select)
-    - [] single shift right click: deselect element
-    - [] double left click:        start editing the clicked element like text (might also start an equation)
-    - [] single right click:       shows simple context menu on clicked element (might also start an equation)
-    - [] single shift right click: show meta context menu on clicked element (change looks, format, extract to text, color, label, etc)
-    - [] single ctrl right click:  show detailed context menu on clicked element (with search for all options)
-    - [] left hold:                move selected elements, affecting the equation
-    - [] shift left hold:          copy selected elements and allows dragging onto other elements
-- [] other keybinds
-    - [] Alt-S   : Attempt to simplify statement
-    - [] Alt-G   : Graph statement in a new graph window
+    - [ ] parenthesis
+    - [ ] exponentials
+	- [ ] equals/assignment
+- [ ] complex math input
+    - [ ] implicit multiplication between variables (and constants)
+    - [ ] variable super/sub script
+	- [ ] inequalities
+    - [ ] integrals/derivatives
+    - [ ] function notation
+    - [ ] sum
+    - [ ] patterns
+    - [ ] vectors/matrices
+    - [ ] ± (plus or minus)
+- [ ] hotstrings (turn into symbols or place slots in non-linear ways)
+    - [ ] matMN  expands to a MxN matrix eg mat22 expands to an empty 2x2 matrix
+    - [ ] vecN   expands to a vector with N values
+    - [ ] sumNI  expands to a sum starting at n = N to i = I (ideally with a way to change the sum var)
+    - [ ] prodNI same concept but with product
+    - [ ] intI   expands to an indefinite integral of a given expression
+    - [ ] intAB  expands to a definite integral evaluated from A to B of a given expression
+    - [ ] ddX    expands to a derivative of a given expression of variable X
+    - [ ] pdX    expands to a partial derivative of a given expression of variable X
+    - [ ] sqrtN  expands to a square root to the power of N
+	- [ ] logN   expands to a log of base N
+	- [ ] abs    expands to absolute value
+    - [ ] deg    expands to degrees symbol
+- [ ] builtin functions (argument based functions like coding)
+    - [ ] sin/cos/tan (inverse/hyperbolic versions)
+    - [ ] ceil/floor/round
+	- [ ] min/max
+	- [ ] logarithms
+- [ ] symbols menu
+- [ ] ability to quickly switch between math and programmer inputs
+- [ ] TeX input (and other math syntax)
+- [ ] drag-n-drop elements of an equation
+- [ ] box select on matrices to grab out rows/columns/sub-matrices
+- [ ] button to move the view of a graph to an equation
+- [ ] mouse-equation interactions
+    - [ ] single left click:        select element and deselect any previously selected (keybinds target selected)
+    - [ ] single shift left click:  select another element (multiple select)
+    - [ ] single shift right click: deselect element
+    - [ ] double left click:        start editing the clicked element like text (might also start an equation)
+    - [ ] single right click:       shows simple context menu on clicked element (might also start an equation)
+    - [ ] single shift right click: show meta context menu on clicked element (change looks, format, extract to text, color, label, etc)
+    - [ ] single ctrl right click:  show detailed context menu on clicked element (with search for all options)
+    - [ ] left hold:                move selected elements, affecting the equation
+    - [ ] shift left hold:          copy selected elements and allows dragging onto other elements
+- [ ] other keybinds
+    - [ ] Alt-S   : Attempt to simplify statement
+    - [ ] Alt-G   : Graph statement in a new graph window
         3D if we detect 2 independent variables
         2D if we detect 1
         If we detect more than 2 then probably warn
         or treat it as an implicit 3D function
-    - [] Alt-D   : Attempt to solve equation for a var
+    - [ ] Alt-D   : Attempt to solve equation for a var
         this would query for a variable to solve for
         0 would rearrange the equation to = 0
-    - [] =       : moves between 2 sides of an equation
+    - [ ] =       : moves between 2 sides of an equation
         we will probably have 2 different cursors for each
         side, and if the user moves one cursor to the other
         side through the equals sign, we move both
-    - [] Shft->
-    - [] Shft-< : move an expression to the other side maybe
+    - [ ] Shft->
+    - [ ] Shft-< : move an expression to the other side maybe
         for example if you select idk
         "-3" in the equation
         "2x-3=0"
         and press Shft-> it will make the equation
         "2x=3"
-    - [] Ctrl->
-    - [] Ctrl-< : move between statements on the canvas
+    - [ ] Ctrl->
+    - [ ] Ctrl-< : move between statements on the canvas
 </details>
 </div>
 
@@ -171,34 +171,34 @@ equation   | collection of expressions with    an explicit equals expression
 
 <details class="container"> <summary>todos</summary>
 
-- [] simple math
-    - [] literals
-    - [] variables
-    - [] addition/subtraction
-    - [] multiplication/division
-    - [] parenthesis
-    - [] exponentials
-	- [] equals/assignment
-- [] complex math
-    - [] implicit multiplication between variables (and constants)
-    - [] variable super/sub script
-	- [] inequalities
-    - [] integrals/derivatives
-    - [] function notation
-    - [] sum
-    - [] patterns
-    - [] vectors/matrices
-    - [] ± (plus or minus)
-- [] programmer math
-    - [] literals
-    - [] variables
-    - [] addition/subtraction
-    - [] multiplication/division
-    - [] parenthesis
-    - [] exponentials
-	- [] equals/assignment
-- [] hotstrings (turn into symbols or place slots in non-linear ways)
-- [] functions (argument based functions like coding)
+- [ ] simple math
+    - [ ] literals
+    - [ ] variables
+    - [ ] addition/subtraction
+    - [ ] multiplication/division
+    - [ ] parenthesis
+    - [ ] exponentials
+	- [ ] equals/assignment
+- [ ] complex math
+    - [ ] implicit multiplication between variables (and constants)
+    - [ ] variable super/sub script
+	- [ ] inequalities
+    - [ ] integrals/derivatives
+    - [ ] function notation
+    - [ ] sum
+    - [ ] patterns
+    - [ ] vectors/matrices
+    - [ ] ± (plus or minus)
+- [ ] programmer math
+    - [ ] literals
+    - [ ] variables
+    - [ ] addition/subtraction
+    - [ ] multiplication/division
+    - [ ] parenthesis
+    - [ ] exponentials
+	- [ ] equals/assignment
+- [ ] hotstrings (turn into symbols or place slots in non-linear ways)
+- [ ] functions (argument based functions like coding)
 </details>
 </div>
 
@@ -225,18 +225,18 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 
 <details class="container"> <summary>todos</summary>
 
-- [] addition/subtraction
-- [] multiplication/division
-- [] exponentials
-- [] inequalities
-- [] integrals/derivatives
-- [] differential equations
-- [] sum
-- [] patterns
-- [] vectors/matrices
-- [] ± (plus or minus)
-- [] functions
-- [] units solving
+- [ ] addition/subtraction
+- [ ] multiplication/division
+- [ ] exponentials
+- [ ] inequalities
+- [ ] integrals/derivatives
+- [ ] differential equations
+- [ ] sum
+- [ ] patterns
+- [ ] vectors/matrices
+- [ ] ± (plus or minus)
+- [ ] functions
+- [ ] units solving
 </details>
 </div>
 
@@ -249,24 +249,24 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 
 <details class="container"> <summary>todos</summary>
 
-- [] 2D graphing
-    - [] linear equations
-    - [] non-linear equations
-    - [] piece-wise equations
-    - [] parametric equations
-    - [] inequality shading (desmos)
-    - [] scalar fields
-    - [] vector fields
-    - [] contour plots
-- [] 3D graphing
-    - [] lines
-    - [] surfaces
-    - [] volumes
-    - [] vector fields
-    - [] scalar fields?
-- [] Link graphing
-    - [] trees
-    - [] nodegraphs
+- [ ] 2D graphing
+    - [ ] linear equations
+    - [ ] non-linear equations
+    - [ ] piece-wise equations
+    - [ ] parametric equations
+    - [ ] inequality shading (desmos)
+    - [ ] scalar fields
+    - [ ] vector fields
+    - [ ] contour plots
+- [ ] 3D graphing
+    - [ ] lines
+    - [ ] surfaces
+    - [ ] volumes
+    - [ ] vector fields
+    - [ ] scalar fields?
+- [ ] Link graphing
+    - [ ] trees
+    - [ ] nodegraphs
 </details>
 </div>
 
@@ -275,11 +275,11 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
-- [] scoping a workspace with a box
-- [] free draw workspace that acts like a mix between paint and math tools where it keeps all math input functionality inside the workspace
-- [] workspace variable tracking window
-- [] option to view rational decimals as fractions
-- [] a library of constants similar to what SpeedCrunch has
+- [ ] scoping a workspace with a box
+- [ ] free draw workspace that acts like a mix between paint and math tools where it keeps all math input functionality inside the workspace
+- [ ] workspace variable tracking window
+- [ ] option to view rational decimals as fractions
+- [ ] a library of constants similar to what SpeedCrunch has
 </details>
 </div>
 
@@ -288,8 +288,8 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
-- [] recording of input actions and playback/stepthru that can be serialized and sent to others
-- [] export-to-text for programming languages supports different variable sizes
+- [ ] recording of input actions and playback/stepthru that can be serialized and sent to others
+- [ ] export-to-text for programming languages supports different variable sizes
 </details>
 </div>
 
@@ -298,9 +298,9 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
-- [] row vs column major matrices
-- [] +z forward vs backward
-- [] left vs right handed
+- [ ] row vs column major matrices
+- [ ] +z forward vs backward
+- [ ] left vs right handed
 </details>
 </div>
 
