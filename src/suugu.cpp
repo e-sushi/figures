@@ -51,11 +51,12 @@ Solver TODOs
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
-(01/06/22) pencil strokes are not visisble
+(03/07/22) fix zoom in/out consistency
+(03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
 */
 
 #ifdef TRACY_ENABLE
-#include "Tracy.hpp"
+#  include "Tracy.hpp"
 #endif
 
 //// kigu includes ////
@@ -87,7 +88,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 //// suugu includes ////
 #define SUUGU_IMPLEMENTATION
 #ifdef SUUGU_USE_GRAPHVIZ
-#include "graphviz/gvc.h"
+#  include "graphviz/gvc.h"
 #endif
 #include "types.h"
 #include "canvas.h"
@@ -96,12 +97,12 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "solver.cpp"
 #include "canvas.cpp"
 
-#include <windows.h>
+#include <windows.h> //TODO why are we including this here
 
 
 //#include "kigu/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
-#include "kigu/misc_testing.cpp"
+//#include "kigu/misc_testing.cpp"
 
 local Canvas canvas;
 
@@ -165,7 +166,7 @@ int main(){
 		{//update debug
 			
 			
-
+			
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();

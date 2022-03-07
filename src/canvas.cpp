@@ -286,9 +286,14 @@ DrawPencilStrokes(){
 	UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
-			array<vec2> pps(it->pencil_points.count);
-			forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
+			//array<vec2> pps(it->pencil_points.count);
+			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+			
+			//TODO smooth line drawing
+			for(int i = 1; i < it->pencil_points.count; ++i){
+				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
+			}
 		}
 	}
 	UI::End();
@@ -431,14 +436,10 @@ HandleInput(){
 		camera_pan_active = false;
 	}
 	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
-	
-	camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-	camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-	if(DeshInput->scrollY > 0 && !UI::AnyWinHovered()){
+	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
 		if(!activeGraph){
-			//camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-			
-			
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
 			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
 			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
@@ -461,10 +462,10 @@ HandleInput(){
 			}
 		}
 	}
-	if(DeshInput->scrollY < 0 && !UI::AnyWinHovered()){ 
+	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomIn | InputMod_None) && !UI::AnyWinHovered()){
 		if(!activeGraph){
-			//camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY; 
-			//camera_zoom  = Clamp(camera_zoom, 1e-37, 1e37);
+			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
 			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
 			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
@@ -510,7 +511,7 @@ HandleInput(){
 	
 	switch(active_tool){
 		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// Navigation
+		//// @Navigation
 		case CanvasTool_Navigation:{
 			if(UI::AnyWinHovered()) return;
 			if(DeshInput->KeyPressed(CanvasBind_Navigation_Pan)){
@@ -548,14 +549,14 @@ HandleInput(){
 			}
 		}break;
 		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// Context
+		//// @Context
 		case CanvasTool_Context:{
 			//if(UI::BeginContextMenu("canvas_context_menu")){
 			//UI::EndContextMenu();
 			//}
 		}break;
 		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// Expression
+		//// @Expression
 		case CanvasTool_Expression:{
 			if(UI::AnyWinHovered()) return;
 			if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
@@ -596,7 +597,7 @@ HandleInput(){
 			}
 		}break;
 		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// Pencil
+		//// @Pencil
 		case CanvasTool_Pencil:{
 			if(UI::AnyWinHovered()) return;
 			if(DeshInput->KeyPressed(CanvasBind_Pencil_Stroke)){
@@ -630,8 +631,6 @@ HandleInput(){
 			pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
 		}break;
 	}
-	
-	mouse_pos_world = ToWorld(DeshInput->mousePos);
 }
 
 void Canvas::

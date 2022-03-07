@@ -17,6 +17,7 @@
 *.ctm
 *.diagsession
 *.svg
+*.code-workspace
 
 #folders
 .vs/
