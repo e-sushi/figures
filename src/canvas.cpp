@@ -225,7 +225,10 @@ Update() {
 	
 	if (tokens.count) {
 		
-		UI::BeginRow("tokens_row", tokens.count, 30);
+		//if(tokens.count > 3) DebugBreakpoint;
+		//HACK new row each for each token count b/c UI rows cant change column size
+		UI::BeginRow(toStr("canvas_element_",tokens.count).str, tokens.count, 80);
+		
 		for (int i = 0; i < tokens.count; i++) {
 			token curt = tokens[i];
 			
