@@ -53,6 +53,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
 (03/07/22) fix zoom in/out consistency
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
+(03/07/22) trying to create a new expression when the cursor of another expression is not at the edge causes double input
 */
 
 #ifdef TRACY_ENABLE
@@ -164,15 +165,15 @@ int main(){
 		DeshiImGui::NewFrame();
 		canvas.Update();
 		{//update debug
-			
-			
+			persist b32 show_metrics = false;
+			if(DeshInput->KeyPressed(Key::F1 | InputMod_Lalt)) ToggleBool(show_metrics);
+			if(show_metrics) UI::ShowMetricsWindow();
 			
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
 			//UI::DemoWindow();
-			//UI::ShowMetricsWindow();
 			//Storage::StorageBrowserUI();
 			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}

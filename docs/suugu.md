@@ -83,26 +83,32 @@ equation   | collection of expressions with    an explicit equals expression
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
-- [] visual interface  
-    - [] math input 
-    - [] programmer input (2*x+1)
-    - [] ability to quickly switch between math and programmer inputs
-	- [] TeX (and other math syntax)
 - [] simple math input (operators)
-    - [] literals
+    - [x] literals
     - [] variables
-    - [] addition/subtraction
-    - [] multiplication/division
+    - [x] addition/subtraction
+    - [x] multiplication/division
     - [] parenthesis
     - [] exponentials
-    - [] equals/assignment
+	- [] equals/assignment
 - [] complex math input
+    - [] variable super/sub script
 	- [] inequalities
     - [] integrals/derivatives
     - [] function notation
     - [] sum
     - [] patterns
     - [] vectors/matrices
+    - [] ± (plus or minus)
+- [] programmer math input
+    - [] literals
+    - [] variables
+    - [] addition/subtraction
+    - [] multiplication/division
+    - [] parenthesis
+    - [] exponentials
+	- [] equals/assignment
+    - [] functions
 - [] hotstrings (turn into symbols or place slots in non-linear ways)
     - [] matMN  expands to a MxN matrix eg mat22 expands to an empty 2x2 matrix
     - [] vecN   expands to a vector with N values
@@ -115,11 +121,15 @@ equation   | collection of expressions with    an explicit equals expression
     - [] sqrtN  expands to a square root to the power of N
 	- [] logN   expands to a log of base N
 	- [] abs    expands to absolute value
+    - [] deg    expands to degrees symbol
 - [] builtin functions (argument based functions like coding)
     - [] sin/cos/tan (inverse/hyperbolic versions)
     - [] ceil/floor/round
 	- [] min/max
 	- [] logarithms
+- [] symbols menu
+- [] ability to quickly switch between math and programmer inputs
+- [] TeX input (and other math syntax)
 - [] drag-n-drop elements of an equation
 - [] box select on matrices to grab out rows/columns/sub-matrices
 - [] button to move the view of a graph to an equation
