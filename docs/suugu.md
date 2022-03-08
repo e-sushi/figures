@@ -57,8 +57,7 @@ created: 1646433176143
 [[Solving|suugu#Solving]]  
 [[Graphing|suugu#Graphing]]  
 [[Workspace|suugu#Workspace]]  
-[[Serialization|suugu#Serialization]]  
-[[Config|suugu#Config]]  
+[[Serialization|suugu#Serialization]]   
 
 </div>
 </details>
@@ -75,11 +74,16 @@ token      | character(s) that represent an expression in text form
 operator   | symbol that represents an operation on one or many expressions  
 statement  | collection of expressions without an explicit equals expression  
 equation   | collection of expressions with    an explicit equals expression  
+element    | collection of tokens as input to an expression with position/size in the canvas
+graph      | graphing grid with a local camera, position/size in the canvas, and an equation to draw
+workspace  | region of the canvas in which all variables are shared
+canvas     | the world which contains all workspaces
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Input)
 ## Input
 ### Methods for inputting math 
+##### types.h, canvas.h, canvas.cpp
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
@@ -285,19 +289,12 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Serialization)
 ## Serialization
+### Saving, Loading, Importing, Exporting, and Config
 <div class="indent">
 <details class="container"> <summary>todos</summary>
 
 - [ ] recording of input actions and playback/stepthru that can be serialized and sent to others
 - [ ] export-to-text for programming languages supports different variable sizes
-</details>
-</div>
-
-[//]: # (///////////////////////////////////////////////////////////////////////////////////////// Config)
-## Config
-<div class="indent">
-<details class="container"> <summary>todos</summary>
-
 - [ ] row vs column major matrices
 - [ ] +z forward vs backward
 - [ ] left vs right handed

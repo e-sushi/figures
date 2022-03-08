@@ -34,20 +34,21 @@ TODO Board
 ----------------------------------------------------
 most math should be f64 instead of f32
 
-Canvas TODOs
+`Canvas`
 ------------
 graphs should have their own UI windows
 add checks to discard things early from UI if they wont be drawn
 
-Lexer TODOs
------------
-
-Parser TODOs
+`Parser`
 ------------
 implement a system for adding to an already existing AST tree
 parser is copying tokens from elements rather than simply viewing them
 
-Solver TODOs
+`Serialization`
+--------------
+constants loader
+
+`Solver`
 ------------
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
@@ -56,6 +57,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
 (03/07/22) trying to create a new expression when the cursor of another expression is not at the edge causes double input
 (03/07/22) element hitbox does not match UI window size
+(03/07/22) vulkan doesnt generate a pipeline cache file
 */
 
 #ifdef TRACY_ENABLE

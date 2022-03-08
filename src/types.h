@@ -395,7 +395,7 @@ struct token {
 
 enum ExpressionType : u32 {
 	Expression_NONE,
-
+	
 	Expression_IdentifierLHS,
 	Expression_IdentifierRHS,
 	
@@ -441,7 +441,7 @@ enum ExpressionType : u32 {
 
 static const char* ExTypeStrings[] = {
 	"NONE",
-
+	
 	"idLHS: ",
 	"idRHS: ",
 	
@@ -485,7 +485,7 @@ struct Expression {
 	
 	//TODO support different types
 	f64 val;
-
+	
 	TNode node;
 	
 	Expression() {}
@@ -534,5 +534,11 @@ inline const vec2f64 vec2f64::UP    = vec2f64{ 0,  1};
 inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
 inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
 inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
+
+struct Constant{
+	str8 name;
+	str8 unit;
+	f64  value;
+};
 
 #endif //SUUGU_TYPES_H

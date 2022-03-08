@@ -26,7 +26,6 @@ build/
 docs/doxygen/
 
 #data ignores
-data/*.*
 data/cfg/
 data/fonts/
 data/logs/
