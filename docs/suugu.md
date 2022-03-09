@@ -68,16 +68,18 @@ created: 1646433176143
 
 |<div style=width:100px>term</div>|definition|
 |---|---|
-expression | generic base element (literal, operator, function call, etc)  
+term       | generic base thing (literal, operator, variable, function call, etc)  
+variable   | unknown number represented by a single letter  
 literal    | number or string literally representing itself  
-token      | character(s) that represent an expression in text form  
-operator   | symbol that represents an operation on one or many expressions  
-statement  | collection of expressions without an explicit equals expression  
-equation   | collection of expressions with    an explicit equals expression  
-element    | collection of tokens as input to an expression with position/size in the canvas
-graph      | graphing grid with a local camera, position/size in the canvas, and an equation to draw
-workspace  | region of the canvas in which all variables are shared
-canvas     | the world which contains all workspaces
+token      | character(s) that represent a term in text form  
+operator   | symbol that represents an operation on one or many terms  
+expression | collection of expressions without an explicit equals expression  
+equation   | collection of expressions with    an explicit equals expression   
+statement  | equation or expression local to a workspace  
+workspace  | region of the canvas in which statements are shared  
+graph      | graphing grid with a local camera in which equations can be drawn  
+element    | anything with position, size, coordinate space, and display info  
+canvas     | manages all elements, manages the world camera, 
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Input)
@@ -190,7 +192,7 @@ canvas     | the world which contains all workspaces
     - [ ] integrals/derivatives
     - [ ] function notation
     - [ ] sum
-    - [ ] patterns
+    - [ ] patterns (python colon, c for, ellipses)
     - [ ] vectors/matrices
     - [ ] ± (plus or minus)
 - [ ] programmer math
@@ -223,9 +225,9 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 ```
 </details>
 
-&#9679; Solving should be on a different thread so that it doesnt interrupt input/rendering. 
-&#9679; Expressions are evaluated into an AST as you type.
-&#9679; Automatic solving if = is present with nothing to one side.
+&#9679; Solving should be on a different thread so that it doesnt interrupt input/rendering.  
+&#9679; Expressions are evaluated into an AST as you type.  
+&#9679; Automatic solving if = is present with nothing to one side.  
 
 <details class="container"> <summary>todos</summary>
 
@@ -249,7 +251,7 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 <div class="indent">
 
 &#9679; Ability to name/label variables, so if you hover over them it shows their full name.  
-&#9679; Visualizing the value of a variable where it is used during an animation so say you have cos(a) and a is changing during an animation it will show in place of a a's actual value.
+&#9679; Visualizing the value of a variable where it is used during an animation so say you have cos(a) and a is changing during an animation it will show in place of a a's actual value.  
 
 <details class="container"> <summary>todos</summary>
 
