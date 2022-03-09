@@ -147,26 +147,25 @@ WorldViewArea(){
 //// @element ////
 //////////////////
 void Element::
-AddToken(Token_Type t) {
+AddToken(TokenType t) { //TODO(delle) this is wrong
 	//special initial case
 	if (tokens.count == 0) {
-		//check if we are inserting a literal
+		//token is literal
 		if (t == Token_Literal) {
-			tokens.add(token{ Token_Literal });
+			tokens.add(Token{ Token_Literal });
 			cursor = 0; //position cursor in literal's box
 		}
 		//if we are dealing with a binop make a binop case
 		else if (t >= Token_Plus && t <= Token_Modulo) {
-			tokens.add(token{Token_Literal});
-			tokens.add(token(t));
-			tokens.add(token{Token_Literal});
+			tokens.add(Token{Token_Literal});
+			tokens.add(Token{t});
+			tokens.add(Token{Token_Literal});
 			cursor = 0; //position cursor inside first Token_Literal box 
-			
 		}
 		//unary op ditto
 		else if (t == Token_LogicalNOT || t == Token_BitNOT || t == Token_Negation) {
-			tokens.add(token{t});
-			tokens.add(token{Token_Literal});
+			tokens.add(Token{t});
+			tokens.add(Token{Token_Literal});
 			cursor = 1; //position cursor in the literals box
 		}
 		
@@ -176,23 +175,23 @@ AddToken(Token_Type t) {
 		//other wise input is handled in Update()
 		//TODO(sushi) handle inputting operators when we are within
 		if (cursor == -1) {
-			//insert new token at beginning 
-			tokens.insert(token{t}, 0);
-			tokens.insert(token{Token_Literal}, 0);
+			//insert new token at beginning
+			tokens.insert(Token{t}, 0);
+			tokens.insert(Token{Token_Literal}, 0);
 			cursor = 0;
 		}
 		else if (cursor == tokens.count) {
 			//keeping these 2 cases separate for now
 			//if its a long time after 08/15/2021 and i havent merged them u can do that
 			if (t >= Token_Plus && t <= Token_Modulo) {
-				tokens.add(token{t});
-				tokens.add(token{Token_Literal});
+				tokens.add(Token{t});
+				tokens.add(Token{Token_Literal});
 				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
 				
 			}
 			else if (t == Token_LogicalNOT || t == Token_BitNOT || t==Token_Negation) {
-				tokens.add(token{t});
-				tokens.add(token{Token_Literal});
+				tokens.add(Token{t});
+				tokens.add(Token{Token_Literal});
 				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
 			}
 		}
@@ -223,7 +222,7 @@ Update() {
 		UI::BeginRow(toStr("canvas_element_",tokens.count).str, tokens.count, 80);
 		
 		for (int i = 0; i < tokens.count; i++) {
-			token curt = tokens[i];
+			Token curt = tokens[i];
 			
 			if (curt.type != Token_Literal)
 				RowSetupRelativeColumnWidth(i, 2);
@@ -232,13 +231,12 @@ Update() {
 			
 			//cases where the user has the token selected
 			if (i == cursor) {
-				if (curt.type == Token_Literal) {
+				if (curt.type == Token_Literal) { //TODO handle input inline here rather than InputText so no buffer is needed
 					SetNextItemActive();
 					
-					if (!curt.str[0])
+					if (!curt.raw[0])
 						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].str, 255, 0, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
-						tokens[i].strSize = CalcTextSize(tokens[i].str);
+					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].raw, 255, 0, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
 						statement = Parser::parse(tokens);
 					}
 					//selection outline
@@ -246,16 +244,28 @@ Update() {
 				}
 				//underline anything else for now
 				else {
-					Text(tokens[i].str, UITextFlags_NoWrap);
+					switch(tokens[i].type){ //TODO this is temporary
+						case Token_Plus:           Text("+", UITextFlags_NoWrap); break;
+						case Token_Negation:       Text("-", UITextFlags_NoWrap); break;
+						case Token_Multiplication: Text("*", UITextFlags_NoWrap); break;
+						case Token_Division:       Text("/", UITextFlags_NoWrap); break;
+						default:                   Text(L"؟", UITextFlags_NoWrap); break;
+					}
+					//Text(tokens[i].str, UITextFlags_NoWrap);
 					Line(vec2{ GetLastItemPos().x + font->max_width, GetLastItemPos().y + (f32)font->max_height + 1 }, vec2{ GetLastItemPos().x, GetLastItemPos().y + (f32)font->max_height + 1 }, 1);
 				}
 			}
 			else {
-				if (!curt.str[0])
-					SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-				Text(tokens[i].str, UITextFlags_NoWrap);
-				
-				
+				//if(!curt.raw[0]) SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
+				//Text(tokens[i].raw, UITextFlags_NoWrap);
+				switch(tokens[i].type){ //TODO this is temporary
+					case Token_Literal:        Text(tokens[i].raw, UITextFlags_NoWrap); break;
+					case Token_Plus:           Text("+", UITextFlags_NoWrap); break;
+					case Token_Negation:       Text("-", UITextFlags_NoWrap); break;
+					case Token_Multiplication: Text("*", UITextFlags_NoWrap); break;
+					case Token_Division:       Text("/", UITextFlags_NoWrap); break;
+					default:                   Text(L"؟", UITextFlags_NoWrap); break;
+				}
 			}
 		}
 		EndRow();

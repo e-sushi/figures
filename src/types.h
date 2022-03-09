@@ -4,6 +4,7 @@
 
 #include "kigu/common.h"
 
+//TODO(sushi) update parsing description and move it to parsing.cpp
 /*
 here im going to write out some examples of what our trees look like
 see suugu.cpp for our brackus naur grammar, that defines how these trees are made up
@@ -226,173 +227,125 @@ reg a is our MAIN register and b is a helper who helps with binary op operations
 */
 
 
-
-struct ParseArena {
-	u8* data = 0;
-	u8* cursor = 0;
-	upt size = 0;
-	
-	void init(upt bytes) {
-		data = (u8*)memalloc(bytes);
-		cursor = data;
-		size = bytes;
-	}
-	
-	template<typename T>
-		void* add(const T& in) {
-		if (cursor - data < sizeof(T) + size) {
-			data = (u8*)memalloc(size);
-			cursor = data;
-		}
-		memcpy(cursor, &in, sizeof(T));
-		cursor += sizeof(T);
-		return cursor - sizeof(T);
-	}
-};
-
-enum Token_Type {
-	Token_ERROR,                    // when something doesnt make sense during lexing
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Token
+//TODO add token types as their parsing is implemented
+enum TokenType : u32{
+	Token_Null = 0,
+	Token_ERROR = 0,                // when something doesnt make sense during lexing
 	Token_EOF,                      // end of file
+	
 	Token_Identifier,               // function/variable names
-	Token_Return,                   // return
-	Token_Literal,                  // 1, 2, 3.221, "string", 'c'
-	Token_Signed32,                 // s32 
-	Token_Signed64,                 // s64 
-	Token_Unsigned32,               // u32 
-	Token_Unsigned64,               // u64 
-	Token_Float32,                  // f32 
-	Token_Float64,                  // f64 
+	Token_Literal,
+	
+	//// control ////
 	Token_Semicolon,                // ;
 	Token_OpenBrace,                // {
 	Token_CloseBrace,               // }
 	Token_OpenParen,                // (
 	Token_CloseParen,               // )
+	Token_OpenSquare,               // [
+	Token_CloseSquare,              // ]
 	Token_Comma,                    // ,
+	Token_QuestionMark,             // ?
+	Token_Colon,                    // :
+	Token_Dot,                      // .
+	Token_At,                       // @
+	Token_Pound,                    // #
+	Token_Backtick,                 // `
+	
+	//// operators ////
 	Token_Plus,                     // +
-	Token_PlusAssignment,           // +=
 	Token_Negation,                 // -
-	Token_NegationAssignment,       // -=
 	Token_Multiplication,           // *
-	Token_MultiplicationAssignment, // *=
 	Token_Division,                 // /
-	Token_DivisionAssignment,       // /=
 	Token_BitNOT,                   // ~
-	Token_BitNOTAssignment,         // ~=
 	Token_BitAND,                   // &
-	Token_BitANDAssignment,         // &=
 	Token_AND,                      // &&
 	Token_BitOR,                    // |
-	Token_BitORAssignment,          // |=
 	Token_OR,                       // ||
 	Token_BitXOR,                   // ^
-	Token_BitXORAssignment,         // ^=
 	Token_BitShiftLeft,             // <<
 	Token_BitShiftRight,            // >>
 	Token_Modulo,                   // %
-	Token_ModuloAssignment,         // %=
 	Token_Assignment,               // =
 	Token_Equal,                    // ==
-	Token_LogicalNOT,               // !
 	Token_NotEqual,                 // !=
+	Token_LogicalNOT,               // !
 	Token_LessThan,                 // <
 	Token_LessThanOrEqual,          // <=
 	Token_GreaterThan,              // >
 	Token_GreaterThanOrEqual,       // >=
-	Token_QuestionMark,             // ?
-	Token_Colon,                    // :
-	Token_If,                       // if
-	Token_Else,                     // else
-	Token_Comment,                  // no syntax yet
-};
-
-global_ map<Token_Type, const char*> tokToStr{
-	{Token_ERROR,              ""},
-	{Token_EOF,                ""},			       
-	{Token_Identifier,         ""},
-	{Token_OpenParen,          "("},
-	{Token_CloseParen,         ")"},
-	{Token_OpenBrace,          "{"},
-	{Token_CloseBrace,         "}"},
-	{Token_Comma,              ","},
-	{Token_Semicolon,          ";"},
-	{Token_Literal,            ""},
-	{Token_Assignment,         "="},
-	{Token_Plus,               "+"},
-	{Token_Negation,           "-"},
-	{Token_Multiplication,     "*"},
-	{Token_Division,           "/"},
-	{Token_LogicalNOT,         "!"},
-	{Token_BitNOT,             "~"},
-	{Token_LessThan,           "<"},
-	{Token_GreaterThan,        ">"},
-	{Token_LessThanOrEqual,    "<="},
-	{Token_GreaterThanOrEqual, ">="},
-	{Token_AND,                "&"},
-	{Token_BitAND,             "&&"},
-	{Token_OR,                 "|"},
-	{Token_BitOR,              "||"},
-	{Token_Equal,              "=="},
-	{Token_NotEqual,           "!="},
-	{Token_BitXOR,             "^"},
-	{Token_BitShiftLeft,       "<<"},
-	{Token_BitShiftRight,      ">>"},
-	{Token_Modulo,             "%"},
-	{Token_QuestionMark,       "?"},
-	{Token_Colon,              ":"},
-	{Token_If,                 ""},
-	{Token_Else,               ""},
-	{Token_Comment,            ""}
-};
-global_ map<const char*, Token_Type> strToTok{
-	{"",     Token_ERROR},
-	{"",     Token_EOF},
-	{"",     Token_Identifier},
-	{"(",    Token_OpenParen},
-	{")",    Token_CloseParen},
-	{"{",    Token_OpenBrace},
-	{"}",    Token_CloseBrace},
-	{",",    Token_Comma},
-	{";",    Token_Semicolon},
-	{"",     Token_Literal},
-	{"=",    Token_Assignment},
-	{"+",    Token_Plus},
-	{"-",    Token_Negation},
-	{"*",    Token_Multiplication},
-	{"/",    Token_Division},
-	{"!",    Token_LogicalNOT},
-	{"~",    Token_BitNOT},
-	{"<",    Token_LessThan},
-	{">",    Token_GreaterThan},
-	{"<=",   Token_LessThanOrEqual},
-	{">=",   Token_GreaterThanOrEqual},
-	{"&",    Token_AND},
-	{"&&",   Token_BitAND},
-	{"|",    Token_OR},
-	{"||",   Token_BitOR},
-	{"==",   Token_Equal},
-	{"!=",   Token_NotEqual},
-	{"^",    Token_BitXOR},
-	{"<<",   Token_BitShiftLeft},
-	{">>",   Token_BitShiftRight},
-	{"%",    Token_Modulo},
-	{"?",    Token_QuestionMark},
-	{":",    Token_Colon},
-	{"",     Token_If},
-	{"",     Token_Else},
-	{"",     Token_Comment}
-};
-
-struct token {
-	Token_Type type;
-	//TODO get rid of this static carray in favor of cstring
-	char str[255] = "";
-	cstring raw;
-	vec2 strSize; //the strings size on screen in px
 	
-	token() {}
-	token(Token_Type _type) : type(_type) { strcpy(str, tokToStr[_type]); }
+	Token_COUNT,
+	Token_CONTROLS_START   = Token_Semicolon,
+	Token_CONTROLS_END     = Token_Plus-1,
+	Token_OPERATORS_START  = Token_Plus,
+	Token_OPERATORS_END    = Token_COUNT-1,
 };
 
+struct Token{
+	TokenType type;
+	char raw[256] = {}; //TODO this is temporary
+	union{
+		f64 value;   //when literal
+		//cstring raw; //when not literal
+	};
+};
+
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Operator
+//TODO add operators as their parsing is implemented
+enum Operator : u32{ //number of arguments == number of possible input slots
+	Operator_NULL = 0,
+	
+	//// one argument ////
+	//Operator_Negation,
+	//Operator_AbsoluteValue,
+	//Operator_BitwiseNOT,
+	
+	//// two arguments ////
+	Operator_Addition,
+	Operator_Subtraction,
+	Operator_Multiplication,
+	Operator_Division,
+	//Operator_Exponential, //base, power
+	//Operator_Root,        //index, radicand
+	//Operator_Derivative,  //variable, expression
+	//Operator_Integral,    //variable, expression
+	//Operator_Limit,       //approach, expression
+	//Operator_Modulo,
+	//Operator_BitwiseAND,
+	//Operator_BitwiseOR,
+	//Operator_BitwiseXOR,
+	//Operator_ArithmaticShiftLeft,
+	//Operator_ArithmaticShiftRight,
+	//Operator_LogicalShiftLeft,
+	//Operator_LogicalShiftRight,
+	//Operator_CircularShiftLeft,
+	//Operator_CircularShiftRight,
+	
+	//// three arguments ////
+	//Operator_Sum,         //start, stop, step
+	
+	//// N arguments ////
+	//Operator_PartialDerivative, //variables..., expression
+	
+	Operator_COUNT,
+	//Operator_1ARG_START = Operator_Negation,
+	//Operator_1ARG_END   = Operator_Addition-1,
+	//Operator_2ARG_START = Operator_Addition,
+	//Operator_2ARG_END   = Operator_Sum-1,
+	//Operator_3ARG_START = Operator_Sum,
+	//Operator_3ARG_END   = Operator_PartialDerivative-1,
+	//Operator_NARG_START = Operator_PartialDerivative,
+	//Operator_NARG_END   = Operator_COUNT-1,
+};
+
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Expression
 enum ExpressionType : u32 {
 	Expression_NONE,
 	
@@ -400,8 +353,6 @@ enum ExpressionType : u32 {
 	Expression_IdentifierRHS,
 	
 	//Special ternary conditional expression type
-	//maybe used when/if we allow scripting type stuff
-	//or yknow, just finish su and make it embedded :)
 	//Expression_TernaryConditional,
 	
 	//Types
@@ -411,10 +362,6 @@ enum ExpressionType : u32 {
 	Expression_UnaryOpBitComp,
 	Expression_UnaryOpLogiNOT,
 	Expression_UnaryOpNegate,
-	//Expression_IncrementPrefix,
-	//Expression_IncrementPostfix,
-	//Expression_DecrementPrefix,
-	//Expression_DecrementPostfix,
 	
 	//Binary Operators
 	Expression_BinaryOpPlus,
@@ -436,7 +383,6 @@ enum ExpressionType : u32 {
 	Expression_BinaryOpBitShiftLeft,
 	Expression_BinaryOpBitShiftRight,
 	Expression_BinaryOpAssignment,
-	Expression_BinaryOpMemberAccess,
 };
 
 static const char* ExTypeStrings[] = {
@@ -452,10 +398,6 @@ static const char* ExTypeStrings[] = {
 	"~",
 	"!",
 	"-",
-	//"++ pre",
-	//"++ post",
-	//"-- pre",
-	//"-- post",
 	
 	"+",
 	"-",
@@ -476,12 +418,11 @@ static const char* ExTypeStrings[] = {
 	"<<",
 	">>",
 	"=",
-	"accessor",
 };
 
 struct Expression {
-	cstring expstr;
 	ExpressionType type;
+	cstring expstr;
 	
 	//TODO support different types
 	f64 val;
@@ -497,7 +438,7 @@ struct Expression {
 };
 
 namespace Parser {
-	Expression parse(array<token> tokens);
+	Expression parse(array<Token> tokens);
 	void pretty_print(Expression& e);
 }
 
