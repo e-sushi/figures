@@ -96,7 +96,6 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #  include "graphviz/gvc.h"
 #endif
 #include "types.h"
-#include "canvas.h"
 #include "parser.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"

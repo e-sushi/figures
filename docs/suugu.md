@@ -79,7 +79,7 @@ statement  | equation or expression local to a workspace
 workspace  | region of the canvas in which statements are shared  
 graph      | graphing grid with a local camera in which equations can be drawn  
 element    | anything with position, size, coordinate space, and display info  
-canvas     | manages all elements, manages the world camera, 
+canvas     | manages all elements, manages the world camera, manages the input
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Input)
