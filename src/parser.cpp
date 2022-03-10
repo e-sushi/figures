@@ -1,100 +1,6 @@
-/////////////////////
-//// @local vars ////
-/////////////////////
-//master token
-token curt;
-
-array<token> tokens;
-
-local map<Token_Type, ExpressionType> binaryOps{
-	{Token_Multiplication,     Expression_BinaryOpMultiply},
-	{Token_Division,           Expression_BinaryOpDivision},
-	{Token_Negation,           Expression_BinaryOpMinus},
-	{Token_Plus,               Expression_BinaryOpPlus},
-	{Token_AND,                Expression_BinaryOpAND},
-	{Token_OR,                 Expression_BinaryOpOR},
-	{Token_LessThan,           Expression_BinaryOpLessThan},
-	{Token_GreaterThan,        Expression_BinaryOpGreaterThan},
-	{Token_LessThanOrEqual,    Expression_BinaryOpLessThanOrEqual},
-	{Token_GreaterThanOrEqual, Expression_BinaryOpGreaterThanOrEqual},
-	{Token_Equal,              Expression_BinaryOpEqual},
-	{Token_NotEqual,           Expression_BinaryOpNotEqual},
-	{Token_BitAND,             Expression_BinaryOpBitAND},
-	{Token_BitOR,              Expression_BinaryOpBitOR},
-	{Token_BitXOR,		       Expression_BinaryOpBitXOR},
-	{Token_BitShiftLeft,       Expression_BinaryOpBitShiftLeft},
-	{Token_BitShiftRight,      Expression_BinaryOpBitShiftRight},
-	{Token_Modulo,             Expression_BinaryOpModulo},
-};
-
-local map<Token_Type, ExpressionType> unaryOps{
-	{Token_BitNOT,     Expression_UnaryOpBitComp},
-	{Token_LogicalNOT, Expression_UnaryOpLogiNOT},
-	{Token_Negation,   Expression_UnaryOpNegate},
-};
-
-local array<Token_Type> typeTokens{
-	Token_Signed32,
-	Token_Signed64,
-	Token_Unsigned32,
-	Token_Unsigned64,
-	Token_Float32,
-	Token_Float64,
-};
-
-template<class... T>
-inline b32 check_signature(T... in) {
-	int i = 0;
-	return ((tokens.peek(i++).type == in) && ...);
-}
-
-
-//////////////////////
-//// @local funcs ////
-//////////////////////
-//These defines are mostly for conveinence and clarity as to what im doing
-//#define token_next() curt = tokens.next()
-#define token_last curt = tokens.prev()
-
-void token_next(u32 count = 1) {
-	curt = tokens.next(count);
-}
-
-#define token_peek tokens.peek()
-#define token_look_back(i) tokens.lookback(i)
-
-#define curr_atch(tok) (curt.type == tok)
-
-#define ParseFail(error)\
-std::cout << "\nError: " << error << "\n caused by token '" << curt.str << std::endl;
-
-#define Expect(Token_Type)\
-if(curt.type == Token_Type) 
-
-#define ExpectOneOf(exp_type)\
-if(exp_type.has(curt.type)) 
-
-#define ElseExpect(Token_Type)\
-else if (curt.type == Token_Type) 
-
-#define ExpectSignature(...) if(check_signature(__VA_ARGS__))
-#define ElseExpectSignature(...)  else if(check_signature(__VA_ARGS__))
-
-#define ExpectFail(error)\
-else { ParseFail(error); }
-
-#define ExpectFailCode(failcode)\
-else { failcode }
-
-Expression* expression;
-
-ParseArena arena;
-
-template<typename... T> inline b32
-next_match(T... in) {
-	return ((tokens.peek().type == in) || ...);
-}
-
+//////////////////
+//// @structs ////
+//////////////////
 enum ParseStage {
 	psExpression,	// <exp>           :: = <id> "=" <exp> | <conditional>
 	psConditional,	// <conditional>   :: = <logical or> [ "?" <exp> ":" <conditional> ]
@@ -112,9 +18,89 @@ enum ParseStage {
 	psUnary,        // <unary>         :: = "!" | "~" | "-"
 };
 
+struct ParseArena {
+	u8* data = 0;
+	u8* cursor = 0;
+	upt size = 0;
+	
+	void init(upt bytes) {
+		data = (u8*)memalloc(bytes);
+		cursor = data;
+		size = bytes;
+	}
+	
+	template<typename T>
+		void* add(const T& in) {
+		if (cursor - data < sizeof(T) + size) {
+			data = (u8*)memalloc(size);
+			cursor = data;
+		}
+		memcpy(cursor, &in, sizeof(T));
+		cursor += sizeof(T);
+		return cursor - sizeof(T);
+	}
+};
+
+///////////////
+//// @vars ////
+///////////////
+//master token
+Token curt;
+array<Token> tokens;
+Expression* expression;
+ParseArena arena;
+
+
+////////////////
+//// @funcs ////
+////////////////
+void token_next(u32 count = 1) {
+	curt = tokens.next(count);
+}
+
+template<class... T>
+inline b32 check_signature(T... in) {
+	int i = 0;
+	return ((tokens.peek(i++).type == in) && ...);
+}
+
+template<typename... T> inline b32
+next_match(T... in) {
+	return ((tokens.peek().type == in) || ...);
+}
+
+//These defines are mostly for conveinence and clarity as to what im doing
+//#define token_next() curt = tokens.next()
+#define token_last curt = tokens.prev()
+#define token_peek tokens.peek()
+#define token_look_back(i) tokens.lookback(i)
+
+#define curr_atch(tok) (curt.type == tok)
+
+#define ParseFail(error)\
+std::cout << "\nError: " << error << "\n caused by token '" << curt.raw << std::endl;
+
+#define Expect(token_type)\
+if(curt.type == token_type) 
+
+#define ExpectOneOf(exp_type)\
+if(exp_type.has(curt.type)) 
+
+#define ElseExpect(token_type)\
+else if (curt.type == token_type) 
+
+#define ExpectSignature(...) if(check_signature(__VA_ARGS__))
+#define ElseExpectSignature(...)  else if(check_signature(__VA_ARGS__))
+
+#define ExpectFail(error)\
+else { ParseFail(error); }
+
+#define ExpectFailCode(failcode)\
+else { failcode }
+
 TNode* parser(ParseStage stage, TNode* node);
 
-local map<Token_Type, ExpressionType> tokToExp{
+local map<TokenType, ExpressionType> tokToExp{
 	{Token_Multiplication,     Expression_BinaryOpMultiply},
 	{Token_Division,           Expression_BinaryOpDivision},
 	{Token_Negation,           Expression_BinaryOpMinus},
@@ -146,13 +132,13 @@ TNode* binopParse(TNode* node, TNode* ret, ParseStage next_stage, T... tokcheck)
 	insert_last(node, me);
 	token_next();
 	ret = parser(next_stage, me);
-
+	
 	while (next_match(tokcheck...)) {
 		token_next();
 		TNode* me2 = new_expression(curt.raw, tokToExp[curt.type], ExTypeStrings[tokToExp[curt.type]]);
 		token_next();
 		ret = parser(next_stage, node);
-
+		
 		change_parent(me2, me);
 		change_parent(me2, ret);
 		insert_last(node, me2);
@@ -161,10 +147,11 @@ TNode* binopParse(TNode* node, TNode* ret, ParseStage next_stage, T... tokcheck)
 	}
 	return me;
 }
-	
-inline TNode* new_expression(const cstring& str, ExpressionType type, const string& node_str = "") {
+
+//TODO change str arg
+inline TNode* new_expression(char* str, ExpressionType type, const string& node_str = "") {
 	expression = (Expression*)arena.add(Expression());
-	expression->expstr = str;
+	expression->expstr = cstring{};
 	expression->type = type;
 	//expression->node.type = NodeType_Expression;
 #if 0
@@ -196,7 +183,7 @@ TNode* parser(ParseStage state, TNode* node) {
 				//		parser(psConditional, &expression->node);
 				//	}
 				//}break;
-
+				
 				default: {
 					TNode* ret = parser(psConditional, node); 
 					return ret;
@@ -304,8 +291,8 @@ TNode* parser(ParseStage state, TNode* node) {
 				
 				//TODO implicitly change types here when applicable, or do that where they're returned
 				case Token_Literal: {
-					TNode* var = new_expression(cstring{}, Expression_Literal, toStr(ExTypeStrings[Expression_Literal], " ", curt.str));
-					expression->val = stod(curt.str); //TODO detect f64
+					TNode* var = new_expression(0, Expression_Literal, toStr(ExTypeStrings[Expression_Literal], " ", curt.value));
+					expression->val = curt.value;
 					insert_last(node, &expression->node);
 					return var;
 				}break;
@@ -352,7 +339,7 @@ TNode* parser(ParseStage state, TNode* node) {
 				}break;
 			}
 		}break;
-
+		
 		default:{
 			LogE("parser", "Unknown ParseStage");
 		}break;
@@ -376,7 +363,7 @@ TNode* parser(ParseStage state, TNode* node) {
 ///////////////////////
 //// @global funcs ////
 ///////////////////////
-Expression Parser::parse(array<token> _tokens) {
+Expression Parser::parse(array<Token> _tokens) {
 	arena.init(Kilobytes(1));
 	tokens = _tokens;
 	curt = tokens[0];
@@ -490,19 +477,19 @@ void Parser::pretty_print(Expression& e) {
 			}
 			for (gvNode node : graph.nodes) {
 				vec2 np = vec2(
-					ppi*(node.pos.x),
-					ppi*(node.pos.y)
-				);
+							   ppi*(node.pos.x),
+							   ppi*(node.pos.y)
+							   );
 				vec2 ns = vec2(
-					ppi*(node.siz.x),
-					ppi*(node.siz.y)
-				);
+							   ppi*(node.siz.x),
+							   ppi*(node.siz.y)
+							   );
 				//convert from lowerleft origin to topleft origin
 				np.y=ppi*graph.ymax-(np.y+node.siz.y);
 				Rect(np, ns);
 				f32 cts = CalcTextSize(node.label.str).x;
 				f32 ts = ns.x / cts;
-
+				
 				PushVar(UIStyleVar_FontHeight, GetStyle().fontHeight*ts);
 				Text(node.label.str,  GetLastItem()->position);
 				PopVar();
