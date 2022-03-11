@@ -1,28 +1,45 @@
+/* Index:
+@tools
+@binds
+@pencil
+@camera
+@context
+@utility
+@graph
+@canvas
+@input
+@input_tool
+@input_navigation
+@input_context
+@input_expression
+@input_expression_literals
+@input_expression_operators
+@input_expression_letters
+@input_pencil
+@draw_elements
+@draw_elements_expression
+@draw_elements_graph
+@draw_elements_workspace
+@draw_elements_text
+@draw_pencil
+@draw_canvas_info
+*/
+
 ////////////////
 //// @tools ////
 ////////////////
-enum CanvasTool_{
+enum CanvasTool : u32{
 	CanvasTool_Navigation,
 	CanvasTool_Context,
 	CanvasTool_Expression,
 	CanvasTool_Pencil,
-}; typedef u32 CanvasTool;
+};
 local const char* canvas_tool_strings[] = {
 	"Navigation", "Context", "Expression", "Pencil",
 };
+
 local CanvasTool active_tool   = CanvasTool_Navigation;
 local CanvasTool previous_tool = CanvasTool_Navigation;
-
-///////////////////
-//// @textures ////
-///////////////////
-
-enum MathTextures {
-	MathTexture_Plus,
-	MathTexture_Minus,
-	MathTexture_Multiply,
-	MathTexture_Divide,
-}; 
 
 ////////////////
 //// @binds ////
@@ -64,11 +81,21 @@ enum CanvasBind_{
 }; typedef Key::Key CanvasBind;
 
 
-////////////////
-//// @fonts ////
-////////////////
-local Font* mathfont;
-local Font* mathfontitalic;
+/////////////////
+//// @pencil ////
+/////////////////
+struct PencilStroke{
+	f32   size;
+	color color;
+	array<vec2f64> pencil_points;
+};
+
+local array<PencilStroke> pencil_strokes;
+local u32     pencil_stroke_idx  = 0;
+local f32     pencil_stroke_size = 1;
+local color   pencil_stroke_color = PackColorU32(249,195,69,255);
+local vec2f64 pencil_stroke_start_pos;
+local u32     pencil_draw_skip_amount = 4;
 
 
 /////////////////
@@ -92,27 +119,9 @@ local const char* context_dropdown_option_strings[] = {
 };
 
 
-/////////////////
-//// @pencil ////
-/////////////////
-struct PencilStroke{
-	f32   size;
-	color color;
-	array<vec2f64> pencil_points;
-};
-local array<PencilStroke> pencil_strokes;
-local u32     pencil_stroke_idx  = 0;
-local f32     pencil_stroke_size = 1;
-local color   pencil_stroke_color = PackColorU32(249,195,69,255);
-local vec2f64 pencil_stroke_start_pos;
-local u32     pencil_draw_skip_amount = 4;
-
-
 //////////////////
 //// @utility ////
 //////////////////
-local vec2f64 mouse_pos_world;
-
 local vec2 
 ToScreen(vec2f64 point){
 	point -= camera_pos;
@@ -143,170 +152,8 @@ WorldViewArea(){
 }
 
 
-//////////////////
-//// @element ////
-//////////////////
-void Element::
-AddToken(TokenType t) { //TODO(delle) this is wrong
-	//special initial case
-	if (tokens.count == 0) {
-		//token is literal
-		if (t == Token_Literal) {
-			tokens.add(Token{ Token_Literal });
-			cursor = 0; //position cursor in literal's box
-		}
-		//if we are dealing with a binop make a binop case
-		else if (t >= Token_Plus && t <= Token_Modulo) {
-			tokens.add(Token{Token_Literal});
-			tokens.add(Token{t});
-			tokens.add(Token{Token_Literal});
-			cursor = 0; //position cursor inside first Token_Literal box 
-		}
-		//unary op ditto
-		else if (t == Token_LogicalNOT || t == Token_BitNOT || t == Token_Negation) {
-			tokens.add(Token{t});
-			tokens.add(Token{Token_Literal});
-			cursor = 1; //position cursor in the literals box
-		}
-		
-	}
-	else {
-		//we must deal with the cursor and only if its in a position to add a new token
-		//other wise input is handled in Update()
-		//TODO(sushi) handle inputting operators when we are within
-		if (cursor == -1) {
-			//insert new token at beginning
-			tokens.insert(Token{t}, 0);
-			tokens.insert(Token{Token_Literal}, 0);
-			cursor = 0;
-		}
-		else if (cursor == tokens.count) {
-			//keeping these 2 cases separate for now
-			//if its a long time after 08/15/2021 and i havent merged them u can do that
-			if (t >= Token_Plus && t <= Token_Modulo) {
-				tokens.add(Token{t});
-				tokens.add(Token{Token_Literal});
-				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
-				
-			}
-			else if (t == Token_LogicalNOT || t == Token_BitNOT || t==Token_Negation) {
-				tokens.add(Token{t});
-				tokens.add(Token{Token_Literal});
-				cursor = tokens.count - 2; //position cursor inside first Token_Literal box 
-			}
-		}
-	}
-	
-	// CalcSize();
-	statement = Parser::parse(tokens);
-}
-
-void Element::
-Update() {
-	using namespace UI;
-	//Parser::pretty_print(statement);
-	Font* font = mathfont;
-	vec2 winpos = ToScreen(pos.x, pos.y);
-	
-	PushFont(mathfont);
-	PushVar(UIStyleVar_WindowMargins,      vec2{ 4,4 });
-	PushVar(UIStyleVar_InputTextTextAlign, vec2{ 0, 0 });
-	PushVar(UIStyleVar_RowItemAlign,       vec2{ 0.5, 0.5 });
-	PushVar(UIStyleVar_FontHeight,         80);
-	PushScale(vec2::ONE * size.y / camera_zoom * 2);
-	SetNextWindowPos(winpos);
-	Begin(toStr("canvas_element_",u64(this)).str, vec2{ 0,0 }, size * f32(DeshWindow->width) / (4 * size.y), UIWindowFlags_NoMove | UIWindowFlags_NoResize | UIWindowFlags_DontSetGlobalHoverFlag | UIWindowFlags_FitAllElements);
-	if(tokens.count){
-		
-		//HACK new row each for each token count b/c UI rows cant change column size
-		UI::BeginRow(toStr("canvas_element_",tokens.count).str, tokens.count, 80);
-		
-		for (int i = 0; i < tokens.count; i++) {
-			Token curt = tokens[i];
-			
-			if (curt.type != Token_Literal)
-				RowSetupRelativeColumnWidth(i, 2);
-			else
-				RowSetupRelativeColumnWidth(i, 1);
-			
-			//cases where the user has the token selected
-			if (i == cursor) {
-				if (curt.type == Token_Literal) { //TODO handle input inline here rather than InputText so no buffer is needed
-					SetNextItemActive();
-					
-					if (!curt.raw[0])
-						SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-					if (InputText((char*)toStr((char*)this + tokens.count).str, tokens[cursor].raw, 255, 0, UIInputTextFlags_NoBackground | UIInputTextFlags_AnyChangeReturnsTrue | UIInputTextFlags_FitSizeToText | UIInputTextFlags_Numerical)) {
-						statement = Parser::parse(tokens);
-					}
-					//selection outline
-					Rect(GetLastItemPos() - vec2::ONE, GetLastItemSize() + vec2::ONE, color{ 64, 64, 64, (u8)(175.f * (sinf(3 * DeshTotalTime) + 1) / 2) });
-				}
-				//underline anything else for now
-				else {
-					switch(tokens[i].type){ //TODO this is temporary
-						case Token_Plus:           Text("+", UITextFlags_NoWrap); break;
-						case Token_Negation:       Text("-", UITextFlags_NoWrap); break;
-						case Token_Multiplication: Text("*", UITextFlags_NoWrap); break;
-						case Token_Division:       Text("/", UITextFlags_NoWrap); break;
-						default:                   Text(L"؟", UITextFlags_NoWrap); break;
-					}
-					//Text(tokens[i].str, UITextFlags_NoWrap);
-					Line(vec2{ GetLastItemPos().x + font->max_width, GetLastItemPos().y + (f32)font->max_height + 1 }, vec2{ GetLastItemPos().x, GetLastItemPos().y + (f32)font->max_height + 1 }, 1);
-				}
-			}
-			else {
-				//if(!curt.raw[0]) SetNextItemSize(vec2{ (f32)font->max_height, (f32)font->max_height });
-				//Text(tokens[i].raw, UITextFlags_NoWrap);
-				switch(tokens[i].type){ //TODO this is temporary
-					case Token_Literal:        Text(tokens[i].raw, UITextFlags_NoWrap); break;
-					case Token_Plus:           Text("+", UITextFlags_NoWrap); break;
-					case Token_Negation:       Text("-", UITextFlags_NoWrap); break;
-					case Token_Multiplication: Text("*", UITextFlags_NoWrap); break;
-					case Token_Division:       Text("/", UITextFlags_NoWrap); break;
-					default:                   Text(L"؟", UITextFlags_NoWrap); break;
-				}
-			}
-		}
-		EndRow();
-	}else{
-		//draw initial statement
-		PushFont(mathfontitalic);
-		Text("type initial statement...", UITextFlags_NoWrap);
-		PopFont();
-	}
-	End();
-	PopScale();
-	PopVar(4);
-	PopFont();
-}
-
-
-/////////////////
-//// @pencil ////
-/////////////////
-local void 
-DrawPencilStrokes(){
-	UI::Begin("pencil_canvas", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
-	forE(pencil_strokes){
-		if(it->pencil_points.count > 1){
-			//array<vec2> pps(it->pencil_points.count);
-			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
-			
-			//TODO smooth line drawing
-			for(int i = 1; i < it->pencil_points.count; ++i){
-				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
-			}
-		}
-	}
-	UI::End();
-}
-
-
-////////////////
-//// @graph ////
-////////////////
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+//// @graph
 local vec2f64
 WorldToGraph(vec2f64 point, Graph* graph){
 	point += graph->cameraPosition;
@@ -409,270 +256,538 @@ DrawGraphGrid(Graph* graph){
 	}
 }
 
-
-/////////////////
-//// @canvas ////
-/////////////////
-void Canvas::
-HandleInput(){
-	mouse_pos_world = ToWorld(DeshInput->mousePos);
-	
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	//// SetTool
-	if     (DeshInput->KeyPressed(CanvasBind_SetTool_Navigation)){ previous_tool = active_tool; active_tool = CanvasTool_Navigation; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Context))   { previous_tool = active_tool; active_tool = CanvasTool_Context; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Expression)){ previous_tool = active_tool; active_tool = CanvasTool_Expression; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Pencil))    { previous_tool = active_tool; active_tool = CanvasTool_Pencil; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Graph))     { activeGraph = (activeGraph) ? 0 : graphs.data; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Previous))  { Swap(previous_tool, active_tool); }
-	
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	//// Camera
-	if(DeshInput->KeyPressed(CanvasBind_Camera_Pan)){
-		camera_pan_active = true;
-		camera_pan_mouse_pos = DeshInput->mousePos;
-		camera_pan_start_pos = camera_pos;
-	}
-	if(DeshInput->KeyDown(CanvasBind_Camera_Pan)){
-		camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-	}
-	if(DeshInput->KeyReleased(CanvasBind_Camera_Pan)){
-		camera_pan_active = false;
-	}
-	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
-	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
-		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-		}else{
-			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
-			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
-			
-			f32 prev_grid_zoom_fit = 0;
-			if(activeGraph->gridZoomFitIncrementIndex == 0){
-				prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[2];
-			}else{
-				prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex - 1];
-			}
-			
-			if(activeGraph->cameraZoom < (prev_grid_zoom_fit + activeGraph->gridMajorLinesIncrement)){
-				activeGraph->gridZoomFit                = prev_grid_zoom_fit;
-				activeGraph->gridMajorLinesIncrement    = activeGraph->gridZoomFit / 5.0;
-				activeGraph->gridMinorLinesCount        = (activeGraph->gridZoomFitIncrementIndex == 2) ? 3 : 4;
-				activeGraph->gridMinorLinesIncrement    = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
-				activeGraph->gridZoomFitIncrementIndex -= 1;
-				if(activeGraph->gridZoomFitIncrementIndex == -1) activeGraph->gridZoomFitIncrementIndex = 2;
-				Assert(activeGraph->gridZoomFitIncrementIndex < 3);
-			}
-		}
-	}
-	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomIn | InputMod_None) && !UI::AnyWinHovered()){
-		if(!activeGraph){
-			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-		}else{
-			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
-			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
-			
-			if(activeGraph->cameraZoom > (activeGraph->gridZoomFit + activeGraph->gridMajorLinesIncrement)){
-				activeGraph->gridZoomFit              *= activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex];
-				activeGraph->gridMajorLinesIncrement   = activeGraph->gridZoomFit / 5.0;
-				activeGraph->gridMinorLinesCount       = (activeGraph->gridZoomFitIncrementIndex == 0) ? 3 : 4;
-				activeGraph->gridMinorLinesIncrement   = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
-				activeGraph->gridZoomFitIncrementIndex = (activeGraph->gridZoomFitIncrementIndex + 1) % 3;
-				Assert(activeGraph->gridZoomFitIncrementIndex < 3);
-			}
-		}
-	}
-	
-#if 1
-	if(active_tool == CanvasTool_Pencil){
-		UI::Begin("pencil_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::TextF("Stroke Size:   %f", pencil_stroke_size);
-		UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
-		UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
-		UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
-		UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
-		if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
-		u32 total_stroke_points = 0;
-		forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
-		UI::TextF("Total Points:  %d", total_stroke_points);
-		UI::End();
-	}
-	if(active_tool == CanvasTool_Expression){
-		UI::Begin("expression_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::TextF("Elements: %d", elements.count);
-		if(activeElement){
-			UI::TextF("Selected: %#x", activeElement);
-			UI::TextF("Position: (%g,%g)", activeElement->pos.x,activeElement->pos.y);
-			UI::TextF("Size:     (%g,%g)", activeElement->size.x,activeElement->size.y);
-			UI::TextF("Cursor:   %d", activeElement->cursor);
-			UI::TextF("Tokens:   %d", activeElement->tokens.count);
-		}
-		UI::End();
+///////////////
+//// @term ////
+///////////////
+#define PRINT_AST true
+local s32 debug_print_indent = 0;
+local b32 debug_print_toggle = false;
+void debug_print_term(const char* symbol){
+#if PRINT_AST
+	if(debug_print_toggle){
+		string str(deshi_temp_allocator);
+		forI(debug_print_indent) str += "  ";
+		Log("ast",str,symbol);
 	}
 #endif
-	
-	switch(active_tool){
-		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// @Navigation
-		case CanvasTool_Navigation:{
-			if(UI::AnyWinHovered()) return;
-			if(DeshInput->KeyPressed(CanvasBind_Navigation_Pan)){
-				camera_pan_active = true;
-				camera_pan_mouse_pos = DeshInput->mousePos;
-				if(!activeGraph){
-					camera_pan_start_pos = camera_pos;
-				}else{
-					camera_pan_start_pos = activeGraph->cameraPosition;
-				}
-			}
-			if(DeshInput->KeyDown(CanvasBind_Navigation_Pan)){
-				if(!activeGraph){
-					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-				}else{
-					activeGraph->cameraPosition = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-				}
-			}
-			if(DeshInput->KeyReleased(CanvasBind_Navigation_Pan)){
-				camera_pan_active = false;
-			}
-			if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetPos)){
-				if(!activeGraph){
-					camera_pos = {0,0};
-				}else{
-					activeGraph->cameraPosition = {0,0};
-				}
-			}
-			if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetZoom)){
-				if(!activeGraph){
-					camera_zoom = 1.0;
-				}else{
-					activeGraph->cameraZoom = 1.0;
-				}
-			}
-		}break;
-		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// @Context
-		case CanvasTool_Context:{
-			//if(UI::BeginContextMenu("canvas_context_menu")){
-			//UI::EndContextMenu();
-			//}
-		}break;
-		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// @Expression
-		case CanvasTool_Expression:{
-			if(UI::AnyWinHovered()) return;
-			if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
-				activeElement = 0;
-				forE(elements){
-					if(Math::PointInRectangle(DeshInput->mousePos, ToScreen(it->pos.x, it->pos.y), it->size / (2 * camera_zoom) * (f32)DeshWindow->width)){
-						activeElement = it;
+}
+
+//TODO this makes bad assumptions about the order of child nodes to operators
+//  fix this when we support left-dangling operators and term deletion
+//TODO remove duplication
+void draw_term(TNode* term){
+	debug_print_indent++;
+	switch(term->type){
+		case TermType_Operator:{
+			Operator* op = TermNodeToOperator(term);
+			switch(op->type){
+				case OperatorType_Addition:{
+					debug_print_term("+");
+					draw_term(term->first_child); UI::SameLine();
+					UI::Text("+", UITextFlags_NoWrap);
+					if(term->child_count > 1){
+						UI::SameLine();
+						draw_term(term->last_child);
 					}
-				}
-			}
-			if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
-				elements.add(Element());
-				activeElement = elements.last;
-				activeElement->pos = vec2(mouse_pos_world.x, mouse_pos_world.y);
-				activeElement->size = vec2(0.5, 0.25);
-			}
-			
-			//handle token inputs
-			if(activeElement){
-				//moving cursor
-				if      (DeshInput->KeyPressed(Key::LEFT) 
-						 && activeElement->cursor >= 0){
-					activeElement->cursor--;
-				}else if(DeshInput->KeyPressed(Key::RIGHT)
-						 && (activeElement->cursor < activeElement->tokens.count || activeElement->cursor == -1)){
-					activeElement->cursor++;
-				}
+				}break;
 				
-				//check for token inputs
-				if(DeshInput->KeyPressed(Key::EQUALS | InputMod_AnyShift)) 
-					activeElement->AddToken(Token_Plus);
-				if(DeshInput->KeyPressed(Key::K8 | InputMod_AnyShift))     
-					activeElement->AddToken(Token_Multiplication);
-				if(DeshInput->KeyPressed(Key::SLASH))                      
-					activeElement->AddToken(Token_Division);
-				if(DeshInput->KeyPressed(Key::MINUS))                      
-					activeElement->AddToken(Token_Negation);
+				case OperatorType_Subtraction:{
+					debug_print_term("-");
+					draw_term(term->first_child); UI::SameLine();
+					UI::Text("-", UITextFlags_NoWrap);
+					if(term->child_count > 1){
+						UI::SameLine();
+						draw_term(term->last_child);
+					}
+				}break;
+				
+				case OperatorType_ExplicitMultiplication:{
+					debug_print_term("*");
+					draw_term(term->first_child); UI::SameLine();
+					UI::Text("*", UITextFlags_NoWrap);
+					if(term->child_count > 1){
+						UI::SameLine();
+						draw_term(term->last_child);
+					}
+				}break;
+				
+				case OperatorType_Division:{
+					debug_print_term("/");
+					draw_term(term->first_child); UI::SameLine();
+					UI::Text("/", UITextFlags_NoWrap);
+					if(term->child_count > 1){
+						UI::SameLine();
+						draw_term(term->last_child);
+					}
+				}break;
 			}
 		}break;
-		///////////////////////////////////////////////////////////////////////////////////////////////
-		//// @Pencil
-		case CanvasTool_Pencil:{
-			if(UI::AnyWinHovered()) return;
-			if(DeshInput->KeyPressed(CanvasBind_Pencil_Stroke)){
-				PencilStroke new_stroke;
-				new_stroke.size  = pencil_stroke_size;
-				new_stroke.color = pencil_stroke_color;
-				pencil_strokes.add(new_stroke);
-				pencil_stroke_start_pos = mouse_pos_world;
+		
+		case TermType_Literal:{
+			Literal* lit = TermNodeToLiteral(term);
+			UI::Text(to_string(lit->value, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+			debug_print_term(to_string(lit->value, true, deshi_temp_allocator).str);
+			if(lit->decimal == 1){
+				UI::SameLine();
+				UI::Text(".", UITextFlags_NoWrap); //TODO decimal config here
 			}
-			if(DeshInput->KeyDown(CanvasBind_Pencil_Stroke)){
-				pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_pos_world);
-			}
-			if(DeshInput->KeyReleased(CanvasBind_Pencil_Stroke)){
-				pencil_stroke_idx += 1;
-			}
-			if(DeshInput->KeyPressed(CanvasBind_Pencil_DeletePrevious)){ 
-				if(pencil_strokes.count){
-					pencil_strokes.pop();
-					if(pencil_stroke_idx) pencil_stroke_idx -= 1;
-				}
-			}
-			if     (DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy1)){ pencil_stroke_size += 1; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy5)){ pencil_stroke_size += 5; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy1)){ pencil_stroke_size -= 1; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy5)){ pencil_stroke_size -= 5; }
-			pencil_stroke_size = ((pencil_stroke_size < 1) ? 1 : ((pencil_stroke_size > 100) ? 100 : (pencil_stroke_size)));
-			if     (DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy1)){ pencil_draw_skip_amount -= 1; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy5)){ pencil_draw_skip_amount -= 5; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
-			else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
-			pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
 		}break;
+		
+		//case TermType_Variable:{}break;
+		//case TermType_FunctionCall:{}break;
 	}
+	debug_print_indent--;
 }
 
-void Canvas::
-Init(){
-	elements.reserve(100);
-	graphs.reserve(8);
-	Graph graph; 
-	graph.dimensions = ToWorld(DeshWindow->dimensions);
-	graphs.add(graph);
+
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+//// @canvas
+local array<Element2*> elements(deshi_allocator);
+local Element2* selected_element;
+local vec2f64 mouse_pos_world;
+local Font* math_font;
+
+void init_canvas(){
+	//TODO default graph
 	
-	mathfontitalic = Storage::CreateFontFromFileTTF("STIXTwoText-Italic.otf", 100).second;
-	mathfont = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
-	Assert((mathfont != Storage::NullFont()) && (mathfontitalic != Storage::NullFont()), "math fonts failed to load");
+	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
+	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
 }
 
-void Canvas::
-Update(){
+void update_canvas(){
 	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
 	UI::SetNextWindowSize(DeshWindow->dimensions);
-	UI::Begin("main_canvas", vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract );
+	UI::Begin("canvas", vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	
-	HandleInput();
-	DrawPencilStrokes();
+	{//// @input ////
+		mouse_pos_world = ToWorld(DeshInput->mousePos);
+		
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		//// @input_tool
+		if     (DeshInput->KeyPressed(CanvasBind_SetTool_Navigation)){ previous_tool = active_tool; active_tool = CanvasTool_Navigation; }
+		else if(DeshInput->KeyPressed(CanvasBind_SetTool_Context))   { previous_tool = active_tool; active_tool = CanvasTool_Context; }
+		else if(DeshInput->KeyPressed(CanvasBind_SetTool_Expression)){ previous_tool = active_tool; active_tool = CanvasTool_Expression; }
+		else if(DeshInput->KeyPressed(CanvasBind_SetTool_Pencil))    { previous_tool = active_tool; active_tool = CanvasTool_Pencil; }
+		//else if(DeshInput->KeyPressed(CanvasBind_SetTool_Graph))     { activeGraph = (activeGraph) ? 0 : graphs.data; }
+		else if(DeshInput->KeyPressed(CanvasBind_SetTool_Previous))  { Swap(previous_tool, active_tool); }
+		
+		///////////////////////////////////////////////////////////////////////////////////////////////
+		//// @input_camera
+		if(DeshInput->KeyPressed(CanvasBind_Camera_Pan)){
+			camera_pan_active = true;
+			camera_pan_mouse_pos = DeshInput->mousePos;
+			camera_pan_start_pos = camera_pos;
+		}
+		if(DeshInput->KeyDown(CanvasBind_Camera_Pan)){
+			camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
+		}
+		if(DeshInput->KeyReleased(CanvasBind_Camera_Pan)){
+			camera_pan_active = false;
+		}
+		//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
+		//TODO(delle) combine zoom in and out checks and reimplement graph
+		
+		if(DeshInput->scrollY != 0 && DeshInput->ModsDown(InputMod_None) && !UI::AnyWinHovered()){ //TEMP until graph is reimplemented
+			camera_zoom -= (camera_zoom / 10.0) * DeshInput->scrollY;
+			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+		}
+		/*if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
+			if(selected_element && selected_element->type != ElementType_Graph){
+				camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+				camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+			}
+			else{
+				activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
+				activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
+				
+				f32 prev_grid_zoom_fit = 0;
+				if(activeGraph->gridZoomFitIncrementIndex == 0){
+					prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[2];
+				}else{
+					prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex - 1];
+				}
+				
+				if(activeGraph->cameraZoom < (prev_grid_zoom_fit + activeGraph->gridMajorLinesIncrement)){
+					activeGraph->gridZoomFit                = prev_grid_zoom_fit;
+					activeGraph->gridMajorLinesIncrement    = activeGraph->gridZoomFit / 5.0;
+					activeGraph->gridMinorLinesCount        = (activeGraph->gridZoomFitIncrementIndex == 2) ? 3 : 4;
+					activeGraph->gridMinorLinesIncrement    = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
+					activeGraph->gridZoomFitIncrementIndex -= 1;
+					if(activeGraph->gridZoomFitIncrementIndex == -1) activeGraph->gridZoomFitIncrementIndex = 2;
+					Assert(activeGraph->gridZoomFitIncrementIndex < 3);
+				}
+			}
+		}
+		if(DeshInput->KeyDown(CanvasBind_Camera_ZoomIn | InputMod_None) && !UI::AnyWinHovered()){
+			if(selected_element && selected_element->type != ElementType_Graph){
+				camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
+				camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
+			}
+			else{
+				activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
+				activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
+				
+				if(activeGraph->cameraZoom > (activeGraph->gridZoomFit + activeGraph->gridMajorLinesIncrement)){
+					activeGraph->gridZoomFit              *= activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex];
+					activeGraph->gridMajorLinesIncrement   = activeGraph->gridZoomFit / 5.0;
+					activeGraph->gridMinorLinesCount       = (activeGraph->gridZoomFitIncrementIndex == 0) ? 3 : 4;
+					activeGraph->gridMinorLinesIncrement   = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
+					activeGraph->gridZoomFitIncrementIndex = (activeGraph->gridZoomFitIncrementIndex + 1) % 3;
+					Assert(activeGraph->gridZoomFitIncrementIndex < 3);
+				}
+			}
+	}*/
+		
+#if 1
+		if(active_tool == CanvasTool_Pencil){
+			UI::Begin("pencil_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+			UI::TextF("Stroke Size:   %f", pencil_stroke_size);
+			UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
+			UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
+			UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
+			UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
+			if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
+			u32 total_stroke_points = 0;
+			forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
+			UI::TextF("Total Points:  %d", total_stroke_points);
+			UI::End();
+		}
+		if(active_tool == CanvasTool_Expression){
+			UI::Begin("expression_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+			UI::TextF("Elements: %d", elements.count);
+			if(selected_element){
+				UI::TextF("Selected: %#x", selected_element);
+				UI::TextF("Position: (%g,%g)", selected_element->x,selected_element->y);
+				UI::TextF("Size:     (%g,%g)", selected_element->width,selected_element->height);
+				UI::TextF("Cursor:   %#x", (selected_element) ? ((Expression2*)selected_element)->cursor : 0);
+			}
+			UI::End();
+		}
+#endif
+		
+		switch(active_tool){
+			////////////////////////////////////////////////////////////////////////////////////////////////
+			//// @input_navigation
+			case CanvasTool_Navigation: if(!UI::AnyWinHovered()){
+				if(DeshInput->KeyPressed(CanvasBind_Navigation_Pan)){
+					camera_pan_active = true;
+					camera_pan_mouse_pos = DeshInput->mousePos;
+					
+					camera_pan_start_pos = camera_pos; //TEMP until graph is reimplemented
+					/*if(!activeGraph){
+						camera_pan_start_pos = camera_pos;
+					}else{
+						camera_pan_start_pos = activeGraph->cameraPosition;
+					}*/
+				}
+				if(DeshInput->KeyDown(CanvasBind_Navigation_Pan)){
+					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world); //TEMP until graph is reimplemented
+					/*if(!activeGraph){
+						camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
+					}else{
+						activeGraph->cameraPosition = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
+					}*/
+				}
+				if(DeshInput->KeyReleased(CanvasBind_Navigation_Pan)){
+					camera_pan_active = false;
+				}
+				if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetPos)){
+					camera_pos = {0,0}; //TEMP until graph is reimplemented
+					/*if(!activeGraph){
+						camera_pos = {0,0};
+					}else{
+						activeGraph->cameraPosition = {0,0};
+					}*/
+				}
+				if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetZoom)){
+					camera_zoom = 1.0; //TEMP until graph is reimplemented
+					/*if(!activeGraph){
+						camera_zoom = 1.0;
+					}else{
+						activeGraph->cameraZoom = 1.0;
+					}*/
+				}
+			}break;
+			
+			////////////////////////////////////////////////////////////////////////////////////////////////
+			//// @input_context
+			case CanvasTool_Context:{
+				//if(UI::BeginContextMenu("canvas_context_menu")){
+				//UI::EndContextMenu();
+				//}
+			}break;
+			
+			////////////////////////////////////////////////////////////////////////////////////////////////
+			//// @input_expression
+			case CanvasTool_Expression: if(!UI::AnyWinHovered()){
+				if(DeshInput->KeyPressed(CanvasBind_Expression_Select)){
+					selected_element = 0;
+					for(Element2* it : elements){
+						if(   mouse_pos_world.x >= it->x
+						   && mouse_pos_world.y >= it->y
+						   && mouse_pos_world.x <= it->x + it->width
+						   && mouse_pos_world.y <= it->y + it->height){
+							selected_element = it;
+							break;
+						}
+					}
+				}
+				
+				if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
+					Expression2* expression = (Expression2*)memory_alloc(sizeof(Expression2)); //TODO expression arena
+					expression->element.x = mouse_pos_world.x;
+					expression->element.y = mouse_pos_world.y;
+					expression->element.height = (320*camera_zoom) / (f32)DeshWindow->width; //160px in screen space
+					expression->element.width  = expression->element.height / 2.0;
+					expression->element.type = ElementType_Expression;
+					
+					elements.add(&expression->element);
+					selected_element = &expression->element;
+				}
+				
+				if(selected_element && selected_element->type == ElementType_Expression){
+					Expression2* expr = ElementToExpression(selected_element);
+					b32 first_term = expr->cursor == 0;
+					b32 debug_ast_changed = false;
+					
+					//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
+					forI(DeshInput->charCount){
+						char input = DeshInput->charIn[i];
+						
+						////@input_expression_literals ////
+						//TODO remove duplication
+						//TODO left-to-right and precedence is invalid currently when placing operator after a literal which is part of another operator
+						//  fix this by checking if a literal is a child of an existing operator, then check precedence in order to rearrage the AST
+						if(isdigit(input)){
+							if(first_term){
+								debug_ast_changed = true;
+								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+								lit->node.type = TermType_Literal;
+								insert_first(&expr->node, &lit->node);
+								expr->cursor = &lit->node;
+							}
+							
+							if(expr->cursor->type == TermType_Literal){ //appending to a literal
+								Literal* lit = TermNodeToLiteral(expr->cursor);
+								if(lit->decimal){ //we are appending as decimal values
+									lit->value = lit->value + (input-48)/pow(10,lit->decimal);
+									lit->decimal++;
+								}else{            //we are appending as integer values
+									lit->value = 10*lit->value + (input-48);
+								}
+							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
+								debug_ast_changed = true;
+								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+								lit->node.type = TermType_Literal;
+								insert_last(expr->cursor, &lit->node);
+								if(lit->decimal){ //we are appending as decimal values
+									lit->value = lit->value + (input-48)/pow(10,lit->decimal);
+									lit->decimal++;
+								}else{            //we are appending as integer values
+									lit->value = 10*lit->value + (input-48);
+								}
+								expr->cursor = &lit->node;
+							}
+						}
+						else if(input == '.'){ //TODO comma in EU input mode
+							if(first_term){
+								debug_ast_changed = true;
+								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+								lit->node.type = TermType_Literal;
+								insert_first(&expr->node, &lit->node);
+								expr->cursor = &lit->node;
+							}
+							
+							if(expr->cursor->type == TermType_Literal){
+								Literal* lit = TermNodeToLiteral(expr->cursor);
+								if(lit->decimal == 0) lit->decimal = 1;
+							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
+								debug_ast_changed = true;
+								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+								lit->node.type = TermType_Literal;
+								insert_last(expr->cursor, &lit->node);
+								if(lit->decimal == 0) lit->decimal = 1;
+								expr->cursor = &lit->node;
+							}
+						}
+						
+						////@input_expression_operators ////
+						//TODO remove duplication
+						else if(input == '+'){
+							if(!first_term && expr->cursor->type == TermType_Literal){
+								debug_ast_changed = true;
+								Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
+								op->type = OperatorType_Addition;
+								op->node.type = TermType_Operator;
+								insert_after(expr->cursor, &op->node);
+								op->node.parent = expr->cursor->parent;
+								if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
+								expr->cursor->parent->child_count++;
+								change_parent(&op->node, expr->cursor);
+								expr->cursor = &op->node;
+							}
+						}
+						else if(input == '-'){
+							if(!first_term && expr->cursor->type == TermType_Literal){
+								debug_ast_changed = true;
+								Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
+								op->type = OperatorType_Subtraction;
+								op->node.type = TermType_Operator;
+								insert_after(expr->cursor, &op->node);
+								op->node.parent = expr->cursor->parent;
+								if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
+								expr->cursor->parent->child_count++;
+								change_parent(&op->node, expr->cursor);
+								expr->cursor = &op->node;
+							}
+						}
+						else if(input == '*'){
+							if(!first_term && expr->cursor->type == TermType_Literal){
+								debug_ast_changed = true;
+								Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
+								op->type = OperatorType_ExplicitMultiplication;
+								op->node.type = TermType_Operator;
+								insert_after(expr->cursor, &op->node);
+								op->node.parent = expr->cursor->parent;
+								if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
+								expr->cursor->parent->child_count++;
+								change_parent(&op->node, expr->cursor);
+								expr->cursor = &op->node;
+							}
+						}
+						else if(input == '/'){
+							if(!first_term && expr->cursor->type == TermType_Literal){
+								debug_ast_changed = true;
+								Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
+								op->type = OperatorType_Division;
+								op->node.type = TermType_Operator;
+								insert_after(expr->cursor, &op->node);
+								op->node.parent = expr->cursor->parent;
+								if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
+								expr->cursor->parent->child_count++;
+								change_parent(&op->node, expr->cursor);
+								expr->cursor = &op->node;
+							}
+						}
+						
+						////@input_expression_letters ////
+						else if(isalpha(input)){
+							//TODO variables
+						}
+					}
+					
+					if(debug_ast_changed) debug_print_toggle = true;
+				}
+			}break;
+			
+			////////////////////////////////////////////////////////////////////////////////////////////////
+			//// @input_pencil
+			case CanvasTool_Pencil: if(!UI::AnyWinHovered()){
+				if(DeshInput->KeyPressed(CanvasBind_Pencil_Stroke)){
+					PencilStroke new_stroke;
+					new_stroke.size  = pencil_stroke_size;
+					new_stroke.color = pencil_stroke_color;
+					pencil_strokes.add(new_stroke);
+					pencil_stroke_start_pos = mouse_pos_world;
+				}
+				if(DeshInput->KeyDown(CanvasBind_Pencil_Stroke)){
+					pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_pos_world);
+				}
+				if(DeshInput->KeyReleased(CanvasBind_Pencil_Stroke)){
+					pencil_stroke_idx += 1;
+				}
+				if(DeshInput->KeyPressed(CanvasBind_Pencil_DeletePrevious)){ 
+					if(pencil_strokes.count){
+						pencil_strokes.pop();
+						if(pencil_stroke_idx) pencil_stroke_idx -= 1;
+					}
+				}
+				if     (DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy1)){ pencil_stroke_size += 1; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeIncrementBy5)){ pencil_stroke_size += 5; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy1)){ pencil_stroke_size -= 1; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_SizeDecrementBy5)){ pencil_stroke_size -= 5; }
+				pencil_stroke_size = ((pencil_stroke_size < 1) ? 1 : ((pencil_stroke_size > 100) ? 100 : (pencil_stroke_size)));
+				if     (DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy1)){ pencil_draw_skip_amount -= 1; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailIncrementBy5)){ pencil_draw_skip_amount -= 5; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
+				else if(DeshInput->KeyPressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
+				pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
+			}break;
+		}
+	}
 	
-	//draw canvas elements
-	forE(graphs) DrawGraphGrid(it);
-	for(Element& e : elements){
-		e.Update();
-	}					
-	Parser::pretty_print(Expression());
+	{//// @draw_elements ////
+		for(Element2* el : elements){
+			UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
+			UI::PushVar(UIStyleVar_FontHeight, 80);
+			UI::PushScale(vec2::ONE * el->y / camera_zoom * 2.0 * 4.0);
+			UI::SetNextWindowPos(ToScreen(el->x, el->y));
+			UI::Begin(toStr("element_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
+			
+			switch(el->type){
+				///////////////////////////////////////////////////////////////////////////////////////////////
+				//// @draw_elements_expression
+				case ElementType_Expression:{
+					UI::PushFont(math_font);
+					
+					Expression2* expr = ElementToExpression(el);
+					if(expr->node.child_count == 0) UI::Text(" ", UITextFlags_NoWrap);
+					for_node(expr->node.first_child){
+						if(it != expr->node.first_child) UI::SameLine(); //NOTE temp until better formatting
+						draw_term(it);
+					}
+					if(debug_print_toggle) Log("ast","---------------------------------");
+					debug_print_toggle = false;
+					
+					UI::PopFont();
+				}break;
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////
+				//// @draw_elements_graph
+				//case ElementType_Graph:{}break;
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////
+				//// @draw_elements_workspace
+				//case ElementType_Workspace:{}break;
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////
+				//// @draw_elements_text
+				//case ElementType_Text:{}break;
+			}
+			
+			UI::End();
+			UI::PopScale();
+			UI::PopVar();
+			UI::PopColor();
+		}
+	}
 	
-	UI::TextF("Active Tool:   %s", canvas_tool_strings[active_tool]);
-	UI::TextF("Previous Tool: %s", canvas_tool_strings[previous_tool]);
-	UI::TextF("Selected Graph: %d", (activeGraph) ? u32(activeGraph-graphs.data) : -1);
-	UI::TextF("%.3ffps", F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
-	UI::TextF("campos:  (%g, %g)",camera_pos.x,camera_pos.y);
-	UI::TextF("camzoom: %g", camera_zoom);
-	UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
+	{//// @draw_pencil ////
+		UI::Begin("pencil_layer", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+		forE(pencil_strokes){
+			if(it->pencil_points.count > 1){
+				//array<vec2> pps(it->pencil_points.count);
+				//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
+				//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+				
+				//TODO smooth line drawing
+				for(int i = 1; i < it->pencil_points.count; ++i){
+					UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
+				}
+			}
+		}
+		UI::End();
+	}
+	
+	{//// @draw_canvas_info ////
+		UI::TextF("%.3f FPS", F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
+		UI::TextF("Active Tool:   %s", canvas_tool_strings[active_tool]);
+		UI::TextF("Previous Tool: %s", canvas_tool_strings[previous_tool]);
+		UI::TextF("Selected Element: %d", u64(selected_element));
+		UI::TextF("campos:  (%g, %g)",camera_pos.x,camera_pos.y);
+		UI::TextF("camzoom: %g", camera_zoom);
+		UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
+	}
 	
 	UI::End();
 	UI::PopVar();

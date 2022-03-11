@@ -35,12 +35,14 @@ TODO Board
 most math should be f64 instead of f32
 
 `Canvas`
-------------
-graphs should have their own UI windows
-add checks to discard things early from UI if they wont be drawn
+--------
+add checks to skip draw calls if they arent on screen
+extract graphing to its own deshi module
+workspaces
+arbitrary text
 
 `Parser`
-------------
+--------
 implement a system for adding to an already existing AST tree
 parser is copying tokens from elements rather than simply viewing them
 
@@ -49,7 +51,12 @@ parser is copying tokens from elements rather than simply viewing them
 constants loader
 
 `Solver`
-------------
+--------
+
+`Config`
+--------
+decimal separator: comma vs point
+thousand separator: space vs comma vs point
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
@@ -57,7 +64,6 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
 (03/07/22) trying to create a new expression when the cursor of another expression is not at the edge causes double input
 (03/07/22) element hitbox does not match UI window size
-(03/07/22) vulkan doesnt generate a pipeline cache file
 */
 
 #ifdef TRACY_ENABLE
@@ -136,7 +142,7 @@ int main(){
 	Logger::Init(5, true);
 	DeshConsole->Init();
 	DeshTime->Init();
-	DeshWindow->Init("deshi", 1280, 720, 100, 100);
+	DeshWindow->Init("suugu", 1280, 720);
 	Render::Init();
 	DeshiImGui::Init();
 	Storage::Init();
@@ -146,7 +152,7 @@ int main(){
 	Render::UseDefaultViewProjMatrix();
 	
 	//init suugu
-	canvas.Init();
+	init_canvas();
 	
 	{//init debug
 		//TEST_deshi_core();
@@ -165,7 +171,7 @@ int main(){
 		DeshTime->Update();
 		DeshInput->Update();
 		DeshiImGui::NewFrame();
-		canvas.Update();
+		update_canvas();
 		{//update debug
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::F1 | InputMod_Lalt)) ToggleBool(show_metrics);

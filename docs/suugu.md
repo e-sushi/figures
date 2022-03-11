@@ -73,13 +73,12 @@ variable   | unknown number represented by a single letter
 literal    | number or string literally representing itself  
 token      | character(s) that represent a term in text form  
 operator   | symbol that represents an operation on one or many terms  
-expression | collection of expressions without an explicit equals expression  
-equation   | collection of expressions with    an explicit equals expression   
-statement  | equation or expression local to a workspace  
-workspace  | region of the canvas in which statements are shared  
+expression | collection of terms in the form of a syntax tree  
+equation   | expression with an explicit equals operator  
+workspace  | region of the canvas in which expressions are able to interact together  
 graph      | graphing grid with a local camera in which equations can be drawn  
 element    | anything with position, size, coordinate space, and display info  
-canvas     | manages all elements, manages the world camera, manages the input
+canvas     | manages the elements, world, and input
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Input)

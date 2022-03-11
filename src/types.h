@@ -3,6 +3,7 @@
 #define SUUGU_TYPES_H
 
 #include "kigu/common.h"
+#include "core/memory.h"
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
 //// @Token
@@ -69,57 +70,6 @@ struct Token{
 		//cstring raw; //when not literal
 	};
 };
-
-
-//-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Operator
-//TODO add operators as their parsing is implemented
-enum Operator : u32{ //number of arguments == number of possible input slots
-	Operator_NULL = 0,
-	
-	//// one argument ////
-	//Operator_Negation,
-	//Operator_AbsoluteValue,
-	//Operator_BitwiseNOT,
-	
-	//// two arguments ////
-	Operator_Addition,
-	Operator_Subtraction,
-	Operator_Multiplication,
-	Operator_Division,
-	//Operator_Exponential, //base, power
-	//Operator_Root,        //index, radicand
-	//Operator_Derivative,  //variable, expression
-	//Operator_Integral,    //variable, expression
-	//Operator_Limit,       //approach, expression
-	//Operator_Modulo,
-	//Operator_BitwiseAND,
-	//Operator_BitwiseOR,
-	//Operator_BitwiseXOR,
-	//Operator_ArithmaticShiftLeft,
-	//Operator_ArithmaticShiftRight,
-	//Operator_LogicalShiftLeft,
-	//Operator_LogicalShiftRight,
-	//Operator_CircularShiftLeft,
-	//Operator_CircularShiftRight,
-	
-	//// three arguments ////
-	//Operator_Sum,         //start, stop, step
-	
-	//// N arguments ////
-	//Operator_PartialDerivative, //variables..., expression
-	
-	Operator_COUNT,
-	//Operator_1ARG_START = Operator_Negation,
-	//Operator_1ARG_END   = Operator_Addition-1,
-	//Operator_2ARG_START = Operator_Addition,
-	//Operator_2ARG_END   = Operator_Sum-1,
-	//Operator_3ARG_START = Operator_Sum,
-	//Operator_3ARG_END   = Operator_PartialDerivative-1,
-	//Operator_NARG_START = Operator_PartialDerivative,
-	//Operator_NARG_END   = Operator_COUNT-1,
-};
-
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
 //// @Expression
@@ -292,7 +242,6 @@ struct Graph{
 	b32 gridShowAxisCoords        = true;
 };
 
-//maybe make it so the canvas can store its own windows as well
 struct Canvas{
 	Element* activeElement = 0;
 	Graph*   activeGraph = 0;
@@ -305,5 +254,142 @@ struct Canvas{
 	void Init();
 	void Update();
 };
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Element
+enum CoordinateSpace : u32{
+	CoordinateSpace_World,
+	CoordinateSpace_Screen,
+	//CoordinateSpace_Workspace, //TODO maybe add local to workspace
+};
+
+enum ElementType : u32{
+	ElementType_NULL,
+	ElementType_Expression,
+	//ElementType_Workspace,
+	//ElementType_Graph,
+	//ElementType_Text,
+};
+
+//element: anything with position, size, coordinate space, and display info
+struct Element2{
+	f64 x, y, z;
+	f64 width, height, depth;
+	CoordinateSpace space;
+	ElementType type;
+};
+
+//workspace: region of the canvas in which expressions are able to interact together  
+struct Expression2;
+struct Workspace{
+	Element2 element;
+	str8 name;
+	array<Expression2*> expressions = array<Expression2*>(deshi_allocator);
+};
+#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
+
+//struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
+//Element2 element;
+//Graph* graph;
+//};
+//#define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
+
+//struct TextElement{
+//Element2 element;
+//str8 text;
+//Font* font;
+//f32 font_height;
+//vec2 scale;
+//f32 rotation;
+//};
+//#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
+
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Expression
+//expression: collection of terms in the form of a syntax tree
+struct Expression2{
+	Element2 element;
+	Workspace* workspace;
+	TNode  node;
+	TNode* cursor;
+	TNode* equals; //points to the first equals operator if one exists in the expression
+};
+#define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
+#define TermNodeToExpression(node_ptr) ((Expression2*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Expression2, node))))
+
+//term: generic base thing (literal, operator, variable, function call, etc)
+enum TermType : u32{
+	TermType_Expression,
+	TermType_Operator,
+	TermType_Literal,
+	//TermType_Variable,
+	//TermType_FunctionCall,
+};
+enum TermFlags : u32{
+	TermFlag_NONE = 0,
+	//TermFlag_ParenthesisLeft  = (1 << 0),
+	//TermFlag_ParenthesisRight = (1 << 1),
+};
+
+//operator: symbol that represents an operation on one or many terms
+enum OperatorType : u32{ //number of arguments == number of possible input slots
+	OperatorType_NULL = 0,
+	
+	//// one argument ////
+	//OperatorType_Negation,
+	//OperatorType_AbsoluteValue,
+	//OperatorType_BitwiseNOT,
+	
+	//// two arguments ////
+	OperatorType_Addition,
+	OperatorType_Subtraction,
+	OperatorType_ImplicitMultiplication, //5x
+	OperatorType_ExplicitMultiplication, //5*x
+	OperatorType_Division,
+	//OperatorType_Exponential, //base, power
+	//OperatorType_Root,        //index, radicand
+	//OperatorType_Derivative,  //variable, expression
+	//OperatorType_Integral,    //variable, expression
+	//OperatorType_Limit,       //approach, expression
+	//OperatorType_Modulo,
+	//OperatorType_BitwiseAND,
+	//OperatorType_BitwiseOR,
+	//OperatorType_BitwiseXOR,
+	//OperatorType_ArithmaticShiftLeft,
+	//OperatorType_ArithmaticShiftRight,
+	//OperatorType_LogicalShiftLeft,
+	//OperatorType_LogicalShiftRight,
+	//OperatorType_CircularShiftLeft,
+	//OperatorType_CircularShiftRight,
+	
+	//// three arguments ////
+	//OperatorType_Sum,         //start, stop, step
+	
+	//// N arguments ////
+	//OperatorType_PartialDerivative, //variables..., expression
+	
+	OperatorType_COUNT,
+	//OperatorType_1ARG_START = OperatorType_Negation,
+	//OperatorType_1ARG_END   = OperatorType_Addition-1,
+	//OperatorType_2ARG_START = OperatorType_Addition,
+	//OperatorType_2ARG_END   = OperatorType_Sum-1,
+	//OperatorType_3ARG_START = OperatorType_Sum,
+	//OperatorType_3ARG_END   = OperatorType_PartialDerivative-1,
+	//OperatorType_NARG_START = OperatorType_PartialDerivative,
+	//OperatorType_NARG_END   = OperatorType_COUNT-1,
+};
+struct Operator{
+	TNode node;
+	OperatorType type;
+};
+#define TermNodeToOperator(node_ptr) ((Operator*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Operator, node))))
+
+struct Literal{
+	TNode node;
+	f64 value;
+	u32 decimal;
+};
+#define TermNodeToLiteral(node_ptr) ((Literal*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Literal, node))))
 
 #endif //SUUGU_TYPES_H
