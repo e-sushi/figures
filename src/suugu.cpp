@@ -101,7 +101,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "solver.cpp"
 #include "canvas.cpp"
 
-#include <windows.h> //TODO why are we including this here
+
 
 
 //#include "kigu/deshi_utils_tests.cpp"

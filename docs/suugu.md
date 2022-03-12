@@ -102,6 +102,7 @@ canvas     | manages all elements, manages the world camera,
     - [ ] variable super/sub script
 	- [ ] inequalities
     - [ ] integrals/derivatives
+    - [ ] limits
     - [ ] function notation
     - [ ] sum
     - [ ] patterns
@@ -190,6 +191,7 @@ canvas     | manages all elements, manages the world camera,
     - [ ] variable super/sub script
 	- [ ] inequalities
     - [ ] integrals/derivatives
+    - [ ] limits
     - [ ] function notation
     - [ ] sum
     - [ ] patterns (python colon, c for, ellipses)
@@ -236,6 +238,7 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 - [ ] exponentials
 - [ ] inequalities
 - [ ] integrals/derivatives
+- [ ] limits
 - [ ] differential equations
 - [ ] sum
 - [ ] patterns
