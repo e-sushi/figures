@@ -313,6 +313,7 @@ struct Expression2{
 	Workspace* workspace;
 	TNode  node;
 	TNode* cursor;
+	TNode* cursor_end;
 	TNode* equals; //points to the first equals operator if one exists in the expression
 };
 #define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
@@ -326,6 +327,7 @@ enum TermType : u32{
 	//TermType_Variable,
 	//TermType_FunctionCall,
 };
+
 enum TermFlags : u32{
 	TermFlag_NONE = 0,
 	//TermFlag_ParenthesisLeft  = (1 << 0),
@@ -333,55 +335,87 @@ enum TermFlags : u32{
 };
 
 //operator: symbol that represents an operation on one or many terms
-enum OperatorType : u32{ //number of arguments == number of possible input slots
-	OperatorType_NULL = 0,
+//NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
+//NOTE these are logical operators, not symbol-based operators
+enum OpType : u32{
+	OpType_NULL = 0,
 	
-	//// one argument ////
-	//OperatorType_Negation,
-	//OperatorType_AbsoluteValue,
-	//OperatorType_BitwiseNOT,
+	OpPrecedence_1  = (1 << 8),
+	//OpType_Parentheses,
+	//OpType_SquareBrackets,
+	//OpType_CurlyBrackets,
+	//OpType_AbsoluteValue,
+	//OpType_Root,
+	//OpType_Derivative,
+	//OpType_Integral,
+	//OpType_Limit,
+	//OpType_Sum,
+	//OpType_PartialDerivative
 	
-	//// two arguments ////
-	OperatorType_Addition,
-	OperatorType_Subtraction,
-	OperatorType_ImplicitMultiplication, //5x
-	OperatorType_ExplicitMultiplication, //5*x
-	OperatorType_Division,
-	//OperatorType_Exponential, //base, power
-	//OperatorType_Root,        //index, radicand
-	//OperatorType_Derivative,  //variable, expression
-	//OperatorType_Integral,    //variable, expression
-	//OperatorType_Limit,       //approach, expression
-	//OperatorType_Modulo,
-	//OperatorType_BitwiseAND,
-	//OperatorType_BitwiseOR,
-	//OperatorType_BitwiseXOR,
-	//OperatorType_ArithmaticShiftLeft,
-	//OperatorType_ArithmaticShiftRight,
-	//OperatorType_LogicalShiftLeft,
-	//OperatorType_LogicalShiftRight,
-	//OperatorType_CircularShiftLeft,
-	//OperatorType_CircularShiftRight,
+	OpPrecedence_2  = (1 << 9),
+	//OpType_Exponential,
 	
-	//// three arguments ////
-	//OperatorType_Sum,         //start, stop, step
+	OpPrecedence_3  = (1 << 10),
+	//OpType_Negation,
+	//OpType_BitwiseNOT,
+	//OpType_LogicalNOT,
 	
-	//// N arguments ////
-	//OperatorType_PartialDerivative, //variables..., expression
+	OpPrecedence_4  = (1 << 11),
+	OpType_ImplicitMultiplication, //5x
+	OpType_ExplicitMultiplication, //5*x
+	OpType_Division,
+	//OpType_Modulo,
 	
-	OperatorType_COUNT,
-	//OperatorType_1ARG_START = OperatorType_Negation,
-	//OperatorType_1ARG_END   = OperatorType_Addition-1,
-	//OperatorType_2ARG_START = OperatorType_Addition,
-	//OperatorType_2ARG_END   = OperatorType_Sum-1,
-	//OperatorType_3ARG_START = OperatorType_Sum,
-	//OperatorType_3ARG_END   = OperatorType_PartialDerivative-1,
-	//OperatorType_NARG_START = OperatorType_PartialDerivative,
-	//OperatorType_NARG_END   = OperatorType_COUNT-1,
+	OpPrecedence_5  = (1 << 12),
+	OpType_Addition,
+	OpType_Subtraction,
+	
+	OpPrecedence_6  = (1 << 13),
+	//OpType_ArithmaticShiftLeft,
+	//OpType_ArithmaticShiftRight,
+	//OpType_LogicalShiftLeft,
+	//OpType_LogicalShiftRight,
+	//OpType_CircularShiftLeft,
+	//OpType_CircularShiftRight,
+	
+	OpPrecedence_7  = (1 << 14),
+	//OpType_LessThan,
+	//OpType_LessThanEqual,
+	//OpType_GreaterThan,
+	//OpType_GreaterThanEqual,
+	
+	OpPrecedence_8  = (1 << 15),
+	//OpType_Equal,
+	//OpType_NotEqual,
+	
+	OpPrecedence_9  = (1 << 16),
+	//OpType_BitwiseAND,
+	
+	OpPrecedence_10 = (1 << 17),
+	//OpType_BitwiseXOR,
+	
+	OpPrecedence_11 = (1 << 18),
+	//OpType_BitwiseOR,
+	
+	OpPrecedence_12 = (1 << 19),
+	//OpType_LogicalAND,
+	
+	OpPrecedence_13 = (1 << 20),
+	//OpType_LogicalOR,
+	
+	OpType_COUNT,
 };
+#define OPERATOR_PRECEDENCE_MASK 0xFFFFFF00
+
 struct Operator{
 	TNode node;
-	OperatorType type;
+	OpType type;
+	
+	//NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
+	inline b32 operator> (Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) <  (rhs->type & OPERATOR_PRECEDENCE_MASK); }
+	inline b32 operator>=(Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) <= (rhs->type & OPERATOR_PRECEDENCE_MASK); }
+	inline b32 operator< (Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) >  (rhs->type & OPERATOR_PRECEDENCE_MASK); }
+	inline b32 operator<=(Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) >= (rhs->type & OPERATOR_PRECEDENCE_MASK); }
 };
 #define TermNodeToOperator(node_ptr) ((Operator*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Operator, node))))
 
