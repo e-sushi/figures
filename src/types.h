@@ -385,8 +385,8 @@ enum OpType : u32{
 	//OpType_GreaterThanEqual,
 	
 	OpPrecedence_8  = (1 << 15),
-	//OpType_Equal,
-	//OpType_NotEqual,
+	//OpType_BooleanEquals,
+	//OpType_BooleanNotEquals,
 	
 	OpPrecedence_9  = (1 << 16),
 	//OpType_BitwiseAND,
@@ -402,6 +402,9 @@ enum OpType : u32{
 	
 	OpPrecedence_13 = (1 << 20),
 	//OpType_LogicalOR,
+	
+	OpPrecedence_14 = (1 << 21),
+	//OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
 	
 	OpType_COUNT,
 };

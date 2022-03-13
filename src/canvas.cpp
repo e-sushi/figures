@@ -264,11 +264,11 @@ DrawGraphGrid(Graph* graph){
 local s32 debug_print_indent = -1;
 local b32 debug_print_toggle = false;
 #if PRINT_AST
-void debug_print_term(const char* symbol){
+void debug_print_term(const char* symbol, b32 is_cursor){
 	if(debug_print_toggle){
 		string str(deshi_temp_allocator);
 		forI(debug_print_indent) str += "  ";
-		Log("ast",str,symbol);
+		Log("ast",str,symbol,(is_cursor) ? " <-" : "");
 	}
 }
 #else
@@ -278,49 +278,49 @@ void debug_print_term(const char* symbol){
 //TODO this makes bad assumptions about the order of child nodes to operators
 //  fix this when we support left-dangling operators and term deletion
 //TODO remove duplication
-void draw_term(TNode* term){
+void draw_term(TNode* term, TNode* cursor){
 	debug_print_indent++;
 	switch(term->type){
 		case TermType_Operator:{
 			Operator* op = TermNodeToOperator(term);
 			switch(op->type){
 				case OpType_Addition:{
-					debug_print_term("+");
-					draw_term(term->first_child); UI::SameLine();
+					debug_print_term("+", term == cursor);
+					draw_term(term->first_child, cursor); UI::SameLine();
 					UI::Text("+", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
-						draw_term(term->last_child);
+						draw_term(term->last_child, cursor);
 					}
 				}break;
 				
 				case OpType_Subtraction:{
-					debug_print_term("-");
-					draw_term(term->first_child); UI::SameLine();
+					debug_print_term("-", term == cursor);
+					draw_term(term->first_child, cursor); UI::SameLine();
 					UI::Text("-", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
-						draw_term(term->last_child);
+						draw_term(term->last_child, cursor);
 					}
 				}break;
 				
 				case OpType_ExplicitMultiplication:{
-					debug_print_term("*");
-					draw_term(term->first_child); UI::SameLine();
+					debug_print_term("*", term == cursor);
+					draw_term(term->first_child, cursor); UI::SameLine();
 					UI::Text("*", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
-						draw_term(term->last_child);
+						draw_term(term->last_child, cursor);
 					}
 				}break;
 				
 				case OpType_Division:{
-					debug_print_term("/");
-					draw_term(term->first_child); UI::SameLine();
+					debug_print_term("/", term == cursor);
+					draw_term(term->first_child, cursor); UI::SameLine();
 					UI::Text("/", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
-						draw_term(term->last_child);
+						draw_term(term->last_child, cursor);
 					}
 				}break;
 			}
@@ -329,7 +329,7 @@ void draw_term(TNode* term){
 		case TermType_Literal:{
 			Literal* lit = TermNodeToLiteral(term);
 			UI::Text(to_string(lit->value, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-			debug_print_term(to_string(lit->value, true, deshi_temp_allocator).str);
+			debug_print_term(to_string(lit->value, true, deshi_temp_allocator).str, term == cursor);
 			if(lit->decimal == 1){
 				UI::SameLine();
 				UI::Text(".", UITextFlags_NoWrap); //TODO decimal config here
@@ -342,10 +342,32 @@ void draw_term(TNode* term){
 	debug_print_indent--;
 }
 
-Operator* make_operator(OpType type){
+Operator* make_operator(OpType type, TNode* cursor){
 	Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
 	op->type = type;
 	op->node.type = TermType_Operator;
+	
+	if((cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(cursor->parent))){
+		//cursor's parent is a greater precedence operator, so make it a child of us
+		//NOTE loop and <= because of left-to-right precedence
+		while((cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(cursor->parent))){
+			cursor = cursor->parent;
+		}
+		
+		insert_after(cursor, &op->node);
+		op->node.parent = cursor->parent;
+		if(cursor == cursor->parent->last_child) cursor->parent->last_child = &op->node;
+		cursor->parent->child_count++;
+		change_parent(&op->node, cursor);
+	}else{
+		//cursor's parent is not a greater precedence operator, so make cursor a child of us
+		insert_after(cursor, &op->node);
+		op->node.parent = cursor->parent;
+		if(cursor == cursor->parent->last_child) cursor->parent->last_child = &op->node;
+		cursor->parent->child_count++;
+		change_parent(&op->node, cursor);
+	}
+	
 	return op;
 }
 
@@ -624,108 +646,31 @@ void update_canvas(){
 						}
 						
 						////@input_expression_operators ////
-						//TODO remove duplication
 						else if(input == '+'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								debug_ast_changed = true;
-								Operator* op = make_operator(OpType_Addition);
-								
-								//TODO while less precedence
-								if((expr->cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(expr->cursor->parent))){
-									//cursor's parent is not a greater precedence operator, so make it a child of us
-									insert_after(expr->cursor->parent, &op->node);
-									op->node.parent = expr->cursor->parent->parent;
-									if(expr->cursor->parent == expr->cursor->parent->parent->last_child) expr->cursor->parent->parent->last_child = &op->node;
-									expr->cursor->parent->parent->child_count++;
-									change_parent(&op->node, expr->cursor->parent);
-								}else{
-									//cursor's parent is not a greater precedence operator, so make cursor a child of us
-									//NOTE or equal because of left-to-right precedence
-									insert_after(expr->cursor, &op->node);
-									op->node.parent = expr->cursor->parent;
-									if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
-									expr->cursor->parent->child_count++;
-									change_parent(&op->node, expr->cursor);
-								}
-								
+								Operator* op = make_operator(OpType_Addition, expr->cursor);
 								expr->cursor = &op->node;
 							}
 						}
 						else if(input == '-'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								debug_ast_changed = true;
-								Operator* op = make_operator(OpType_Subtraction);
-								
-								//TODO while less precedence
-								if((expr->cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(expr->cursor->parent))){
-									//cursor's parent is not a greater precedence operator, so make it a child of us
-									insert_after(expr->cursor->parent, &op->node);
-									op->node.parent = expr->cursor->parent->parent;
-									if(expr->cursor->parent == expr->cursor->parent->parent->last_child) expr->cursor->parent->parent->last_child = &op->node;
-									expr->cursor->parent->parent->child_count++;
-									change_parent(&op->node, expr->cursor->parent);
-								}else{
-									//cursor's parent is not a greater precedence operator, so make cursor a child of us
-									//NOTE or equal because of left-to-right precedence
-									insert_after(expr->cursor, &op->node);
-									op->node.parent = expr->cursor->parent;
-									if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
-									expr->cursor->parent->child_count++;
-									change_parent(&op->node, expr->cursor);
-								}
-								
+								Operator* op = make_operator(OpType_Subtraction, expr->cursor);
 								expr->cursor = &op->node;
 							}
 						}
 						else if(input == '*'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								debug_ast_changed = true;
-								Operator* op = make_operator(OpType_ExplicitMultiplication);
-								
-								//TODO while less precedence
-								if((expr->cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(expr->cursor->parent))){
-									//cursor's parent is not a greater precedence operator, so make it a child of us
-									insert_after(expr->cursor->parent, &op->node);
-									op->node.parent = expr->cursor->parent->parent;
-									if(expr->cursor->parent == expr->cursor->parent->parent->last_child) expr->cursor->parent->parent->last_child = &op->node;
-									expr->cursor->parent->parent->child_count++;
-									change_parent(&op->node, expr->cursor->parent);
-								}else{
-									//cursor's parent is not a greater precedence operator, so make cursor a child of us
-									//NOTE or equal because of left-to-right precedence
-									insert_after(expr->cursor, &op->node);
-									op->node.parent = expr->cursor->parent;
-									if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
-									expr->cursor->parent->child_count++;
-									change_parent(&op->node, expr->cursor);
-								}
-								
+								Operator* op = make_operator(OpType_ExplicitMultiplication, expr->cursor);
 								expr->cursor = &op->node;
 							}
 						}
 						else if(input == '/'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								debug_ast_changed = true;
-								Operator* op = make_operator(OpType_Division);
-								
-								//TODO while less precedence
-								if((expr->cursor->parent->type == TermType_Operator) && (*op <= TermNodeToOperator(expr->cursor->parent))){
-									//cursor's parent is not a greater precedence operator, so make it a child of us
-									insert_after(expr->cursor->parent, &op->node);
-									op->node.parent = expr->cursor->parent->parent;
-									if(expr->cursor->parent == expr->cursor->parent->parent->last_child) expr->cursor->parent->parent->last_child = &op->node;
-									expr->cursor->parent->parent->child_count++;
-									change_parent(&op->node, expr->cursor->parent);
-								}else{
-									//cursor's parent is not a greater precedence operator, so make cursor a child of us
-									//NOTE or equal because of left-to-right precedence
-									insert_after(expr->cursor, &op->node);
-									op->node.parent = expr->cursor->parent;
-									if(expr->cursor == expr->cursor->parent->last_child) expr->cursor->parent->last_child = &op->node;
-									expr->cursor->parent->child_count++;
-									change_parent(&op->node, expr->cursor);
-								}
-								
+								Operator* op = make_operator(OpType_Division, expr->cursor);
 								expr->cursor = &op->node;
 							}
 						}
@@ -794,7 +739,7 @@ void update_canvas(){
 					if(expr->node.child_count == 0) UI::Text(" ", UITextFlags_NoWrap);
 					for_node(expr->node.first_child){
 						if(it != expr->node.first_child) UI::SameLine(); //NOTE temp until better formatting
-						draw_term(it);
+						draw_term(it, expr->cursor);
 					}
 					if(debug_print_toggle) Log("ast","---------------------------------");
 					debug_print_toggle = false;
