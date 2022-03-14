@@ -9,6 +9,7 @@ add checks to skip draw calls if they arent on screen
 extract graphing to its own deshi module
 workspaces
 arbitrary text
+custom to_string for f64 since we want to have config on sigfigs and it only goes to 6 decimals (this may be accuracy limit for f64)
 
 `Parser`
 --------

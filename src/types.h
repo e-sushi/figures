@@ -279,15 +279,16 @@ struct Element2{
 	ElementType type;
 };
 
-//workspace: region of the canvas in which expressions are able to interact together  
-struct Expression2;
-struct Workspace{
-	Element2 element;
-	str8 name;
-	array<Expression2*> expressions = array<Expression2*>(deshi_allocator);
-};
-#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
+////workspace: region of the canvas in which expressions are able to interact together  
+//struct Expression2;
+//struct Workspace{
+//Element2 element;
+//str8 name;
+//array<Expression2*> expressions = array<Expression2*>(deshi_allocator);
+//};
+//#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
+////graph: graphing grid with a local camera in which equations can be drawn
 //struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
 //Element2 element;
 //Graph* graph;
@@ -310,11 +311,13 @@ struct Workspace{
 //expression: collection of terms in the form of a syntax tree
 struct Expression2{
 	Element2 element;
-	Workspace* workspace;
+	//Workspace* workspace;
 	TNode  node;
 	TNode* cursor;
-	TNode* cursor_end;
-	TNode* equals; //points to the first equals operator if one exists in the expression
+	//TNode* cursor_end;
+	TNode* equals;
+	b32 valid;
+	f64 solution;
 };
 #define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
 #define TermNodeToExpression(node_ptr) ((Expression2*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Expression2, node))))
@@ -337,6 +340,7 @@ enum TermFlags : u32{
 //operator: symbol that represents an operation on one or many terms
 //NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
 //NOTE these are logical operators, not symbol-based operators
+//TODO try to find a way to store the number of arguments
 enum OpType : u32{
 	OpType_NULL = 0,
 	
@@ -361,7 +365,7 @@ enum OpType : u32{
 	//OpType_LogicalNOT,
 	
 	OpPrecedence_4  = (1 << 11),
-	OpType_ImplicitMultiplication, //5x
+	//OpType_ImplicitMultiplication, //5x
 	OpType_ExplicitMultiplication, //5*x
 	OpType_Division,
 	//OpType_Modulo,
@@ -404,7 +408,7 @@ enum OpType : u32{
 	//OpType_LogicalOR,
 	
 	OpPrecedence_14 = (1 << 21),
-	//OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
+	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
 	
 	OpType_COUNT,
 };

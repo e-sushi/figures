@@ -281,6 +281,26 @@ void debug_print_term(const char* symbol, b32 is_cursor){
 void draw_term(TNode* term, TNode* cursor){
 	debug_print_indent++;
 	switch(term->type){
+		case TermType_Expression:{
+			Expression2* expr = TermNodeToExpression(term);
+			if(term->child_count){
+				draw_term(term->first_child, cursor);
+				UI::SameLine();
+				UI::PushColor(UIStyleCol_Text, Color_Grey);
+				if(expr->equals && expr->valid){
+					UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					debug_print_term(to_string(expr->solution, true, deshi_temp_allocator).str, term == cursor);
+				}else if(expr->solution != MAX_F32 && term->first_child->type != TermType_Literal && expr->valid){
+					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					debug_print_term((string("=", deshi_temp_allocator) + to_string(expr->solution, true, deshi_temp_allocator)).str, term == cursor);
+				}
+				UI::PopColor();
+			}else{
+				UI::Text(" ", UITextFlags_NoWrap);
+			}
+		}break;
+		
 		case TermType_Operator:{
 			Operator* op = TermNodeToOperator(term);
 			switch(op->type){
@@ -318,6 +338,16 @@ void draw_term(TNode* term, TNode* cursor){
 					debug_print_term("/", term == cursor);
 					draw_term(term->first_child, cursor); UI::SameLine();
 					UI::Text("/", UITextFlags_NoWrap);
+					if(term->child_count > 1){
+						UI::SameLine();
+						draw_term(term->last_child, cursor);
+					}
+				}break;
+				
+				case OpType_ExpressionEquals:{
+					debug_print_term("=", term == cursor);
+					draw_term(term->first_child, cursor); UI::SameLine();
+					UI::Text("=", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
 						draw_term(term->last_child, cursor);
@@ -582,7 +612,7 @@ void update_canvas(){
 				if(selected_element && selected_element->type == ElementType_Expression){
 					Expression2* expr = ElementToExpression(selected_element);
 					b32 first_term = expr->cursor == 0;
-					b32 debug_ast_changed = false;
+					b32 ast_changed = false;
 					
 					//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
 					forI(DeshInput->charCount){
@@ -594,7 +624,7 @@ void update_canvas(){
 						//  fix this by checking if a literal is a child of an existing operator, then check precedence in order to rearrage the AST
 						if(isdigit(input)){
 							if(first_term){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 								lit->node.type = TermType_Literal;
 								insert_first(&expr->node, &lit->node);
@@ -610,7 +640,7 @@ void update_canvas(){
 									lit->value = 10*lit->value + (input-48);
 								}
 							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
-								debug_ast_changed = true;
+								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 								lit->node.type = TermType_Literal;
 								insert_last(expr->cursor, &lit->node);
@@ -621,11 +651,12 @@ void update_canvas(){
 								}else{            //we are appending as integer values
 									lit->value = 10*lit->value + (input-48);
 								}
+								expr->valid = true;
 							}
 						}
 						else if(input == '.'){ //TODO comma in EU input mode
 							if(first_term){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 								lit->node.type = TermType_Literal;
 								insert_first(&expr->node, &lit->node);
@@ -636,42 +667,55 @@ void update_canvas(){
 								Literal* lit = TermNodeToLiteral(expr->cursor);
 								if(lit->decimal == 0) lit->decimal = 1;
 							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
-								debug_ast_changed = true;
+								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 								lit->node.type = TermType_Literal;
 								insert_last(expr->cursor, &lit->node);
 								if(lit->decimal == 0) lit->decimal = 1;
 								expr->cursor = &lit->node;
+								expr->valid = true;
 							}
 						}
 						
 						////@input_expression_operators ////
 						else if(input == '+'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Operator* op = make_operator(OpType_Addition, expr->cursor);
 								expr->cursor = &op->node;
+								expr->valid = false;
 							}
 						}
 						else if(input == '-'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Operator* op = make_operator(OpType_Subtraction, expr->cursor);
 								expr->cursor = &op->node;
+								expr->valid = false;
 							}
 						}
 						else if(input == '*'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Operator* op = make_operator(OpType_ExplicitMultiplication, expr->cursor);
 								expr->cursor = &op->node;
+								expr->valid = false;
 							}
 						}
 						else if(input == '/'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
-								debug_ast_changed = true;
+								ast_changed = true;
 								Operator* op = make_operator(OpType_Division, expr->cursor);
 								expr->cursor = &op->node;
+								expr->valid = false;
+							}
+						}
+						else if(input == '='){
+							if(!first_term && expr->cursor->type == TermType_Literal){
+								ast_changed = true;
+								Operator* op = make_operator(OpType_ExpressionEquals, expr->cursor);
+								expr->cursor = &op->node;
+								expr->equals = &op->node;
 							}
 						}
 						
@@ -681,7 +725,10 @@ void update_canvas(){
 						}
 					}
 					
-					if(debug_ast_changed) debug_print_toggle = true;
+					if(ast_changed){
+						debug_print_toggle = true;
+						solve(&expr->node);
+					}
 				}
 			}break;
 			
@@ -725,7 +772,7 @@ void update_canvas(){
 		for(Element2* el : elements){
 			UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
 			UI::PushVar(UIStyleVar_FontHeight, 80);
-			UI::PushScale(vec2::ONE * el->y / camera_zoom * 2.0 * 4.0);
+			UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
 			UI::SetNextWindowPos(ToScreen(el->x, el->y));
 			UI::Begin(toStr("element_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 			
@@ -736,11 +783,7 @@ void update_canvas(){
 					UI::PushFont(math_font);
 					
 					Expression2* expr = ElementToExpression(el);
-					if(expr->node.child_count == 0) UI::Text(" ", UITextFlags_NoWrap);
-					for_node(expr->node.first_child){
-						if(it != expr->node.first_child) UI::SameLine(); //NOTE temp until better formatting
-						draw_term(it, expr->cursor);
-					}
+					draw_term(&expr->node, expr->cursor);
 					if(debug_print_toggle) Log("ast","---------------------------------");
 					debug_print_toggle = false;
 					
