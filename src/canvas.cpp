@@ -13,6 +13,7 @@
 @input_navigation
 @input_context
 @input_expression
+@input_expression_deletion
 @input_expression_literals
 @input_expression_operators
 @input_expression_letters
@@ -65,8 +66,13 @@ enum CanvasBind_{
 	CanvasBind_Navigation_ResetZoom = Key::NUMPAD0 | InputMod_None,
 	
 	//[LOCAL]  Expression
-	CanvasBind_Expression_Select = Key::MBLEFT  | InputMod_None, //pressed
-	CanvasBind_Expression_Create = Key::MBRIGHT | InputMod_None, //pressed
+	CanvasBind_Expression_Select       = Key::MBLEFT    | InputMod_None, //pressed
+	CanvasBind_Expression_Create       = Key::MBRIGHT   | InputMod_None,
+	CanvasBind_Expression_CursorDelete = Key::BACKSPACE | InputMod_None,
+	CanvasBind_Expression_CursorLeft   = Key::LEFT      | InputMod_None,
+	CanvasBind_Expression_CursorRight  = Key::RIGHT     | InputMod_None,
+	CanvasBind_Expression_CursorUp     = Key::UP        | InputMod_None,
+	CanvasBind_Expression_CursorDown   = Key::DOWN      | InputMod_None,
 	
 	//[LOCAL]  Pencil
 	CanvasBind_Pencil_Stroke             = Key::MBLEFT       | InputMod_Any, //pressed, held
@@ -278,6 +284,7 @@ void debug_print_term(const char* symbol, b32 is_cursor){
 //TODO this makes bad assumptions about the order of child nodes to operators
 //  fix this when we support left-dangling operators and term deletion
 //TODO remove duplication
+b32 active_expression = false;
 void draw_term(TNode* term, TNode* cursor){
 	debug_print_indent++;
 	switch(term->type){
@@ -285,7 +292,6 @@ void draw_term(TNode* term, TNode* cursor){
 			Expression2* expr = TermNodeToExpression(term);
 			if(term->child_count){
 				draw_term(term->first_child, cursor);
-				UI::SameLine();
 				UI::PushColor(UIStyleCol_Text, Color_Grey);
 				if(expr->equals && expr->valid){
 					UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
@@ -306,7 +312,7 @@ void draw_term(TNode* term, TNode* cursor){
 			switch(op->type){
 				case OpType_Addition:{
 					debug_print_term("+", term == cursor);
-					draw_term(term->first_child, cursor); UI::SameLine();
+					draw_term(term->first_child, cursor);
 					UI::Text("+", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
@@ -316,7 +322,7 @@ void draw_term(TNode* term, TNode* cursor){
 				
 				case OpType_Subtraction:{
 					debug_print_term("-", term == cursor);
-					draw_term(term->first_child, cursor); UI::SameLine();
+					draw_term(term->first_child, cursor);
 					UI::Text("-", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
@@ -326,7 +332,7 @@ void draw_term(TNode* term, TNode* cursor){
 				
 				case OpType_ExplicitMultiplication:{
 					debug_print_term("*", term == cursor);
-					draw_term(term->first_child, cursor); UI::SameLine();
+					draw_term(term->first_child, cursor);
 					UI::Text("*", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
@@ -336,7 +342,7 @@ void draw_term(TNode* term, TNode* cursor){
 				
 				case OpType_Division:{
 					debug_print_term("/", term == cursor);
-					draw_term(term->first_child, cursor); UI::SameLine();
+					draw_term(term->first_child, cursor);
 					UI::Text("/", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
@@ -346,11 +352,13 @@ void draw_term(TNode* term, TNode* cursor){
 				
 				case OpType_ExpressionEquals:{
 					debug_print_term("=", term == cursor);
-					draw_term(term->first_child, cursor); UI::SameLine();
+					draw_term(term->first_child, cursor);
 					UI::Text("=", UITextFlags_NoWrap);
 					if(term->child_count > 1){
 						UI::SameLine();
 						draw_term(term->last_child, cursor);
+					}else{
+						UI::SameLine();
 					}
 				}break;
 			}
@@ -364,10 +372,16 @@ void draw_term(TNode* term, TNode* cursor){
 				UI::SameLine();
 				UI::Text(".", UITextFlags_NoWrap); //TODO decimal config here
 			}
+			UI::SameLine();
 		}break;
 		
 		//case TermType_Variable:{}break;
 		//case TermType_FunctionCall:{}break;
+	}
+	
+	if(active_expression && term == cursor){
+		vec2 start = UI::GetLastItemPos() + UI::GetLastItemSize();
+		UI::Line(start, start - UI::GetLastItemSize().yComp(), 2);
 	}
 	debug_print_indent--;
 }
@@ -599,11 +613,11 @@ void update_canvas(){
 				
 				if(DeshInput->KeyPressed(CanvasBind_Expression_Create)){
 					Expression2* expression = (Expression2*)memory_alloc(sizeof(Expression2)); //TODO expression arena
-					expression->element.x = mouse_pos_world.x;
-					expression->element.y = mouse_pos_world.y;
-					expression->element.height = (320*camera_zoom) / (f32)DeshWindow->width; //160px in screen space
+					expression->element.x      = mouse_pos_world.x;
+					expression->element.y      = mouse_pos_world.y;
+					expression->element.height = (320*camera_zoom) / (f32)DeshWindow->width; //80px in screen space
 					expression->element.width  = expression->element.height / 2.0;
-					expression->element.type = ElementType_Expression;
+					expression->element.type   = ElementType_Expression;
 					
 					elements.add(&expression->element);
 					selected_element = &expression->element;
@@ -611,14 +625,43 @@ void update_canvas(){
 				
 				if(selected_element && selected_element->type == ElementType_Expression){
 					Expression2* expr = ElementToExpression(selected_element);
-					b32 first_term = expr->cursor == 0;
 					b32 ast_changed = false;
 					
+					//// @input_expression_deletion ////
+					if(DeshInput->KeyPressed(CanvasBind_Expression_CursorDelete) && expr->cursor){
+						switch(expr->cursor->type){
+							case TermType_Expression:{
+								//TODO expression deletion
+							}break;
+							case TermType_Operator:{
+								Operator* op = TermNodeToOperator(expr->cursor);
+								TNode* parent = expr->cursor->parent;
+								remove(expr->cursor);
+								memory_zfree(op);
+								//TODO cursor movement will mean non-right dangling nodes, so its not guarenteed a valid AST then
+								expr->valid = true;
+								expr->cursor = parent->last_child;
+								if(expr->cursor == &expr->node) expr->cursor = 0;
+							}break;
+							case TermType_Literal:{
+								Literal* lit = TermNodeToLiteral(expr->cursor);
+								TNode* parent = expr->cursor->parent;
+								remove(expr->cursor);
+								memory_zfree(lit);
+								expr->valid = false;
+								expr->cursor = parent;
+								if(expr->cursor == &expr->node) expr->cursor = 0;
+							}break;
+						}
+					}
+					
 					//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
+					//TODO maybe make the default cursor point to expression?
+					b32 first_term = expr->cursor == 0;
 					forI(DeshInput->charCount){
 						char input = DeshInput->charIn[i];
 						
-						////@input_expression_literals ////
+						//// @input_expression_literals ////
 						//TODO remove duplication
 						//TODO left-to-right and precedence is invalid currently when placing operator after a literal which is part of another operator
 						//  fix this by checking if a literal is a child of an existing operator, then check precedence in order to rearrage the AST
@@ -645,13 +688,14 @@ void update_canvas(){
 								lit->node.type = TermType_Literal;
 								insert_last(expr->cursor, &lit->node);
 								expr->cursor = &lit->node;
+								expr->valid = true;
+								
 								if(lit->decimal){ //we are appending as decimal values
 									lit->value = lit->value + (input-48)/pow(10,lit->decimal);
 									lit->decimal++;
 								}else{            //we are appending as integer values
 									lit->value = 10*lit->value + (input-48);
 								}
-								expr->valid = true;
 							}
 						}
 						else if(input == '.'){ //TODO comma in EU input mode
@@ -671,13 +715,14 @@ void update_canvas(){
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 								lit->node.type = TermType_Literal;
 								insert_last(expr->cursor, &lit->node);
-								if(lit->decimal == 0) lit->decimal = 1;
 								expr->cursor = &lit->node;
 								expr->valid = true;
+								
+								if(lit->decimal == 0) lit->decimal = 1;
 							}
 						}
 						
-						////@input_expression_operators ////
+						//// @input_expression_operators ////
 						else if(input == '+'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
@@ -719,7 +764,7 @@ void update_canvas(){
 							}
 						}
 						
-						////@input_expression_letters ////
+						//// @input_expression_letters ////
 						else if(isalpha(input)){
 							//TODO variables
 						}
@@ -771,7 +816,8 @@ void update_canvas(){
 	{//// @draw_elements ////
 		for(Element2* el : elements){
 			UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
-			UI::PushVar(UIStyleVar_FontHeight, 80);
+			UI::PushVar(UIStyleVar_FontHeight,       80);
+			UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
 			UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
 			UI::SetNextWindowPos(ToScreen(el->x, el->y));
 			UI::Begin(toStr("element_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
@@ -783,8 +829,10 @@ void update_canvas(){
 					UI::PushFont(math_font);
 					
 					Expression2* expr = ElementToExpression(el);
+					if(selected_element == el) active_expression = true;
 					draw_term(&expr->node, expr->cursor);
 					if(debug_print_toggle) Log("ast","---------------------------------");
+					active_expression  = false;
 					debug_print_toggle = false;
 					
 					UI::PopFont();
@@ -805,7 +853,7 @@ void update_canvas(){
 			
 			UI::End();
 			UI::PopScale();
-			UI::PopVar();
+			UI::PopVar(2);
 			UI::PopColor();
 		}
 	}

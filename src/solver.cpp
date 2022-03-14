@@ -3,7 +3,6 @@ f64 subtract(f64 a, f64 b){return a-b;}
 f64 multiply(f64 a, f64 b){return a*b;}
 f64   divide(f64 a, f64 b){return a/b;}
 
-//TODO remove duplication
 f64 solve(TNode* term){
 	switch(term->type){
 		case TermType_Expression:{ //TODO expression math
