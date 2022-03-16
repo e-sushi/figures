@@ -3,10 +3,10 @@ f64 subtract(f64 a, f64 b){return a-b;}
 f64 multiply(f64 a, f64 b){return a*b;}
 f64   divide(f64 a, f64 b){return a/b;}
 
-f64 solve(TNode* term){
+f64 solve(Term* term){
 	switch(term->type){
 		case TermType_Expression:{ //TODO expression math
-			Expression2* expr = TermNodeToExpression(term);
+			Expression2* expr = ExpressionFromTerm(term);
 			if(expr->valid){
 				expr->solution = solve(term->first_child);
 				return expr->solution;
@@ -16,7 +16,7 @@ f64 solve(TNode* term){
 		}break;
 		
 		case TermType_Operator:{
-			Operator* op = TermNodeToOperator(term);
+			Operator* op = OperatorFromTerm(term);
 			switch(op->type){
 				case OpType_ExplicitMultiplication:{
 					return multiply(solve(term->first_child), solve(term->last_child));
@@ -44,7 +44,7 @@ f64 solve(TNode* term){
 		}break;
 		
 		case TermType_Literal:{
-			Literal* lit = TermNodeToLiteral(term);
+			Literal* lit = LiteralFromTerm(term);
 			return lit->value;
 		}break;
 		

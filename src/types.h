@@ -305,6 +305,143 @@ struct Element2{
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
 
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @Term
+enum TermType_{
+	TermType_Expression,
+	TermType_Operator,
+	TermType_Literal,
+	//TermType_Variable,
+	//TermType_FunctionCall,
+}; typedef Type TermType;
+
+enum TermFlags_{
+	TermFlag_NONE = 0,
+	
+	//// operator argument flags //// //NOTE these flags are mainly used to determine empty slots on operators
+	TermFlag_OpArgLeft   = (1 << 0),
+	TermFlag_OpArgRight  = (1 << 1),
+	TermFlag_OpArgTop    = (1 << 2),
+	TermFlag_OpArgBottom = (1 << 3),
+#define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
+}; typedef Flags TermFlags;
+
+//term: generic base thing (literal, operator, variable, function call, etc)
+struct Term : TNode{
+	TermType  type;
+	TermFlags flags;
+	
+	Term* left;
+	Term* right;
+	Term* next;
+	Term* prev;
+	Term* parent;
+	Term* first_child;
+	Term* last_child;
+	u32   child_count;
+};
+
+global_ inline void insert_left(Term* target, Term* term){
+	term->right = target;
+	term->left = target->left;
+	target->left = term;
+}
+
+global_ inline void insert_right(Term* target, Term* term){
+	term->left = target;
+	term->right = target->right;
+	target->right = term;
+}
+
+global_ inline void insert_after(Term* target, Term* term) {
+	if(target->next) target->next->prev = term;
+	term->next = target->next;
+	term->prev = target;
+	target->next = term;
+}
+
+global_ inline void insert_before(Term* target, Term* term) {
+	if(target->prev) target->prev->next = term;
+	term->prev = target->prev;
+	term->next = target;
+	target->prev = term;
+}
+
+global_ inline void remove_horizontally(Term* term) {
+	if(term->next) term->next->prev = term->prev;
+	if(term->prev) term->prev->next = term->next;
+	term->next = term->prev = 0;
+}
+
+global_ void insert_last(Term* parent, Term* child) {
+	child->parent = parent;
+	if(parent->first_child){
+		insert_after(parent->last_child, child);
+		parent->last_child = child;
+	}else{
+		parent->first_child = child;
+		parent->last_child  = child;
+	}
+	parent->child_count++;
+}
+
+global_ void insert_first(Term* parent, Term* child) {
+	child->parent = parent;
+	if(parent->first_child){
+		insert_before(parent->first_child, child);
+		parent->first_child = child;
+	}else{
+		parent->first_child = child;
+		parent->last_child  = child;
+	}
+	parent->child_count++;
+}
+
+global_ void change_parent(Term* new_parent, Term* term) {
+	//if old parent, remove self from it 
+	if(term->parent){
+		if(term->parent->child_count > 1){
+			if(term == term->parent->first_child) term->parent->first_child = term->next;
+			if(term == term->parent->last_child)  term->parent->last_child  = term->prev;
+		}else{
+			Assert(term == term->parent->first_child && term == term->parent->last_child, "if term is the only child term, it should be both the first and last child terms");
+			term->parent->first_child = 0;
+			term->parent->last_child  = 0;
+		}
+		term->parent->child_count--;
+	}
+	
+	//remove self horizontally
+	remove_horizontally(term);
+	
+	//add self to new parent
+	insert_last(new_parent, term);
+}
+
+global_ void remove(Term* term) {
+	//add children to parent (and remove self from children)
+	for_node(term->first_child){
+		change_parent(term->parent, it);
+	}
+	
+	//remove self from parent
+	if(term->parent){
+		if(term->parent->child_count > 1){
+			if(term == term->parent->first_child) term->parent->first_child = term->next;
+			if(term == term->parent->last_child)  term->parent->last_child  = term->prev;
+		}else{
+			Assert(term == term->parent->first_child && term == term->parent->last_child, "if term is the only child term, it should be both the first and last child terms");
+			term->parent->first_child = 0;
+			term->parent->last_child  = 0;
+		}
+		term->parent->child_count--;
+	}
+	term->parent = 0;
+	
+	//remove self horizontally
+	remove_horizontally(term);
+}
+
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
 //// @Expression
@@ -312,36 +449,21 @@ struct Element2{
 struct Expression2{
 	Element2 element;
 	//Workspace* workspace;
-	TNode  node;
-	TNode* cursor;
-	//TNode* cursor_end;
-	TNode* equals;
+	Term  term;
+	Term* cursor;
+	//Term* cursor_end;
+	Term* equals;
 	b32 valid;
 	f64 solution;
 };
 #define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
-#define TermNodeToExpression(node_ptr) ((Expression2*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Expression2, node))))
-
-//term: generic base thing (literal, operator, variable, function call, etc)
-enum TermType : u32{
-	TermType_Expression,
-	TermType_Operator,
-	TermType_Literal,
-	//TermType_Variable,
-	//TermType_FunctionCall,
-};
-
-enum TermFlags : u32{
-	TermFlag_NONE = 0,
-	//TermFlag_ParenthesisLeft  = (1 << 0),
-	//TermFlag_ParenthesisRight = (1 << 1),
-};
+#define ExpressionFromTerm(term_ptr) ((Expression2*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression2, term))))
 
 //operator: symbol that represents an operation on one or many terms
 //NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
 //NOTE these are logical operators, not symbol-based operators
 //TODO try to find a way to store the number of arguments
-enum OpType : u32{
+enum OpType_{
 	OpType_NULL = 0,
 	
 	OpPrecedence_1  = (1 << 8),
@@ -411,26 +533,26 @@ enum OpType : u32{
 	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
 	
 	OpType_COUNT,
-};
-#define OPERATOR_PRECEDENCE_MASK 0xFFFFFF00
+}; typedef Type OpType;
+#define OPPRECEDENCE_MASK 0xFFFFFF00
 
 struct Operator{
-	TNode node;
+	Term term;
 	OpType type;
 	
 	//NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
-	inline b32 operator> (Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) <  (rhs->type & OPERATOR_PRECEDENCE_MASK); }
-	inline b32 operator>=(Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) <= (rhs->type & OPERATOR_PRECEDENCE_MASK); }
-	inline b32 operator< (Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) >  (rhs->type & OPERATOR_PRECEDENCE_MASK); }
-	inline b32 operator<=(Operator* rhs){ return (type & OPERATOR_PRECEDENCE_MASK) >= (rhs->type & OPERATOR_PRECEDENCE_MASK); }
+	inline b32 operator> (Operator* rhs){ return (type & OPPRECEDENCE_MASK) <  (rhs->type & OPPRECEDENCE_MASK); }
+	inline b32 operator>=(Operator* rhs){ return (type & OPPRECEDENCE_MASK) <= (rhs->type & OPPRECEDENCE_MASK); }
+	inline b32 operator< (Operator* rhs){ return (type & OPPRECEDENCE_MASK) >  (rhs->type & OPPRECEDENCE_MASK); }
+	inline b32 operator<=(Operator* rhs){ return (type & OPPRECEDENCE_MASK) >= (rhs->type & OPPRECEDENCE_MASK); }
 };
-#define TermNodeToOperator(node_ptr) ((Operator*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Operator, node))))
+#define OperatorFromTerm(term_ptr) ((Operator*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Operator, term))))
 
 struct Literal{
-	TNode node;
+	Term term;
 	f64 value;
 	u32 decimal;
 };
-#define TermNodeToLiteral(node_ptr) ((Literal*)((u8*)(node_ptr) - (upt)(OffsetOfMember(Literal, node))))
+#define LiteralFromTerm(term_ptr) ((Literal*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Literal, term))))
 
 #endif //SUUGU_TYPES_H
