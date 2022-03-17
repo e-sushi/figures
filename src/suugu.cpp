@@ -11,6 +11,15 @@ workspaces
 arbitrary text
 custom to_string for f64 since we want to have config on sigfigs and it only goes to 6 decimals (this may be accuracy limit for f64)
 
+`Config`
+--------
+decimal separator: comma vs point
+thousand separator: space vs comma vs point vs apostrophe
+
+`Input`
+-------
+cursor inside literals
+
 `Parser`
 --------
 implement a system for adding to an already existing AST tree
@@ -23,17 +32,12 @@ constants loader
 `Solver`
 --------
 
-`Config`
---------
-decimal separator: comma vs point
-thousand separator: space vs comma vs point
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
 (03/07/22) fix zoom in/out consistency
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
-(03/07/22) trying to create a new expression when the cursor of another expression is not at the edge causes double input
-(03/07/22) element hitbox does not match UI window size
+(03/15/22) element hitboxes are incorrect
 */
 
 #ifdef TRACY_ENABLE
