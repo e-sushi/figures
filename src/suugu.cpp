@@ -53,6 +53,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "core/assets.h"
 #include "core/commands.h"
 #include "core/console.h"
+#include "core/graphing.h"
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
@@ -128,7 +129,19 @@ int main(){
 		//TEST_deshi_core();
 		//TEST_kigu();
 	}
+
+	Graph g;
+	g.xAxisLabel = cstr("x");
+	g.yAxisLabel = cstr("y");
+	const u32 res = 500;
+	f64 xdata[res];
+	f64 ydata[res];
+
 	
+	g.xAxisData={xdata,res};
+	g.yAxisData={ydata,res};
+
+
 	//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
 	//	Render::RegisterChildWindow(1, child);
 	//	child->ShowWindow();
@@ -146,12 +159,49 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::F1 | InputMod_Lalt)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			
+			UI::Begin("graphe", vec2::ONE, vec2::ONE*600, UIWindowFlags_NoScroll);
+			//g.cameraZoom = (sin(DeshTotalTime/3) + 1) / 2 * 50;
+			//g.cameraPosition=50*vec2(sin(DeshTotalTime/10), cos(DeshTotalTime/10));
+			//g.xMajorLinesIncrement=BoundTimeOsc(0.1, 5);
+			//g.yMajorLinesIncrement=BoundTimeOsc(0.1, 5);
+			//UI::Text(toStr(g.cameraZoom).str);
+			//if(DeshInput->KeyDown(Key::SPACE))
+			g.xShowMinorLines=false;
+			g.yShowMinorLines=false;
+			f64 time = DeshTotalTime;
+			forI(res){
+				xdata[i] = 2*M_PId*f64(i)/res;
+				ydata[i] = exp(-xdata[i]*xdata[i])*sin(20*xdata[i]);
+			}
+
+
+			draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
+			static vec2 mp;
+			static vec2 gcp;
+			if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
+				UI::SetPreventInputs();
+				mp = DeshInput->mousePos;
+				gcp = g.cameraPosition;
+			}
+			if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
+				g.cameraPosition = gcp - (DeshInput->mousePos - mp) / g.dimensions_per_unit_length;
+			}
+			if(DeshInput->LMouseReleased()){
+				UI::SetAllowInputs();
+				mp=vec2::ONE*FLT_MAX;
+			}
+			g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
+			UI::Text("after the graph");
+			UI::End();
+			UI::Begin("renstats");{
+				Render::DisplayRenderStats();
+			}UI::End();
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
 			//UI::DemoWindow();
+			UI::ShowMetricsWindow();
 			//Storage::StorageBrowserUI();
 			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}

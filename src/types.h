@@ -224,23 +224,23 @@ struct Element{
 	Element() {};
 };
 
-struct Graph{
-	vec2f64 position{0,0};
-	vec2f64 dimensions{2,-1.25};
-	vec2f64 cameraPosition{0,0}; //in graph space
-	f64     cameraZoom = 5.0;
-	
-	f64 gridZoomFit               = 5.0;
-	f64 gridZoomFitIncrements[3]  = {2.0, 2.5, 2.0};
-	u32 gridZoomFitIncrementIndex = 0;
-	u32 gridMajorLinesCount       = 12;
-	f64 gridMajorLinesIncrement   = 1.0;
-	u32 gridMinorLinesCount       = 4;
-	f64 gridMinorLinesIncrement   = 0.2;
-	b32 gridShowMajorLines        = true;
-	b32 gridShowMinorLines        = true;
-	b32 gridShowAxisCoords        = true;
-};
+//struct Graph{
+//	vec2f64 position{0,0};
+//	vec2f64 dimensions{2,-1.25};
+//	vec2f64 cameraPosition{0,0}; //in graph space
+//	f64     cameraZoom = 5.0;
+//	
+//	f64 gridZoomFit               = 5.0;
+//	f64 gridZoomFitIncrements[3]  = {2.0, 2.5, 2.0};
+//	u32 gridZoomFitIncrementIndex = 0;
+//	u32 gridMajorLinesCount       = 12;
+//	f64 gridMajorLinesIncrement   = 1.0;
+//	u32 gridMinorLinesCount       = 4;
+//	f64 gridMinorLinesIncrement   = 0.2;
+//	b32 gridShowMajorLines        = true;
+//	b32 gridShowMinorLines        = true;
+//	b32 gridShowAxisCoords        = true;
+//};
 
 struct Canvas{
 	Element* activeElement = 0;

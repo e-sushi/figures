@@ -161,107 +161,107 @@ WorldViewArea(){
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @graph
-local vec2f64
-WorldToGraph(vec2f64 point, Graph* graph){
-	point += graph->cameraPosition;
-	point *= graph->cameraZoom;
-	return point;
-}FORCE_INLINE vec2f64 WorldToGraph(f64 x, f64 y, Graph* graph){ return WorldToGraph({x,y},graph); }
-
-local vec2f64
-GraphToWorld(vec2f64 point, Graph* graph){
-	point /= graph->cameraZoom;
-	point -= graph->cameraPosition;
-	return point;
-}FORCE_INLINE vec2f64 GraphToWorld(f64 x, f64 y, Graph* graph){ return GraphToWorld({x,y},graph); }
-
-inline vec2
-GraphToScreen(vec2f64 point, Graph* graph){
-	return ToScreen(GraphToWorld(point, graph));
-}FORCE_INLINE vec2 GraphToScreen(f64 x, f64 y, Graph* graph){ return GraphToScreen({x,y},graph); }
-
-local void 
-DrawGraphGrid(Graph* graph){
-	//draw border
-	vec2f64 tl_world = graph->position - (graph->dimensions/2.f); // -x, +y
-	vec2f64 br_world = graph->position + (graph->dimensions/2.f); // +x, -y
-	UI::Line(ToScreen(tl_world.x,tl_world.y), ToScreen(br_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
-	UI::Line(ToScreen(br_world.x,tl_world.y), ToScreen(br_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
-	UI::Line(ToScreen(br_world.x,br_world.y), ToScreen(tl_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
-	UI::Line(ToScreen(tl_world.x,br_world.y), ToScreen(tl_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
-	
-	vec2f64 tl = WorldToGraph(tl_world, graph);
-	vec2f64 br = WorldToGraph(br_world, graph);
-	//round to nearest multiple of major_increment (favoring away from zero)
-	f64 tl_x = floor(f64(tl.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-	f64 tl_y = ceil (f64(tl.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-	f64 br_x = ceil (f64(br.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-	f64 br_y = floor(f64(br.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-	
-	//draw grid lines //TODO try to combine these loops
-	//TODO fix the graph lines overlapping the border
-	for(f64 x = tl_x; x < br_x; x += graph->gridMajorLinesIncrement){
-		int minor_idx = 0;
-		
-		if(x >= tl.x && x <= br.x){
-			if(x == 0){
-				UI::Line(GraphToScreen(0,tl.y,graph), GraphToScreen(0,br.y,graph), 1, Color_Green);
-			}else if(0 >= br.y && 0 <= tl.y){
-				if(graph->gridShowMajorLines){
-					UI::Line(GraphToScreen(x,tl.y,graph), GraphToScreen(x,br.y,graph), 1, PackColorU32(255,255,255,64));
-					minor_idx = 1;
-				}
-				if(graph->gridShowAxisCoords){
-					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-					UI::Text(stringf("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
-					UI::PopColor();
-				}
-			}
-		}
-		
-		if(graph->gridShowMinorLines){
-			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
-				f64 minor_x = x + (minor_idx * graph->gridMinorLinesIncrement);
-				if(minor_x <= tl.x || minor_x >= br.x) continue;
-				UI::Line(GraphToScreen(minor_x,tl.y,graph), GraphToScreen(minor_x,br.y,graph), 1, PackColorU32(255,255,255,32));
-			}
-		}
-	}
-	for(f64 y = tl_y; y > br_y; y -= graph->gridMajorLinesIncrement){
-		int minor_idx = 0;
-		
-		if(y >= br.y && y <= tl.y){
-			if(y == 0){
-				UI::Line(GraphToScreen(tl.x,0,graph), GraphToScreen(br.x,0,graph), 1, Color_Red);
-			}else if(0 >= tl.x && 0 <= br.x){
-				if(graph->gridShowMajorLines){
-					UI::Line(GraphToScreen(tl.x,y,graph), GraphToScreen(br.x,y,graph), 1, PackColorU32(255,255,255,64));
-					minor_idx = 1;
-				}
-				if(graph->gridShowAxisCoords){
-					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-					UI::Text(stringf("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
-					UI::PopColor();
-				}
-			}
-		}
-		
-		if(graph->gridShowMinorLines){
-			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
-				f64 minor_y = y - (minor_idx * graph->gridMinorLinesIncrement);
-				if(minor_y <= br.y || minor_y >= tl.y) continue;
-				UI::Line(GraphToScreen(tl.x,minor_y,graph), GraphToScreen(br.x,minor_y,graph), 1, PackColorU32(255,255,255,32));
-			}
-		}
-	}
-	
-	//draw zero text
-	if(0 >= tl.x && 0 <= br.x && 0 >= br.y && 0 <= tl.y){
-		UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-		UI::Text("0", GraphToScreen(0,0,graph), UITextFlags_NoWrap);
-		UI::PopColor();
-	}
-}
+//local vec2f64
+//WorldToGraph(vec2f64 point, Graph* graph){
+//	point += graph->cameraPosition;
+//	point *= graph->cameraZoom;
+//	return point;
+//}FORCE_INLINE vec2f64 WorldToGraph(f64 x, f64 y, Graph* graph){ return WorldToGraph({x,y},graph); }
+//
+//local vec2f64
+//GraphToWorld(vec2f64 point, Graph* graph){
+//	point /= graph->cameraZoom;
+//	point -= graph->cameraPosition;
+//	return point;
+//}FORCE_INLINE vec2f64 GraphToWorld(f64 x, f64 y, Graph* graph){ return GraphToWorld({x,y},graph); }
+//
+//inline vec2
+//GraphToScreen(vec2f64 point, Graph* graph){
+//	return ToScreen(GraphToWorld(point, graph));
+//}FORCE_INLINE vec2 GraphToScreen(f64 x, f64 y, Graph* graph){ return GraphToScreen({x,y},graph); }
+//
+//local void 
+//DrawGraphGrid(Graph* graph){
+//	//draw border
+//	vec2f64 tl_world = graph->position - (graph->dimensions/2.f); // -x, +y
+//	vec2f64 br_world = graph->position + (graph->dimensions/2.f); // +x, -y
+//	UI::Line(ToScreen(tl_world.x,tl_world.y), ToScreen(br_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
+//	UI::Line(ToScreen(br_world.x,tl_world.y), ToScreen(br_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
+//	UI::Line(ToScreen(br_world.x,br_world.y), ToScreen(tl_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
+//	UI::Line(ToScreen(tl_world.x,br_world.y), ToScreen(tl_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
+//	
+//	vec2f64 tl = WorldToGraph(tl_world, graph);
+//	vec2f64 br = WorldToGraph(br_world, graph);
+//	//round to nearest multiple of major_increment (favoring away from zero)
+//	f64 tl_x = floor(f64(tl.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
+//	f64 tl_y = ceil (f64(tl.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
+//	f64 br_x = ceil (f64(br.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
+//	f64 br_y = floor(f64(br.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
+//	
+//	//draw grid lines //TODO try to combine these loops
+//	//TODO fix the graph lines overlapping the border
+//	for(f64 x = tl_x; x < br_x; x += graph->gridMajorLinesIncrement){
+//		int minor_idx = 0;
+//		
+//		if(x >= tl.x && x <= br.x){
+//			if(x == 0){
+//				UI::Line(GraphToScreen(0,tl.y,graph), GraphToScreen(0,br.y,graph), 1, Color_Green);
+//			}else if(0 >= br.y && 0 <= tl.y){
+//				if(graph->gridShowMajorLines){
+//					UI::Line(GraphToScreen(x,tl.y,graph), GraphToScreen(x,br.y,graph), 1, PackColorU32(255,255,255,64));
+//					minor_idx = 1;
+//				}
+//				if(graph->gridShowAxisCoords){
+//					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+//					UI::Text(stringf("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
+//					UI::PopColor();
+//				}
+//			}
+//		}
+//		
+//		if(graph->gridShowMinorLines){
+//			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
+//				f64 minor_x = x + (minor_idx * graph->gridMinorLinesIncrement);
+//				if(minor_x <= tl.x || minor_x >= br.x) continue;
+//				UI::Line(GraphToScreen(minor_x,tl.y,graph), GraphToScreen(minor_x,br.y,graph), 1, PackColorU32(255,255,255,32));
+//			}
+//		}
+//	}
+//	for(f64 y = tl_y; y > br_y; y -= graph->gridMajorLinesIncrement){
+//		int minor_idx = 0;
+//		
+//		if(y >= br.y && y <= tl.y){
+//			if(y == 0){
+//				UI::Line(GraphToScreen(tl.x,0,graph), GraphToScreen(br.x,0,graph), 1, Color_Red);
+//			}else if(0 >= tl.x && 0 <= br.x){
+//				if(graph->gridShowMajorLines){
+//					UI::Line(GraphToScreen(tl.x,y,graph), GraphToScreen(br.x,y,graph), 1, PackColorU32(255,255,255,64));
+//					minor_idx = 1;
+//				}
+//				if(graph->gridShowAxisCoords){
+//					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+//					UI::Text(stringf("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
+//					UI::PopColor();
+//				}
+//			}
+//		}
+//		
+//		if(graph->gridShowMinorLines){
+//			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
+//				f64 minor_y = y - (minor_idx * graph->gridMinorLinesIncrement);
+//				if(minor_y <= br.y || minor_y >= tl.y) continue;
+//				UI::Line(GraphToScreen(tl.x,minor_y,graph), GraphToScreen(br.x,minor_y,graph), 1, PackColorU32(255,255,255,32));
+//			}
+//		}
+//	}
+//	
+//	//draw zero text
+//	if(0 >= tl.x && 0 <= br.x && 0 >= br.y && 0 <= tl.y){
+//		UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
+//		UI::Text("0", GraphToScreen(0,0,graph), UITextFlags_NoWrap);
+//		UI::PopColor();
+//	}
+//}
 
 //////////////
 //// @ast ////
