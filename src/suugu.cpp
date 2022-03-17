@@ -38,7 +38,6 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (03/07/22) fix zoom in/out consistency
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
 (03/15/22) element hitboxes are incorrect
-(03/15/22) term deletion chunks together operators of greater precedence (test by backspacing: 1+2*3+4)
 */
 
 #ifdef TRACY_ENABLE

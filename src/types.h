@@ -353,27 +353,33 @@ global_ inline void insert_right(Term* target, Term* term){
 	target->right = term;
 }
 
-global_ inline void insert_after(Term* target, Term* term) {
+global_ inline void remove_leftright(Term* term){
+	if(term->right) term->right->left = term->left;
+	if(term->left)  term->left->right = term->right;
+	term->right = term->left = 0;
+}
+
+global_ inline void insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;
 	term->next = target->next;
 	term->prev = target;
 	target->next = term;
 }
 
-global_ inline void insert_before(Term* target, Term* term) {
+global_ inline void insert_before(Term* target, Term* term){
 	if(target->prev) target->prev->next = term;
 	term->prev = target->prev;
 	term->next = target;
 	target->prev = term;
 }
 
-global_ inline void remove_horizontally(Term* term) {
+global_ inline void remove_horizontally(Term* term){
 	if(term->next) term->next->prev = term->prev;
 	if(term->prev) term->prev->next = term->next;
 	term->next = term->prev = 0;
 }
 
-global_ void insert_last(Term* parent, Term* child) {
+global_ void insert_last(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
 		insert_after(parent->last_child, child);
@@ -385,7 +391,7 @@ global_ void insert_last(Term* parent, Term* child) {
 	parent->child_count++;
 }
 
-global_ void insert_first(Term* parent, Term* child) {
+global_ void insert_first(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
 		insert_before(parent->first_child, child);
@@ -397,7 +403,7 @@ global_ void insert_first(Term* parent, Term* child) {
 	parent->child_count++;
 }
 
-global_ void change_parent(Term* new_parent, Term* term) {
+global_ void change_parent(Term* new_parent, Term* term){
 	//if old parent, remove self from it 
 	if(term->parent){
 		if(term->parent->child_count > 1){
@@ -418,7 +424,7 @@ global_ void change_parent(Term* new_parent, Term* term) {
 	insert_last(new_parent, term);
 }
 
-global_ void remove(Term* term) {
+global_ void remove(Term* term){
 	//add children to parent (and remove self from children)
 	for_node(term->first_child){
 		change_parent(term->parent, it);

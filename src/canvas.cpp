@@ -651,11 +651,12 @@ void update_canvas(){
 							case TermType_Expression:{
 								//TODO expression deletion
 							}break;
-							case TermType_Operator:{ //TODO TermFlag_OpArg
+							case TermType_Operator:{
 								ast_changed = true;
 								Operator* op = OperatorFromTerm(expr->cursor);
-								Term* parent = expr->cursor->parent;
+								Term* left = expr->cursor->left;
 								remove(expr->cursor);
+								remove_leftright(expr->cursor);
 								memory_zfree(op);
 								//TODO cursor movement will mean non-right dangling terms, so its not guarenteed a valid AST then
 								if(expr->cursor == expr->equals){
@@ -663,16 +664,17 @@ void update_canvas(){
 								}else{
 									expr->valid = true;
 								}
-								expr->cursor = parent->last_child; //TODO fix = operator
+								expr->cursor = left;
 							}break;
-							case TermType_Literal:{ //TODO TermFlag_OpArg
+							case TermType_Literal:{
 								ast_changed = true;
 								Literal* lit = LiteralFromTerm(expr->cursor);
-								Term* parent = expr->cursor->parent;
+								Term* left = expr->cursor->left;
 								remove(expr->cursor);
+								remove_leftright(expr->cursor);
 								memory_zfree(lit);
 								expr->valid = false;
-								expr->cursor = parent;
+								expr->cursor = left;
 							}break;
 						}
 					}
