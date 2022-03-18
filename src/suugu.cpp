@@ -129,16 +129,9 @@ int main(){
 	g.xAxisLabel = cstr("x");
 	g.yAxisLabel = cstr("y");
 	const u32 res = 1000;
-	f64 xdata[res];
-	f64 ydata[res];
+	vec2g data[res];
+	g.data={data,res};
 
-	g.xAxisData={xdata,res};
-	g.yAxisData={ydata,res};
-
-	//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
-	//	Render::RegisterChildWindow(1, child);
-	//	child->ShowWindow();
-	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -165,8 +158,8 @@ int main(){
 			f64 time = DeshTotalTime;
 			forI(res){
 				f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
-				xdata[i] = alignment;
-				ydata[i] = sin(xdata[i]);
+				data[i].x = alignment;
+				data[i].y = sin(data[i].x);
 			}
 
 
