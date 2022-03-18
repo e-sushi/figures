@@ -81,9 +81,6 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #include "solver.cpp"
 #include "canvas.cpp"
 
-
-
-
 //#include "kigu/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
 //#include "kigu/misc_testing.cpp"
@@ -102,12 +99,6 @@ f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
 		if (abs(func(x2)) < tol) return x2;
 		if (it++ > 3000) return x2;
 	}
-}
-
-void RandBusyWork(u32 time){
-	DPZoneScoped;
-	PRINTLN("working for " << time << " ms");
-	WaitFor(time);
 }
 
 int main(){
@@ -137,14 +128,12 @@ int main(){
 	Graph g;
 	g.xAxisLabel = cstr("x");
 	g.yAxisLabel = cstr("y");
-	const u32 res = 500;
+	const u32 res = 1000;
 	f64 xdata[res];
 	f64 ydata[res];
 
-	
 	g.xAxisData={xdata,res};
 	g.yAxisData={ydata,res};
-
 
 	//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
 	//	Render::RegisterChildWindow(1, child);
@@ -170,12 +159,14 @@ int main(){
 			//g.yMajorLinesIncrement=BoundTimeOsc(0.1, 5);
 			//UI::Text(toStr(g.cameraZoom).str);
 			//if(DeshInput->KeyDown(Key::SPACE))
+			
 			g.xShowMinorLines=false;
 			g.yShowMinorLines=false;
 			f64 time = DeshTotalTime;
 			forI(res){
-				xdata[i] = 2*M_PId*f64(i)/res;
-				ydata[i] = exp(-xdata[i]*xdata[i])*sin(20*xdata[i]);
+				f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
+				xdata[i] = alignment;
+				ydata[i] = sin(xdata[i]);
 			}
 
 
@@ -197,9 +188,6 @@ int main(){
 			g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
 			UI::Text("after the graph");
 			UI::End();
-			UI::Begin("renstats");{
-				Render::DisplayRenderStats();
-			}UI::End();
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
