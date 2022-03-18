@@ -120,24 +120,24 @@ int main(){
 	//init suugu
 	init_canvas();
 	
-	{//init debug
-		//TEST_deshi_core();
-		//TEST_kigu();
-	}
-
+	//init debug
+	//TEST_deshi_core();
+	//TEST_kigu();
+#if 0
 	Graph g;
 	g.xAxisLabel = cstr("x");
 	g.yAxisLabel = cstr("y");
 	const u32 res = 1000;
 	f64 xdata[res];
 	f64 ydata[res];
-
+	
 	g.xAxisData={xdata,res};
 	g.yAxisData={ydata,res};
-
+	
 	//	Window* child = DeshWindow->MakeChild("haha", 500, 500, 10, 10);
 	//	Render::RegisterChildWindow(1, child);
 	//	child->ShowWindow();
+#endif
 	
 	//start main loop
 	TIMER_START(t_f);
@@ -152,6 +152,8 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::F1 | InputMod_Lalt)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
+			
+#if 0
 			UI::Begin("graphe", vec2::ONE, vec2::ONE*600, UIWindowFlags_NoScroll);
 			//g.cameraZoom = (sin(DeshTotalTime/3) + 1) / 2 * 50;
 			//g.cameraPosition=50*vec2(sin(DeshTotalTime/10), cos(DeshTotalTime/10));
@@ -168,8 +170,8 @@ int main(){
 				xdata[i] = alignment;
 				ydata[i] = sin(xdata[i]);
 			}
-
-
+			
+			
 			draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 			static vec2 mp;
 			static vec2 gcp;
@@ -188,12 +190,13 @@ int main(){
 			g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
 			UI::Text("after the graph");
 			UI::End();
+#endif
+			
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
 			//vector_field();
 			//UI::DemoWindow();
-			UI::ShowMetricsWindow();
 			//Storage::StorageBrowserUI();
 			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 		}
