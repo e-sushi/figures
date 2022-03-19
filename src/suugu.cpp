@@ -38,6 +38,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 (03/07/22) fix zoom in/out consistency
 (03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
 (03/15/22) element hitboxes are incorrect
+(03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommonds() (vulkan) when you reopen the window
 */
 
 #ifdef TRACY_ENABLE
@@ -101,53 +102,66 @@ f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
 	}
 }
 
-b32 init = 0;
 void graph_testing(){
-	persist const u32 res = 1000;
+	persist b32 init = 0;
+	persist const u32 res = 300;
 	persist Graph g;
-	persist vec2g data[res];
+	persist array<vec2g> data;
+	//TODO only actually resize when OSWindow size changes
+	data.resize(DeshWinSize.x);
+	if(!data.count)return;
 	if(!init){
 		g.xAxisLabel = cstr("x");
 		g.yAxisLabel = cstr("y");
-		g.data={data,res};
+		init=1;
 	}
 	else{
-			UI::Begin("graphe", vec2::ONE, vec2::ONE*600, UIWindowFlags_NoScroll);
-			//g.cameraZoom = (sin(DeshTotalTime/3) + 1) / 2 * 50;
-			//g.cameraPosition=50*vec2(sin(DeshTotalTime/10), cos(DeshTotalTime/10));
-			//g.xMajorLinesIncrement=BoundTimeOsc(0.1, 5);
-			//g.yMajorLinesIncrement=BoundTimeOsc(0.1, 5);
-			//UI::Text(toStr(g.cameraZoom).str);
-			//if(DeshInput->KeyDown(Key::SPACE))
-			
-			g.xShowMinorLines=false;
-			g.yShowMinorLines=false;
-			f64 time = DeshTotalTime;
-			forI(res){
-				f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
-				data[i].x = alignment;
-				data[i].y = sin(data[i].x);
-			}
-			
-			
-			draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
-			static vec2 mp;
-			static vec2 gcp;
-			if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
-				UI::SetPreventInputs();
-				mp = DeshInput->mousePos;
-				gcp = g.cameraPosition;
-			}
-			if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
-				g.cameraPosition = gcp - (DeshInput->mousePos - mp) / g.dimensions_per_unit_length;
-			}
-			if(DeshInput->LMouseReleased()){
-				UI::SetAllowInputs();
-				mp=vec2::ONE*FLT_MAX;
-			}
-			g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
-			UI::Text("after the graph");
-			UI::End();
+		UI::Begin("graphe", vec2::ONE, vec2::ONE*600, UIWindowFlags_NoScroll);
+		u32 res = UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2;
+		g.data={data.data,res};
+		g.xShowMinorLines=false;
+		g.yShowMinorLines=false;
+		f64 t = DeshTotalTime;
+		persist f64 floorer = 1/3.0; 
+		persist f64 floored = 1;
+		if(DeshInput->KeyPressed(Key::UP)) floorer += 0.1;
+		if(DeshInput->KeyPressed(Key::DOWN)) floorer -= 0.1;
+
+		UI::Text(toStr("  cpos", g.cameraPosition).str);
+		UI::Text(toStr("czoom ", g.cameraZoom).str);
+
+		forI(res){
+			f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
+			f64& x = data[i].x;
+			f64& y = data[i].y;
+			x = alignment;
+			y = floor(x * floorer) / floorer;
+		}
+		
+		
+		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
+		UIItem* gr = UI::GetLastItem();
+		
+
+		static vec2 mp;
+		static vec2 gcp;
+		if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
+			UI::SetPreventInputs();
+			mp = DeshInput->mousePos;
+			gcp = g.cameraPosition;
+		}
+		if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
+			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / g.dimensions_per_unit_length;
+		}
+		if(DeshInput->LMouseReleased()){
+			UI::SetAllowInputs();
+			mp=vec2::ONE*FLT_MAX;
+		}
+		UI::Circle(gr->position+gr->size/2, 4, 1, 20, Color_Cyan);
+		
+		g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
+		UI::Text("after the graph");
+		UI::End();
 
 	}
 }
@@ -186,9 +200,9 @@ int main(){
 		update_canvas();
 		{//update debug
 			persist b32 show_metrics = false;
-			if(DeshInput->KeyPressed(Key::F1 | InputMod_Lalt)) ToggleBool(show_metrics);
+			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			//graph_testing();
+			graph_testing();
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
