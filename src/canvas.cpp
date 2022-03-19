@@ -266,141 +266,6 @@ WorldViewArea(){
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @ast
-#define PRINT_AST true
-local s32 debug_print_indent = -1;
-local b32 debug_print_toggle = false;
-#if PRINT_AST
-void debug_print_term(const char* symbol, b32 is_cursor, Term* term){
-	if(debug_print_toggle){
-		string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
-		char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? " L"
-			: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? " R"
-			: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? " T"
-			: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? " B"
-			: "  ";
-		char* cursor = (is_cursor) ? " <- ": "    ";
-		Log("ast", indent, symbol, arg, cursor, term->left,",",term,",",term->right);
-	}
-}
-#else
-#  define debug_print_term(symbol,is_cursor,left) (void)0
-#endif
-
-//TODO this makes bad assumptions about the order of child terms to operators
-//  fix this when we support left-dangling operators and term deletion
-//TODO remove duplication
-b32 active_expression = false;
-void draw_term(Term* term, Term* cursor){
-	vec2 cursor_start;
-	f32 cursor_y;
-	
-	debug_print_indent++;
-	switch(term->type){
-		case TermType_Expression:{
-			Expression2* expr = ExpressionFromTerm(term);
-			UI::Text(" ", UITextFlags_NoWrap);
-			cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y; 
-			UI::SameLine();
-			if(term->child_count){
-				draw_term(term->first_child, cursor);
-				UI::PushColor(UIStyleCol_Text, Color_Grey);
-				if(expr->equals && expr->valid){
-					debug_print_term(to_string(expr->solution, true, deshi_temp_allocator).str, term == cursor, term);
-					UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-					UI::SameLine();
-				}else if(expr->solution != MAX_F32 && term->first_child->type != TermType_Literal && expr->valid){
-					debug_print_term((string("=", deshi_temp_allocator) + to_string(expr->solution, true, deshi_temp_allocator)).str, term == cursor, term);
-					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
-					UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-					UI::SameLine();
-				}
-				UI::PopColor();
-			}
-			UI::Text(" ", UITextFlags_NoWrap);
-		}break;
-		
-		case TermType_Operator:{
-			Operator* op = OperatorFromTerm(term);
-			switch(op->type){
-				case OpType_Addition:{
-					debug_print_term("+", term == cursor, term);
-					draw_term(term->first_child, cursor);
-					UI::Text("+", UITextFlags_NoWrap);
-					cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-					UI::SameLine();
-					if(term->child_count > 1){
-						draw_term(term->last_child, cursor);
-					}
-				}break;
-				
-				case OpType_Subtraction:{
-					debug_print_term("-", term == cursor, term);
-					draw_term(term->first_child, cursor);
-					UI::Text("-", UITextFlags_NoWrap);
-					cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-					UI::SameLine();
-					if(term->child_count > 1){
-						draw_term(term->last_child, cursor);
-					}
-				}break;
-				
-				case OpType_ExplicitMultiplication:{
-					debug_print_term("*", term == cursor, term);
-					draw_term(term->first_child, cursor);
-					UI::Text("*", UITextFlags_NoWrap);
-					cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-					UI::SameLine();
-					if(term->child_count > 1){
-						draw_term(term->last_child, cursor);
-					}
-				}break;
-				
-				case OpType_Division:{
-					debug_print_term("/", term == cursor, term);
-					draw_term(term->first_child, cursor);
-					UI::Text("/", UITextFlags_NoWrap);
-					cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-					UI::SameLine();
-					if(term->child_count > 1){
-						draw_term(term->last_child, cursor);
-					}
-				}break;
-				
-				case OpType_ExpressionEquals:{
-					debug_print_term("=", term == cursor, term);
-					draw_term(term->first_child, cursor);
-					UI::Text("=", UITextFlags_NoWrap);
-					cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-					UI::SameLine();
-					if(term->child_count > 1){
-						draw_term(term->last_child, cursor);
-					}
-				}break;
-			}
-		}break;
-		
-		case TermType_Literal:{
-			Literal* lit = LiteralFromTerm(term);
-			debug_print_term(to_string(lit->value, true, deshi_temp_allocator).str, term == cursor, term);
-			UI::Text(to_string(lit->value, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-			if(lit->decimal == 1){
-				UI::SameLine();
-				UI::Text(".", UITextFlags_NoWrap); //TODO decimal config here
-			}
-			UI::SameLine();
-			cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-		}break;
-		
-		//case TermType_Variable:{}break;
-		//case TermType_FunctionCall:{}break;
-	}
-	debug_print_indent--;
-	
-	if(active_expression && term == cursor){
-		UI::Line(cursor_start, cursor_start - vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
-	}
-}
-
 Operator* make_operator(OpType type, Term* cursor){
 	Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
 	op->type = type;
@@ -431,6 +296,98 @@ Operator* make_operator(OpType type, Term* cursor){
 	return op;
 }
 
+//return false if the AST of the expression is invalid, true otherwise
+b32 expression_is_valid(Expression2* expr){
+	Term* term = &expr->term;
+	while(term){
+		switch(term->type){
+			case TermType_Expression:{
+				if(term->right == 0  || term->right->type == TermType_Operator || term->child_count > 1){
+					//TODO unary operators
+					//TODO nested expressions
+					return false;
+				}
+				if(term->child_count == 1 && term->first_child->type == TermType_Literal) return false;
+			}break;
+			case TermType_Operator:{
+				Operator* op = OperatorFromTerm(term);
+				switch(op->type){
+					//// two arg operators ////
+					case OpType_ExplicitMultiplication:
+					case OpType_Division:
+					case OpType_Addition:
+					case OpType_Subtraction:
+					{
+						if(term->child_count != 2) return false;
+						if(term->left == 0  || term->left->type  != TermType_Literal) return false;
+						if(term->right == 0 || term->right->type != TermType_Literal) return false;
+					}break;
+					
+					//// special operators ////
+					case OpType_ExpressionEquals:{
+						//TODO right side of equals
+						//NOTE case TermType_Expression above handles when = is first term
+						if(term->left == 0) return false;
+					}break;
+				}
+			}break;
+		}
+		term = term->right;
+	}
+	return true;
+}
+
+#define PRINT_AST true
+#if PRINT_AST
+local s32 debug_print_indent = -1;
+void debug_print_term(Term* term, Term* cursor){
+	debug_print_indent++;
+	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
+	char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? " L"
+		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? " R"
+		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? " T"
+		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? " B"
+		: "  ";
+	char* cursor_str = (term == cursor) ? " <- ": "    ";
+	
+	switch(term->type){
+		case TermType_Expression:{
+			Expression2* expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				for_node(term->first_child) debug_print_term(it, cursor);
+				if(expr->valid){
+					if(expr->equals){
+						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator).str, arg, cursor_str, term->left,",",term,",",term->right);
+					}else if(expr->solution != MAX_F32){
+						Log("ast", indent, (string("=", deshi_temp_allocator) + to_string(expr->solution, true, deshi_temp_allocator)).str, arg, cursor_str, term->left,",",term,",",term->right);
+					}
+				}
+			}
+		}break;
+		
+		case TermType_Operator:{
+			switch(OperatorFromTerm(term)->type){
+				case OpType_Addition:              { Log("ast", indent, "+", arg, cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_Subtraction:           { Log("ast", indent, "-", arg, cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_Division:              { Log("ast", indent, "/", arg, cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, cursor_str, term->left,",",term,",",term->right); }break;
+			}
+			for_node(term->first_child) debug_print_term(it, cursor);
+		}break;
+		
+		case TermType_Literal:{
+			Log("ast", indent, to_string(LiteralFromTerm(term)->value, true, deshi_temp_allocator).str, arg, cursor_str, term->left,",",term,",",term->right);
+		}break;
+		
+		//case TermType_Variable:{}break;
+		//case TermType_FunctionCall:{}break;
+	}
+	debug_print_indent--;
+}
+#else
+#  define debug_print_term(term,cursor) (void)0
+#endif
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
@@ -530,7 +487,7 @@ void update_canvas(){
 			}
 	}*/
 		
-#if 1
+#if 1 //NOTE temp ui
 		if(active_tool == CanvasTool_Pencil){
 			UI::Begin("pencil_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
 			UI::TextF("Stroke Size:   %f", pencil_stroke_size);
@@ -636,6 +593,7 @@ void update_canvas(){
 					expr->element.type   = ElementType_Expression;
 					expr->term.type = TermType_Expression;
 					expr->cursor = &expr->term;
+					expr->term_count = 1;
 					
 					elements.add(&expr->element);
 					selected_element = &expr->element;
@@ -651,30 +609,98 @@ void update_canvas(){
 							case TermType_Expression:{
 								//TODO expression deletion
 							}break;
-							case TermType_Operator:{
+							case TermType_Operator:{ //TODO non-binary/non-linear operators
 								ast_changed = true;
 								Operator* op = OperatorFromTerm(expr->cursor);
-								Term* left = expr->cursor->left;
-								remove(expr->cursor);
-								remove_leftright(expr->cursor);
-								memory_zfree(op);
-								//TODO cursor movement will mean non-right dangling terms, so its not guarenteed a valid AST then
-								if(expr->cursor == expr->equals){
-									expr->equals = 0;
-								}else{
-									expr->valid = true;
+								
+								if(expr->cursor->right){
+									//change parents of operator children
+									if(expr->cursor->child_count){
+										if(   expr->cursor->left == expr->cursor->first_child
+										   && expr->cursor->left->left
+										   && expr->cursor->left->left->type == TermType_Operator 
+										   && *op >= OperatorFromTerm(expr->cursor->left->left)){
+											remove_from_parent(expr->cursor->left);
+											remove_horizontally(expr->cursor->left);
+											insert_last(expr->cursor->left->left, expr->cursor->left);
+											RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+											AddFlag(expr->cursor->left->flags, TermFlag_OpArgRight);
+										}
+										if(   expr->cursor->right == expr->cursor->last_child
+										   && expr->cursor->right->right 
+										   && expr->cursor->right->right->type == TermType_Operator 
+										   && *op >= OperatorFromTerm(expr->cursor->right->right)){
+											remove_from_parent(expr->cursor->right);
+											remove_horizontally(expr->cursor->right);
+											insert_first(expr->cursor->right->right, expr->cursor->right);
+											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+											AddFlag(expr->cursor->right->flags, TermFlag_OpArgLeft);
+										}
+									}
+									
+									//separate the sides of the expression
+									if(expr->cursor->left){
+										Term* it = expr->cursor->left;
+										while(it->parent && it->parent->linear < expr->cursor->linear) it = it->parent;
+										if(it != &expr->term){
+											change_parent(&expr->term, it);
+											RemoveFlag(it->flags, OPARG_MASK);
+										}
+									}
+									Term* it = expr->cursor->right;
+									while(it->parent && it->parent->linear > expr->cursor->linear) it = it->parent;
+									if(it != &expr->term){
+										change_parent(&expr->term, it);
+										RemoveFlag(it->flags, OPARG_MASK);
+									}
 								}
-								expr->cursor = left;
+								
+								//remove this operator from AST
+								remove(expr->cursor);
+								expr->cursor = expr->cursor->left;
+								remove_leftright(expr->cursor->right);
+								
+								//update expression
+								if(expr->cursor == expr->equals) expr->equals = 0;
+								for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
+								expr->term_count--;
+								
+								memory_zfree(op);
 							}break;
 							case TermType_Literal:{
 								ast_changed = true;
 								Literal* lit = LiteralFromTerm(expr->cursor);
-								Term* left = expr->cursor->left;
+								
+								//TODO other cases
+								if(expr->cursor->right && expr->cursor->left->type == TermType_Operator){
+									Operator* left_op = OperatorFromTerm(expr->cursor->left);
+									if(expr->cursor->right->type == TermType_Literal){
+										//TODO loop right while <
+										if(expr->cursor->right->parent->type == TermType_Operator && *left_op < OperatorFromTerm(expr->cursor->right->parent)){
+											Term* it = expr->cursor->right;
+											while(it->parent != &expr->term) it = it->parent;
+											change_parent(expr->cursor->parent, it);
+											RemoveFlag(it->flags, OPARG_MASK);
+											AddFlag(it->flags, TermFlag_OpArgRight);
+										}else{
+											change_parent(expr->cursor->parent, expr->cursor->right);
+											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+											AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+										}
+									}else{
+										LogW("ast","not implemented: lit deletion when right type is: ",expr->cursor->right->type);
+									}
+								}
+								
+								//remove this literal from AST
 								remove(expr->cursor);
-								remove_leftright(expr->cursor);
+								expr->cursor = expr->cursor->left;
+								remove_leftright(expr->cursor->right);
+								
+								//update expression
+								for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
+								expr->term_count--;
 								memory_zfree(lit);
-								expr->valid = false;
-								expr->cursor = left;
 							}break;
 						}
 					}
@@ -690,20 +716,19 @@ void update_canvas(){
 					}
 					
 					//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
-					//TODO maybe make the default cursor point to expression?
 					b32 first_term = (expr->cursor == &expr->term);
 					forI(DeshInput->charCount){
 						char input = DeshInput->charIn[i];
 						
 						//// @input_expression_literals ////
 						//TODO remove duplication
-						//TODO left-to-right and precedence is invalid currently when placing operator after a literal which is part of another operator
-						//  fix this by checking if a literal is a child of an existing operator, then check precedence in order to rearrage the AST
+						//TODO in-the-middle insertion
 						if(isdigit(input)){
 							if(first_term){
 								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-								lit->term.type = TermType_Literal;
+								lit->term.type   = TermType_Literal;
+								lit->term.linear = expr->term_count++;
 								insert_first(&expr->term, &lit->term);
 								insert_right(&expr->term, &lit->term);
 								expr->cursor = &lit->term;
@@ -717,15 +742,15 @@ void update_canvas(){
 								}else{            //we are appending as integer values
 									lit->value = 10*lit->value + (input-48);
 								}
-							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
+							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
 								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-								lit->term.type  = TermType_Literal;
-								lit->term.flags = TermFlag_OpArgRight;
+								lit->term.type   = TermType_Literal;
+								lit->term.flags  = TermFlag_OpArgRight;
+								lit->term.linear = expr->term_count++;
 								insert_last(expr->cursor, &lit->term);
 								insert_right(expr->cursor, &lit->term);
 								expr->cursor = &lit->term;
-								expr->valid = true;
 								
 								if(lit->decimal){ //we are appending as decimal values
 									lit->value = lit->value + (input-48)/pow(10,lit->decimal);
@@ -739,7 +764,8 @@ void update_canvas(){
 							if(first_term){
 								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-								lit->term.type = TermType_Literal;
+								lit->term.type   = TermType_Literal;
+								lit->term.linear = expr->term_count++;
 								insert_first(&expr->term, &lit->term);
 								insert_right(&expr->term, &lit->term);
 								expr->cursor = &lit->term;
@@ -748,61 +774,66 @@ void update_canvas(){
 							if(expr->cursor->type == TermType_Literal){
 								Literal* lit = LiteralFromTerm(expr->cursor);
 								if(lit->decimal == 0) lit->decimal = 1;
-							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary operators
+							}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
 								ast_changed = true;
 								Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-								lit->term.type  = TermType_Literal;
-								lit->term.flags = TermFlag_OpArgRight;
+								lit->term.type   = TermType_Literal;
+								lit->term.flags  = TermFlag_OpArgRight;
+								lit->term.linear = expr->term_count++;
 								insert_last(expr->cursor, &lit->term);
 								insert_right(expr->cursor, &lit->term);
 								expr->cursor = &lit->term;
-								expr->valid = true;
 								
 								if(lit->decimal == 0) lit->decimal = 1;
 							}
 						}
+						else if(input == 'e' || input == 'E'){
+							//TODO exponential literal input
+						}
 						
 						//// @input_expression_operators ////
+						//TODO in-the-middle insertion
 						else if(input == '+'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
 								Operator* op = make_operator(OpType_Addition, expr->cursor);
+								op->term.linear = expr->term_count++;
 								insert_right(expr->cursor, &op->term);
 								expr->cursor = &op->term;
-								expr->valid = false;
 							}
 						}
 						else if(input == '-'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
 								Operator* op = make_operator(OpType_Subtraction, expr->cursor);
+								op->term.linear = expr->term_count++;
 								insert_right(expr->cursor, &op->term);
 								expr->cursor = &op->term;
-								expr->valid = false;
 							}
 						}
 						else if(input == '*'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
 								Operator* op = make_operator(OpType_ExplicitMultiplication, expr->cursor);
+								op->term.linear = expr->term_count++;
 								insert_right(expr->cursor, &op->term);
 								expr->cursor = &op->term;
-								expr->valid = false;
 							}
 						}
 						else if(input == '/'){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
 								Operator* op = make_operator(OpType_Division, expr->cursor);
+								op->term.linear = expr->term_count++;
 								insert_right(expr->cursor, &op->term);
 								expr->cursor = &op->term;
-								expr->valid = false;
 							}
 						}
 						else if(input == '='){
 							if(!first_term && expr->cursor->type == TermType_Literal){
 								ast_changed = true;
 								Operator* op = make_operator(OpType_ExpressionEquals, expr->cursor);
+								op->term.linear = expr->term_count++;
 								insert_right(expr->cursor, &op->term);
 								expr->cursor = &op->term;
 								expr->equals = &op->term;
@@ -816,8 +847,12 @@ void update_canvas(){
 					}
 					
 					if(ast_changed){
-						debug_print_toggle = true;
+						expr->valid  = expression_is_valid(expr);
 						solve(&expr->term);
+#if PRINT_AST
+						debug_print_term(&expr->term, expr->cursor);
+						Log("ast","---------------------------------");
+#endif
 					}
 				}
 			}break;
@@ -873,12 +908,72 @@ void update_canvas(){
 				case ElementType_Expression:{
 					UI::PushFont(math_font);
 					
+					//draw terms from left to right
 					Expression2* expr = ElementToExpression(el);
-					if(selected_element == el) active_expression = true;
-					draw_term(&expr->term, expr->cursor);
-					if(debug_print_toggle) Log("ast","---------------------------------");
-					active_expression  = false;
-					debug_print_toggle = false;
+					Term* term = &expr->term;
+					vec2 cursor_start;
+					f32 cursor_y;
+					while(term){
+						switch(term->type){
+							case TermType_Expression:{
+								UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+							}break;
+							
+							case TermType_Operator:{
+								Operator* op = OperatorFromTerm(term);
+								switch(op->type){
+									case OpType_ExplicitMultiplication:{
+										UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
+									}break;
+									case OpType_Division:{
+										UI::Text("/", UITextFlags_NoWrap); UI::SameLine();
+									}break;
+									case OpType_Addition:{
+										UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
+									}break;
+									case OpType_Subtraction:{
+										UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
+									}break;
+									case OpType_ExpressionEquals:{
+										UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+									}break;
+								}
+							}break;
+							
+							case TermType_Literal:{
+								if(term->left && term->left->type == TermType_Literal){
+									UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+								}
+								
+								Literal* lit = LiteralFromTerm(term);
+								UI::Text(to_string(lit->value, true, deshi_temp_allocator).str, UITextFlags_NoWrap); UI::SameLine();
+								if(lit->decimal == 1){
+									UI::Text(".", UITextFlags_NoWrap); UI::SameLine(); //TODO decimal config here
+								}
+							}break;
+						}
+						
+						if(selected_element == el && term == expr->cursor){
+							cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
+							UI::Line(cursor_start, cursor_start - vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
+						}
+						term = term->right;
+					}
+					
+					//draw solution if its valid
+					if(expr->valid && expr->term.child_count){
+						UI::PushColor(UIStyleCol_Text, Color_Grey);
+						if(expr->equals){
+							UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+							UI::SameLine();
+						}else if(expr->solution != MAX_F32 && expr->term.first_child->type != TermType_Literal){
+							UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+							UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+							UI::SameLine();
+						}
+						UI::PopColor();
+					}
+					UI::Text(" ", UITextFlags_NoWrap);
 					
 					UI::PopFont();
 				}break;
