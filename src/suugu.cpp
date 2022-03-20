@@ -126,10 +126,10 @@ void graph_testing(){
 		persist f64 floored = 1;
 		if(DeshInput->KeyPressed(Key::UP)) floorer += 0.1;
 		if(DeshInput->KeyPressed(Key::DOWN)) floorer -= 0.1;
-
+		
 		UI::Text(toStr("  cpos", g.cameraPosition).str);
 		UI::Text(toStr("czoom ", g.cameraZoom).str);
-
+		
 		forI(res){
 			f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
 			f64& x = data[i].x;
@@ -142,7 +142,7 @@ void graph_testing(){
 		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 		UIItem* gr = UI::GetLastItem();
 		
-
+		
 		static vec2 mp;
 		static vec2 gcp;
 		if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
@@ -162,7 +162,7 @@ void graph_testing(){
 		g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
 		UI::Text("after the graph");
 		UI::End();
-
+		
 	}
 }
 
@@ -188,7 +188,7 @@ int main(){
 	//init debug
 	//TEST_deshi_core();
 	//TEST_kigu();
-
+	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -202,7 +202,7 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			graph_testing();
+			//graph_testing();
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();

@@ -327,6 +327,7 @@ enum TermFlags_{
 }; typedef Flags TermFlags;
 
 //term: generic base thing (literal, operator, variable, function call, etc)
+//TODO maybe union operator and literal structs into this?
 struct Term{
 	TermType  type;
 	TermFlags flags;
@@ -418,17 +419,24 @@ global_ void remove_from_parent(Term* term){
 	term->parent = 0;
 }
 
-global_ void change_parent(Term* new_parent, Term* term){
+global_ void change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
 	insert_last(new_parent, term);
 }
 
+global_ void change_parent_insert_first(Term* new_parent, Term* term){
+	if(new_parent == term->parent) return;
+	remove_from_parent(term);
+	remove_horizontally(term);
+	insert_first(new_parent, term);
+}
+
 global_ void remove(Term* term){
 	for(Term* it = term->first_child; it != 0; ) {
 		Term* next = it->next;
-		change_parent(term->parent, it);
+		change_parent_insert_last(term->parent, it);
 		it = next;
 	}
 	remove_from_parent(term);

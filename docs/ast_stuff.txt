@@ -1,7 +1,7 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 in-the middle term deletion (linear binary ops)
----------------------------------------------------------------------
 
+---------------------------------------------------------------------
 left op is lesser, no right op
       V          V          V
 1 + 2 * 3    1 + 2   3    1 + 3    
@@ -94,7 +94,38 @@ nested left op is greater, no right op
 1->2) delete op
 
 ---------------------------------------------------------------------
-nested left op is lesser, nested right op is lesser
+left op is equal, right op is equal
+      V              V              V
+1 + 2 + 3 + 4    1 + 2   3 + 4    1 + 3 + 4
+1___2            1___2   3___4    1___3
+  +_____3          +_______+        +_____4
+      +_____4          E                +
+          +                           E
+      E
+1->2) left child changes parent to left operator (insert_last, right arg)
+1->2) right child changes parent to expression (insert_last, remove arg)
+1->2) delete op
+2->3) right literal changes parent to lit parent (insert_last, right arg)
+2->3) lit parent changes parent to right literal's old parent (insert_first, left arg)
+2->3) delete lit
+
+---------------------------------------------------------------------
+left op is equal, right op is equal, right lit deletion
+      V                  V            V
+1 + 2 + 3 + 4    1 + 2   3 + 4    1 + 2 + 4
+1___2            1___2   3___4    1___2
+  +_____3          +_______+        +_____4
+      +_____4          E                +
+          +                           E
+      E
+1->2) left child changes parent to left operator (insert_last, right arg)
+1->2) right child changes parent to expression (insert_last, remove arg)
+1->2) delete op
+2->3) left lit parent changes parent to lit parent (insert_first, left arg)
+2->3) delete lit
+
+---------------------------------------------------------------------
+left op is lesser, right op is lesser
       V              V              V
 1 + 2 * 3 + 4    1 + 2   3 + 4    1 + 3 + 4
     2___3        1___2   3___4    1___3
@@ -112,7 +143,7 @@ nested left op is lesser, nested right op is lesser
 2->3) delete lit
 
 ---------------------------------------------------------------------
-nested left op is lesser, nested right op is equal
+left op is lesser, right op is equal
       V              V              V
 1 + 2 * 3 * 4    1 + 2   3 * 4    1 + 3 * 4
     2___3        1___2   3___4        3___4
@@ -129,7 +160,25 @@ nested left op is lesser, nested right op is equal
 2->3) delete lit
 
 ---------------------------------------------------------------------
-nested left op is greater, nested right op is greater
+left op is lesser, right op is equal, right lit deletion
+      V                  V            V
+1 + 2 * 3 * 4    1 + 2   3 * 4    1 + 2 * 4
+    2___3        1___2   3___4        2___4
+      *_____4      +_______*      1_____*
+1_________*            E            +
+  +                                   E
+      E
+1->2) left child changes parent to left operator (insert_last, right arg)
+1->2) right child changes parent to right operator (insert_first, left arg)
+1->2) left side's parentmost changes parent to expression (insert_last, no arg)
+1->2) right side's parentmost changes parent to expression (insert_last, no arg)
+1->2) delete op
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) right op changes parent to left op (insert_last, right arg)
+2->3) delete lit
+
+---------------------------------------------------------------------
+left op is greater, right op is greater
       V              V              V
 1 * 2 + 3 * 4    1 * 2   3 * 4    1 * 3 * 4
 1___2   3___4    1___2   3___4    1___3
@@ -144,7 +193,7 @@ nested left op is greater, nested right op is greater
 2->3) delete lit
 
 ---------------------------------------------------------------------
-nested nested left op is lesser, nested nested right op is lesser
+nested left op is lesser, nested right op is lesser
           V                      V                      V
 1 + 2 + 3 * 4 + 5 + 6    1 + 2 + 3   4 + 5 + 6    1 + 2 + 4 + 5 + 6
 1___2   3___4            1___2       4___5        1___2
@@ -163,7 +212,7 @@ nested nested left op is lesser, nested nested right op is lesser
 2->3) delete lit
 
 ---------------------------------------------------------------------
-nested left op is lesser, nested nested right op is equal then greater
+left op is lesser, nested right op is equal then greater
       V                  V                  V
 1 + 2 * 3 * 4 ^ 5    1 + 2   3 * 4 ^ 5    1 + 3 * 4 ^ 5
     2___3   4___5                4___5            4___5
@@ -180,7 +229,7 @@ nested left op is lesser, nested nested right op is equal then greater
 2->3) delete lit
 
 ---------------------------------------------------------------------
-nested left op is equal then greater, nested nested right op is lesser
+nested left op is equal then greater, right op is lesser
           V                  V                  V
 1 ^ 2 * 3 * 4 + 5    1 ^ 2 * 3   4 + 5    1 ^ 2 * 4 + 5
 1___2                1___2                1___2
@@ -197,5 +246,174 @@ nested left op is equal then greater, nested nested right op is lesser
 2->3) right literal changes parent to lit parent (insert_last, right arg)
 2->3) lit parent changes parent to right literal's old parent (insert_first, left arg)
 2->3) delete lit
+
+---------------------------------------------------------------------
+literal deletion, left op is equal, right op is equal
+    V          V          V
+1 + 2 + 3    1 +   + 3    1 + 3    
+1___2        1___         1___3
+  +_____3      +_____3      +
+      +          E          E
+    E
+1->2) delete lit
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, left op is equal, right op is equal
+    V              V        V
+1 + 2 + 3    1 +   + 3    1 + 3    
+1___2        1___         1___3
+  +_____3      +_____3      +
+      +          E          E
+    E
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_last, right arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, left op is lesser, right op is greater
+    V          V          V
+1 + 2 * 3    1 +   * 3    1 * 3    
+    2___3         ___3    1___3
+1_____*      1_____*        *
+  +            +            E
+    E            E
+1->2) delete lit
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, left op is lesser, right op is greater
+    V              V        V
+1 + 2 * 3    1 +   * 3    1 + 3    
+    2___3         ___3    1___3
+1_____*      1_____*        +
+  +            +            E
+    E            E
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, nested left op greater, right op lesser
+        V              V              V
+1 + 2 * 3 + 4    1 + 2 *   + 4    1 + 2 + 4
+    2___3            2___         1___2
+1_____*          1_____*            +_____4
+  +_________4      +_________4          +
+          +            E              E
+      E
+1->2) delete lit
+2->3) left lit changes parent to left op (insert_last, right arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, nested left op greater, right op lesser
+        V                  V          V
+1 + 2 * 3 + 4    1 + 2 *   + 4    1 + 2 * 4
+    2___3            2___             2___4
+1_____*          1_____*          1_____*
+  +_________4      +_________4      +
+          +            E              E
+      E
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, nested left op less, right op greater
+        V              V              V
+1 + 2 + 3 * 4    1 + 2 +   * 4    1 + 2 * 4
+1___2   3___4    1___2    ___4        2___4
+  +_______*        +_______*      1_____*
+      +                +            +
+      E                E              E
+1->2) delete lit
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, nested left op less, right op greater
+        V                  V            V
+1 + 2 + 3 * 4    1 + 2 +   * 4    1 + 2 + 4
+1___2   3___4    1___2    ___4    1___2
+  +_______*        +_______*        +_____4
+      +                +                +
+      E                E              E
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_last, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, nested left op less, nested right op greater
+        V                  V                  V
+1 + 2 + 3 * 4 * 5    1 + 2 +   * 4 * 5    1 + 2 * 4 * 5
+        3___4                 ___4            2___4
+1___2     *_____5    1___2     *_____5          *_____5
+  +___________*        +___________*      1_________*
+      +                    +                +
+       E                    E                   E
+1->2) delete lit
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) right op's parentmost changes parent to left op (insert_last, right arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, nested left op greater, nested right op less
+        V                      V                V
+1 * 2 * 3 + 4 + 5    1 * 2 *   + 4 + 5    1 * 2 * 4 + 5
+1___2                1___2                1___2
+  *_____3   4___5      *_____    4___5      *_____4
+      *_______+            *_______+            *_____5
+          +                    +                    +
+        E                    E                  E
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_last, right arg)
+2->3) left op's parentmost changes parent to right op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, nested left op greater, nested right op less
+        V                      V                V
+1 + 2 * 3 + 4 + 5    1 + 2 *   + 4 + 5    1 + 2 * 4 + 5
+    2___3                2___                 2___4
+1_____*              1_____*              1_____*
+  +_________4          +_________4          +_________5
+          +_____5              +_____5              +
+              +                    +            E
+        E                    E            
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_last, right arg)
+2->3) left op's parentmost changes parent to right op (insert_first, left arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, nested left op equal, right op equal
+        V              V              V
+1 + 2 * 3 * 4    1 + 2 *   * 4    1 + 2 * 4
+    2___3            2___             2___4
+      *_____4          *_____4    1_____*
+1_________*      1_________*        +
+  +                +                  E
+      E                E          
+1->2) delete lit
+2->3) left lit changes parent to right op (insert_first, left arg)
+2->3) right op's parentmost changes parent to left op (insert_last, right arg)
+2->3) delete op
+
+---------------------------------------------------------------------
+literal deletion, right op deletion, nested left op equal, right op equal
+        V                      V                V
+1 + 2 * 3 * 4 + 5    1 + 2 *   * 4 + 5    1 + 2 * 4 + 5
+    2___3                2___                 2___4
+      *_____4              *_____4        1_____*
+1_________*          1_________*            +_________5
+  +_____________5      +_____________5              +
+              +                    +            E
+        E                    E            
+1->2) delete lit
+2->3) right lit changes parent to left op (insert_last, right arg)
+2->3) delete op
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
