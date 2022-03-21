@@ -187,6 +187,7 @@ union vec2f64{
 	inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;}
 	inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};}
 	inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;}
+	inline vec2f64 operator/ (vec2f64 rhs){return {x/rhs.x,y/rhs.y};}
 	inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};}
 	inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;}
 	inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};}
@@ -416,13 +417,14 @@ global_ void remove_from_parent(Term* term){
 		term->parent->last_child  = 0;
 	}
 	term->parent->child_count--;
-	term->parent = 0;
 }
 
 global_ void change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
+	
+	//add self to new parent
 	insert_last(new_parent, term);
 }
 

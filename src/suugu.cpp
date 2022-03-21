@@ -131,7 +131,7 @@ void graph_testing(){
 		}
 		
 		
-		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
+		draw_graph(&g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 		UIItem* gr = UI::GetLastItem();
 		
 		
