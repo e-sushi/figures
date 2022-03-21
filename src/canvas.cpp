@@ -442,7 +442,7 @@ void update_canvas(){
 		camera_zoom -= (camera_zoom / 10.0) * DeshInput->scrollY;
 		camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 	}
-
+	
 	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
 		if(selected_element && selected_element->type != ElementType_Graph){
 			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
@@ -973,7 +973,7 @@ void update_canvas(){
 			//// @draw_elements_expression
 			case ElementType_Expression:{
 				UI::PushFont(math_font);
-			
+				
 				//draw terms from left to right
 				Expression2* expr = ElementToExpression(el);
 				Term* term = &expr->term;
@@ -1057,8 +1057,7 @@ void update_canvas(){
 			//// @draw_elements_graph
 			case ElementType_Graph:{
 				GraphElement* ge = ElementToGraphElement(el);
-				Graph* e = ge->graph;
-				draw_graph(e, vec2g{ge->element.x, ge->element.y});
+				draw_graph(*ge->graph, vec2g{ge->element.x, ge->element.y});
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////

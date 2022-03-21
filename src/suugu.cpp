@@ -119,9 +119,9 @@ void graph_testing(){
 		UI::Begin("graphe", vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
 		u32 res = Min(DeshWinSize.x, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
 		g.data={data.data,res};
-
+		
 		f64 t = DeshTotalTime;
-
+		
 		forI(res){
 			f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
 			f64& x = data[i].x;
@@ -131,7 +131,7 @@ void graph_testing(){
 		}
 		
 		
-		draw_graph(&g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
+		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 		UIItem* gr = UI::GetLastItem();
 		
 		
@@ -194,7 +194,7 @@ int main(){
 			if(show_metrics) UI::ShowMetricsWindow();
 			graph_testing();
 			using namespace UI;
-
+			
 #if 0
 			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
 				UIItem* item = BeginCustomItem();{
@@ -202,20 +202,20 @@ int main(){
 					persist u64 numlines = 1;
 					if(DeshInput->KeyDown(Key::UP)) numlines += 1;
 					if(DeshInput->KeyDown(Key::DOWN)) numlines = Max((numlines - 1), u64(0));
-
+					
 					forI(numlines){
 						CustomItem_DCMakeLine(dc,
-							vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
-							vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
-							1,
-							color(0, f32(i)/100*255, 155)
-						);
+											  vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
+											  vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
+											  1,
+											  color(0, f32(i)/100*255, 155)
+											  );
 					}
 					CustomItem_AddDrawCmd(item,dc);
 				}EndCustomItem();
 			}End();
 			Begin("renstats");
-				Render::DisplayRenderStats();
+			Render::DisplayRenderStats();
 			End();
 #endif	
 			//draw_pixels();
