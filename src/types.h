@@ -187,6 +187,7 @@ union vec2f64{
 	inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;}
 	inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};}
 	inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;}
+	inline vec2f64 operator/ (vec2f64 rhs){return {x/rhs.x,y/rhs.y};}
 	inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};}
 	inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;}
 	inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};}
@@ -267,7 +268,7 @@ enum ElementType : u32{
 	ElementType_NULL,
 	ElementType_Expression,
 	//ElementType_Workspace,
-	//ElementType_Graph,
+	ElementType_Graph,
 	//ElementType_Text,
 };
 
@@ -289,11 +290,11 @@ struct Element2{
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
-//struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
-//Element2 element;
-//Graph* graph;
-//};
-//#define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
+struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
+	Element2 element;
+	Graph* graph;
+};
+#define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
 
 //struct TextElement{
 //Element2 element;
@@ -416,13 +417,14 @@ global_ void remove_from_parent(Term* term){
 		term->parent->last_child  = 0;
 	}
 	term->parent->child_count--;
-	term->parent = 0;
 }
 
 global_ void change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
+	
+	//add self to new parent
 	insert_last(new_parent, term);
 }
 

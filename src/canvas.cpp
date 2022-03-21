@@ -393,11 +393,14 @@ void debug_print_term(Term* term, Term* cursor){
 //// @canvas
 local array<Element2*> elements(deshi_allocator);
 local Element2* selected_element;
+local GraphElement* activeGraph;
 local vec2f64 mouse_pos_world;
 local Font* math_font;
+local GraphElement defgraph; //temp default graph
 
 void init_canvas(){
 	//TODO default graph
+	//	   when we fix that render bug
 	
 	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
@@ -439,31 +442,14 @@ void update_canvas(){
 		camera_zoom -= (camera_zoom / 10.0) * DeshInput->scrollY;
 		camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 	}
-	/*if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
+
+	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
 		if(selected_element && selected_element->type != ElementType_Graph){
 			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
 			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 		}
 		else{
-			activeGraph->cameraZoom -= activeGraph->cameraZoom / 10.0; 
-			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
-			
-			f32 prev_grid_zoom_fit = 0;
-			if(activeGraph->gridZoomFitIncrementIndex == 0){
-				prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[2];
-			}else{
-				prev_grid_zoom_fit = activeGraph->gridZoomFit / activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex - 1];
-			}
-			
-			if(activeGraph->cameraZoom < (prev_grid_zoom_fit + activeGraph->gridMajorLinesIncrement)){
-				activeGraph->gridZoomFit                = prev_grid_zoom_fit;
-				activeGraph->gridMajorLinesIncrement    = activeGraph->gridZoomFit / 5.0;
-				activeGraph->gridMinorLinesCount        = (activeGraph->gridZoomFitIncrementIndex == 2) ? 3 : 4;
-				activeGraph->gridMinorLinesIncrement    = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
-				activeGraph->gridZoomFitIncrementIndex -= 1;
-				if(activeGraph->gridZoomFitIncrementIndex == -1) activeGraph->gridZoomFitIncrementIndex = 2;
-				Assert(activeGraph->gridZoomFitIncrementIndex < 3);
-			}
+			activeGraph->graph->cameraZoom -= 0.2*activeGraph->graph->cameraZoom*DeshInput->scrollY;
 		}
 	}
 	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomIn | InputMod_None) && !UI::AnyWinHovered()){
@@ -472,19 +458,9 @@ void update_canvas(){
 			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 		}
 		else{
-			activeGraph->cameraZoom += activeGraph->cameraZoom / 10.0; 
-			activeGraph->cameraZoom  = Clamp(activeGraph->cameraZoom, 1e-37, 1e37);
-			
-			if(activeGraph->cameraZoom > (activeGraph->gridZoomFit + activeGraph->gridMajorLinesIncrement)){
-				activeGraph->gridZoomFit              *= activeGraph->gridZoomFitIncrements[activeGraph->gridZoomFitIncrementIndex];
-				activeGraph->gridMajorLinesIncrement   = activeGraph->gridZoomFit / 5.0;
-				activeGraph->gridMinorLinesCount       = (activeGraph->gridZoomFitIncrementIndex == 0) ? 3 : 4;
-				activeGraph->gridMinorLinesIncrement   = activeGraph->gridMajorLinesIncrement / f32(activeGraph->gridMinorLinesCount + 1);
-				activeGraph->gridZoomFitIncrementIndex = (activeGraph->gridZoomFitIncrementIndex + 1) % 3;
-				Assert(activeGraph->gridZoomFitIncrementIndex < 3);
-			}
+			activeGraph->graph->cameraZoom -= 0.2*activeGraph->graph->cameraZoom*DeshInput->scrollY;
 		}
-}*/
+	}
 	
 #if 1 //NOTE temp ui
 	if(active_tool == CanvasTool_Pencil){
@@ -519,40 +495,36 @@ void update_canvas(){
 			if(DeshInput->KeyPressed(CanvasBind_Navigation_Pan)){
 				camera_pan_active = true;
 				camera_pan_mouse_pos = DeshInput->mousePos;
-				
-				camera_pan_start_pos = camera_pos; //TEMP until graph is reimplemented
-				/*if(!activeGraph){
+				if(!activeGraph){
 					camera_pan_start_pos = camera_pos;
 				}else{
-					camera_pan_start_pos = activeGraph->cameraPosition;
-				}*/
+					camera_pan_start_pos = vec2f64{activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y};
+				}
 			}
 			if(DeshInput->KeyDown(CanvasBind_Navigation_Pan)){
-				camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world); //TEMP until graph is reimplemented
-				/*if(!activeGraph){
+				if(!activeGraph){
 					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
 				}else{
-					activeGraph->cameraPosition = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-				}*/
+					Graph*  g = activeGraph->graph;
+					g->cameraPosition = vec2g{camera_pan_start_pos.x, camera_pan_start_pos.y} - (vec2g{mouse_pos_world.x, mouse_pos_world.y} - vec2g{camera_pan_mouse_pos.x, camera_pan_mouse_pos.y}) / vec2g{g->dimensions_per_unit_length.x, g->dimensions_per_unit_length.y*g->aspect_ratio};
+				}
 			}
 			if(DeshInput->KeyReleased(CanvasBind_Navigation_Pan)){
 				camera_pan_active = false;
 			}
 			if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetPos)){
-				camera_pos = {0,0}; //TEMP until graph is reimplemented
-				/*if(!activeGraph){
+				if(!activeGraph){
 					camera_pos = {0,0};
 				}else{
-					activeGraph->cameraPosition = {0,0};
-				}*/
+					activeGraph->graph->cameraPosition = {0,0};
+				}
 			}
 			if(DeshInput->KeyPressed(CanvasBind_Navigation_ResetZoom)){
-				camera_zoom = 1.0; //TEMP until graph is reimplemented
-				/*if(!activeGraph){
+				if(!activeGraph){
 					camera_zoom = 1.0;
 				}else{
-					activeGraph->cameraZoom = 1.0;
-				}*/
+					activeGraph->graph->cameraZoom = 5.0;
+				}
 			}
 		}break;
 		
@@ -1001,7 +973,7 @@ void update_canvas(){
 			//// @draw_elements_expression
 			case ElementType_Expression:{
 				UI::PushFont(math_font);
-				
+			
 				//draw terms from left to right
 				Expression2* expr = ElementToExpression(el);
 				Term* term = &expr->term;
@@ -1083,7 +1055,11 @@ void update_canvas(){
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_graph
-			//case ElementType_Graph:{}break;
+			case ElementType_Graph:{
+				GraphElement* ge = ElementToGraphElement(el);
+				Graph* e = ge->graph;
+				draw_graph(e, vec2g{ge->element.x, ge->element.y});
+			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_workspace
