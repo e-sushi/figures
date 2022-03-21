@@ -144,6 +144,7 @@ void graph_testing(){
 		}
 		if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
 			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / (g.dimensions_per_unit_length*g.aspect_ratio);
+			//Log("test",g.cameraPosition.x," ",g.cameraPosition.y);
 		}
 		if(DeshInput->LMouseReleased()){
 			UI::SetAllowInputs();
@@ -192,10 +193,10 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			graph_testing();
-			using namespace UI;
+			//graph_testing();
 			
 #if 0
+			using namespace UI;
 			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
 				UIItem* item = BeginCustomItem();{
 					UIDrawCmd dc;

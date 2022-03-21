@@ -160,111 +160,6 @@ WorldViewArea(){
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
-//// @graph
-//local vec2f64
-//WorldToGraph(vec2f64 point, Graph* graph){
-//	point += graph->cameraPosition;
-//	point *= graph->cameraZoom;
-//	return point;
-//}FORCE_INLINE vec2f64 WorldToGraph(f64 x, f64 y, Graph* graph){ return WorldToGraph({x,y},graph); }
-//
-//local vec2f64
-//GraphToWorld(vec2f64 point, Graph* graph){
-//	point /= graph->cameraZoom;
-//	point -= graph->cameraPosition;
-//	return point;
-//}FORCE_INLINE vec2f64 GraphToWorld(f64 x, f64 y, Graph* graph){ return GraphToWorld({x,y},graph); }
-//
-//inline vec2
-//GraphToScreen(vec2f64 point, Graph* graph){
-//	return ToScreen(GraphToWorld(point, graph));
-//}FORCE_INLINE vec2 GraphToScreen(f64 x, f64 y, Graph* graph){ return GraphToScreen({x,y},graph); }
-//
-//local void 
-//DrawGraphGrid(Graph* graph){
-//	//draw border
-//	vec2f64 tl_world = graph->position - (graph->dimensions/2.f); // -x, +y
-//	vec2f64 br_world = graph->position + (graph->dimensions/2.f); // +x, -y
-//	UI::Line(ToScreen(tl_world.x,tl_world.y), ToScreen(br_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
-//	UI::Line(ToScreen(br_world.x,tl_world.y), ToScreen(br_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
-//	UI::Line(ToScreen(br_world.x,br_world.y), ToScreen(tl_world.x,br_world.y), 1, PackColorU32(255,255,255,128));
-//	UI::Line(ToScreen(tl_world.x,br_world.y), ToScreen(tl_world.x,tl_world.y), 1, PackColorU32(255,255,255,128));
-//	
-//	vec2f64 tl = WorldToGraph(tl_world, graph);
-//	vec2f64 br = WorldToGraph(br_world, graph);
-//	//round to nearest multiple of major_increment (favoring away from zero)
-//	f64 tl_x = floor(f64(tl.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-//	f64 tl_y = ceil (f64(tl.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-//	f64 br_x = ceil (f64(br.x) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-//	f64 br_y = floor(f64(br.y) / graph->gridMajorLinesIncrement) * graph->gridMajorLinesIncrement;
-//	
-//	//draw grid lines //TODO try to combine these loops
-//	//TODO fix the graph lines overlapping the border
-//	for(f64 x = tl_x; x < br_x; x += graph->gridMajorLinesIncrement){
-//		int minor_idx = 0;
-//		
-//		if(x >= tl.x && x <= br.x){
-//			if(x == 0){
-//				UI::Line(GraphToScreen(0,tl.y,graph), GraphToScreen(0,br.y,graph), 1, Color_Green);
-//			}else if(0 >= br.y && 0 <= tl.y){
-//				if(graph->gridShowMajorLines){
-//					UI::Line(GraphToScreen(x,tl.y,graph), GraphToScreen(x,br.y,graph), 1, PackColorU32(255,255,255,64));
-//					minor_idx = 1;
-//				}
-//				if(graph->gridShowAxisCoords){
-//					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-//					UI::Text(stringf("%g",x).str, GraphToScreen(x,0,graph), UITextFlags_NoWrap);
-//					UI::PopColor();
-//				}
-//			}
-//		}
-//		
-//		if(graph->gridShowMinorLines){
-//			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
-//				f64 minor_x = x + (minor_idx * graph->gridMinorLinesIncrement);
-//				if(minor_x <= tl.x || minor_x >= br.x) continue;
-//				UI::Line(GraphToScreen(minor_x,tl.y,graph), GraphToScreen(minor_x,br.y,graph), 1, PackColorU32(255,255,255,32));
-//			}
-//		}
-//	}
-//	for(f64 y = tl_y; y > br_y; y -= graph->gridMajorLinesIncrement){
-//		int minor_idx = 0;
-//		
-//		if(y >= br.y && y <= tl.y){
-//			if(y == 0){
-//				UI::Line(GraphToScreen(tl.x,0,graph), GraphToScreen(br.x,0,graph), 1, Color_Red);
-//			}else if(0 >= tl.x && 0 <= br.x){
-//				if(graph->gridShowMajorLines){
-//					UI::Line(GraphToScreen(tl.x,y,graph), GraphToScreen(br.x,y,graph), 1, PackColorU32(255,255,255,64));
-//					minor_idx = 1;
-//				}
-//				if(graph->gridShowAxisCoords){
-//					UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-//					UI::Text(stringf("%g",y).str, GraphToScreen(0,y,graph), UITextFlags_NoWrap);
-//					UI::PopColor();
-//				}
-//			}
-//		}
-//		
-//		if(graph->gridShowMinorLines){
-//			for(; minor_idx <= graph->gridMinorLinesCount; minor_idx++){
-//				f64 minor_y = y - (minor_idx * graph->gridMinorLinesIncrement);
-//				if(minor_y <= br.y || minor_y >= tl.y) continue;
-//				UI::Line(GraphToScreen(tl.x,minor_y,graph), GraphToScreen(br.x,minor_y,graph), 1, PackColorU32(255,255,255,32));
-//			}
-//		}
-//	}
-//	
-//	//draw zero text
-//	if(0 >= tl.x && 0 <= br.x && 0 >= br.y && 0 <= tl.y){
-//		UI::PushColor(UIStyleCol_Text, color(255, 255, 255, 128));
-//		UI::Text("0", GraphToScreen(0,0,graph), UITextFlags_NoWrap);
-//		UI::PopColor();
-//	}
-//}
-
-
-//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @ast
 Operator* make_operator(OpType type, Term* cursor){
 	Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
@@ -393,14 +288,25 @@ void debug_print_term(Term* term, Term* cursor){
 //// @canvas
 local array<Element2*> elements(deshi_allocator);
 local Element2* selected_element;
-local GraphElement* activeGraph;
+local GraphElement* activeGraph; //TODO remove this and use selected_element instead
 local vec2f64 mouse_pos_world;
 local Font* math_font;
 local GraphElement defgraph; //temp default graph
 
 void init_canvas(){
-	//TODO default graph
-	//	   when we fix that render bug
+	f32 world_height  = WorldViewArea().y;
+	defgraph.element.height = world_height / 2.f;
+	defgraph.element.width  = world_height / 2.f;
+	defgraph.element.y      =  defgraph.element.height / 2.f;
+	defgraph.element.x      = -defgraph.element.width  / 2.f;
+	defgraph.element.type   = ElementType_Graph;
+	defgraph.graph = (Graph*)memory_alloc(sizeof(Graph));
+	Graph g; memcpy(defgraph.graph, &g, sizeof(Graph));
+	defgraph.graph->xAxisLabel.str   = "x";
+	defgraph.graph->xAxisLabel.count = 1;
+	defgraph.graph->yAxisLabel.str   = "y";
+	defgraph.graph->yAxisLabel.count = 1;
+	elements.add(&defgraph.element);
 	
 	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
@@ -416,12 +322,23 @@ void update_canvas(){
 	mouse_pos_world = ToWorld(DeshInput->mousePos);
 	
 	//// @input_tool ////
-	if     (DeshInput->KeyPressed(CanvasBind_SetTool_Navigation)){ previous_tool = active_tool; active_tool = CanvasTool_Navigation; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Context))   { previous_tool = active_tool; active_tool = CanvasTool_Context; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Expression)){ previous_tool = active_tool; active_tool = CanvasTool_Expression; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Pencil))    { previous_tool = active_tool; active_tool = CanvasTool_Pencil; }
-	//else if(DeshInput->KeyPressed(CanvasBind_SetTool_Graph))     { activeGraph = (activeGraph) ? 0 : graphs.data; }
-	else if(DeshInput->KeyPressed(CanvasBind_SetTool_Previous))  { Swap(previous_tool, active_tool); }
+	if      (DeshInput->KeyPressed(CanvasBind_SetTool_Navigation) && active_tool != CanvasTool_Navigation){
+		previous_tool = active_tool;
+		active_tool   = CanvasTool_Navigation;
+	}else if(DeshInput->KeyPressed(CanvasBind_SetTool_Context)    && active_tool != CanvasTool_Context){
+		previous_tool = active_tool;
+		active_tool   = CanvasTool_Context;
+	}else if(DeshInput->KeyPressed(CanvasBind_SetTool_Expression) && active_tool != CanvasTool_Expression){
+		previous_tool = active_tool;
+		active_tool   = CanvasTool_Expression;
+	}else if(DeshInput->KeyPressed(CanvasBind_SetTool_Pencil)     && active_tool != CanvasTool_Pencil){
+		previous_tool = active_tool;
+		active_tool   = CanvasTool_Pencil;
+	}else if(DeshInput->KeyPressed(CanvasBind_SetTool_Graph)){
+		activeGraph   = (activeGraph) ? 0 : &defgraph;
+	}else if(DeshInput->KeyPressed(CanvasBind_SetTool_Previous)){
+		Swap(previous_tool, active_tool);
+	}
 	
 	//// @input_camera ////
 	if(DeshInput->KeyPressed(CanvasBind_Camera_Pan)){
@@ -435,29 +352,11 @@ void update_canvas(){
 	if(DeshInput->KeyReleased(CanvasBind_Camera_Pan)){
 		camera_pan_active = false;
 	}
-	//TODO(delle) fix zoom consistency: out -> in -> out should return to orig value
-	//TODO(delle) combine zoom in and out checks and reimplement graph
-	
-	if(DeshInput->scrollY != 0 && DeshInput->ModsDown(InputMod_None) && !UI::AnyWinHovered()){ //TEMP until graph is reimplemented
-		camera_zoom -= (camera_zoom / 10.0) * DeshInput->scrollY;
-		camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-	}
-	
-	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomOut | InputMod_None) && !UI::AnyWinHovered()){
-		if(selected_element && selected_element->type != ElementType_Graph){
+	if(DeshInput->scrollY != 0 && DeshInput->ModsDown(InputMod_None) && !UI::AnyWinHovered()){
+		if(!activeGraph){
 			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
 			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-		}
-		else{
-			activeGraph->graph->cameraZoom -= 0.2*activeGraph->graph->cameraZoom*DeshInput->scrollY;
-		}
-	}
-	if(DeshInput->KeyDown(CanvasBind_Camera_ZoomIn | InputMod_None) && !UI::AnyWinHovered()){
-		if(selected_element && selected_element->type != ElementType_Graph){
-			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-		}
-		else{
+		}else{
 			activeGraph->graph->cameraZoom -= 0.2*activeGraph->graph->cameraZoom*DeshInput->scrollY;
 		}
 	}
@@ -487,6 +386,18 @@ void update_canvas(){
 		}
 		UI::End();
 	}
+	if(activeGraph){
+		UI::Begin("graph_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		UI::Text("Graph Info");
+		UI::TextF("Element Pos:   (%g,%g)", activeGraph->element.x,activeGraph->element.y);
+		UI::TextF("Element Size:  (%g,%g)", activeGraph->element.width,activeGraph->element.height);
+		UI::TextF("Camera Pos:    (%g,%g)", activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y);
+		UI::TextF("Camera View:   (%g,%g)", activeGraph->graph->cameraZoom);
+		UI::TextF("Camera Zoom:   %g", activeGraph->graph->cameraView.x,activeGraph->graph->cameraView.y);
+		UI::TextF("Dims per Unit: (%g,%g)", activeGraph->graph->dimensions_per_unit_length.x, activeGraph->graph->dimensions_per_unit_length.y);
+		UI::TextF("Aspect Ratio:  %g", activeGraph->graph->aspect_ratio);
+		UI::End();
+	}
 #endif
 	
 	switch(active_tool){
@@ -498,15 +409,15 @@ void update_canvas(){
 				if(!activeGraph){
 					camera_pan_start_pos = camera_pos;
 				}else{
-					camera_pan_start_pos = vec2f64{activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y};
+					camera_pan_start_pos = vec2f64{activeGraph->graph->cameraPosition.x, activeGraph->graph->cameraPosition.y};
 				}
 			}
 			if(DeshInput->KeyDown(CanvasBind_Navigation_Pan)){
 				if(!activeGraph){
 					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
 				}else{
-					Graph*  g = activeGraph->graph;
-					g->cameraPosition = vec2g{camera_pan_start_pos.x, camera_pan_start_pos.y} - (vec2g{mouse_pos_world.x, mouse_pos_world.y} - vec2g{camera_pan_mouse_pos.x, camera_pan_mouse_pos.y}) / vec2g{g->dimensions_per_unit_length.x, g->dimensions_per_unit_length.y*g->aspect_ratio};
+					activeGraph->graph->cameraPosition.x = (camera_pan_start_pos.x + (camera_pan_mouse_pos.x - DeshInput->mouseX) / activeGraph->graph->dimensions_per_unit_length.x);
+					activeGraph->graph->cameraPosition.y = (camera_pan_start_pos.y + (camera_pan_mouse_pos.y - DeshInput->mouseY) / activeGraph->graph->dimensions_per_unit_length.y);
 				}
 			}
 			if(DeshInput->KeyReleased(CanvasBind_Navigation_Pan)){
@@ -803,7 +714,6 @@ void update_canvas(){
 								lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
 								lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
 								lit->decimal++;
-								Logf("test","val: %.10f; zeros: %d; decimal: %d",lit->value,lit->zeros,lit->decimal);
 							}else{            //we are appending as integer values
 								lit->value = 10*lit->value + (input-48);
 							}
@@ -961,18 +871,17 @@ void update_canvas(){
 	
 	//// @draw_elements ////
 	for(Element2* el : elements){
-		UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
-		UI::PushVar(UIStyleVar_FontHeight,       80);
-		UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
-		UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
-		UI::SetNextWindowPos(ToScreen(el->x, el->y));
-		UI::Begin(toStr("element_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
-		
 		switch(el->type){
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_expression
 			case ElementType_Expression:{
+				UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
+				UI::PushVar(UIStyleVar_FontHeight,       80);
+				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
+				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
+				UI::SetNextWindowPos(ToScreen(el->x, el->y));
 				UI::PushFont(math_font);
+				UI::Begin(toStr("expression_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 				
 				//draw terms from left to right
 				Expression2* expr = ElementToExpression(el);
@@ -1050,14 +959,20 @@ void update_canvas(){
 				}
 				UI::Text(" ", UITextFlags_NoWrap);
 				
+				UI::End();
 				UI::PopFont();
+				UI::PopScale();
+				UI::PopVar(2);
+				UI::PopColor();
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_graph
 			case ElementType_Graph:{
 				GraphElement* ge = ElementToGraphElement(el);
-				draw_graph(*ge->graph, vec2g{ge->element.x, ge->element.y});
+				vec2 tl = ToScreen(ge->element.x, ge->element.y);
+				vec2 br = ToScreen(ge->element.x + ge->element.width, ge->element.y - ge->element.height);
+				draw_graph(*ge->graph, vec2g{tl.x, tl.y}, vec2g{br.x - tl.x, br.y - tl.y});
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1068,11 +983,6 @@ void update_canvas(){
 			//// @draw_elements_text
 			//case ElementType_Text:{}break;
 		}
-		
-		UI::End();
-		UI::PopScale();
-		UI::PopVar(2);
-		UI::PopColor();
 	}
 	
 	//// @draw_pencil ////
@@ -1099,6 +1009,7 @@ void update_canvas(){
 	UI::TextF("campos:  (%g, %g)",camera_pos.x,camera_pos.y);
 	UI::TextF("camzoom: %g", camera_zoom);
 	UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
+	UI::TextF("graph active: %s", (activeGraph) ? "true" : "false");
 	
 	UI::End();
 	UI::PopVar();

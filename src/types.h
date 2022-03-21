@@ -259,8 +259,8 @@ struct Canvas{
 //-////////////////////////////////////////////////////////////////////////////////////////////////
 //// @Element
 enum CoordinateSpace : u32{
-	CoordinateSpace_World,
-	CoordinateSpace_Screen,
+	//CoordinateSpace_World,
+	//CoordinateSpace_Screen,
 	//CoordinateSpace_Workspace, //TODO maybe add local to workspace
 };
 
@@ -276,7 +276,7 @@ enum ElementType : u32{
 struct Element2{
 	f64 x, y, z;
 	f64 width, height, depth;
-	CoordinateSpace space;
+	//CoordinateSpace space;
 	ElementType type;
 };
 
