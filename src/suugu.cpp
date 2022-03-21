@@ -134,7 +134,7 @@ void graph_testing(){
 		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 		UIItem* gr = UI::GetLastItem();
 		
-
+		
 		static vec2 mp;
 		static vec2 gcp;
 		if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
@@ -152,7 +152,7 @@ void graph_testing(){
 		
 		g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
 		UI::End();
-
+		
 	}
 }
 
@@ -178,7 +178,7 @@ int main(){
 	//init debug
 	//TEST_deshi_core();
 	//TEST_kigu();
-
+	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);

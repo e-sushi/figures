@@ -327,9 +327,11 @@ enum TermFlags_{
 }; typedef Flags TermFlags;
 
 //term: generic base thing (literal, operator, variable, function call, etc)
-struct Term : TNode{
+//TODO maybe union operator and literal structs into this?
+struct Term{
 	TermType  type;
 	TermFlags flags;
+	u32 linear; //left to right position in expression
 	
 	Term* left;
 	Term* right;
@@ -403,48 +405,41 @@ global_ void insert_first(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global_ void change_parent(Term* new_parent, Term* term){
-	//if old parent, remove self from it 
-	if(term->parent){
-		if(term->parent->child_count > 1){
-			if(term == term->parent->first_child) term->parent->first_child = term->next;
-			if(term == term->parent->last_child)  term->parent->last_child  = term->prev;
-		}else{
-			Assert(term == term->parent->first_child && term == term->parent->last_child, "if term is the only child term, it should be both the first and last child terms");
-			term->parent->first_child = 0;
-			term->parent->last_child  = 0;
-		}
-		term->parent->child_count--;
+global_ void remove_from_parent(Term* term){
+	if(term->parent == 0) return;
+	if(term->parent->child_count > 1){
+		if(term == term->parent->first_child) term->parent->first_child = term->next;
+		if(term == term->parent->last_child)  term->parent->last_child  = term->prev;
+	}else{
+		Assert(term == term->parent->first_child && term == term->parent->last_child, "if term is the only child term, it should be both the first and last child terms");
+		term->parent->first_child = 0;
+		term->parent->last_child  = 0;
 	}
-	
-	//remove self horizontally
+	term->parent->child_count--;
+	term->parent = 0;
+}
+
+global_ void change_parent_insert_last(Term* new_parent, Term* term){
+	if(new_parent == term->parent) return;
+	remove_from_parent(term);
 	remove_horizontally(term);
-	
-	//add self to new parent
 	insert_last(new_parent, term);
 }
 
+global_ void change_parent_insert_first(Term* new_parent, Term* term){
+	if(new_parent == term->parent) return;
+	remove_from_parent(term);
+	remove_horizontally(term);
+	insert_first(new_parent, term);
+}
+
 global_ void remove(Term* term){
-	//add children to parent (and remove self from children)
-	for_node(term->first_child){
-		change_parent(term->parent, it);
+	for(Term* it = term->first_child; it != 0; ) {
+		Term* next = it->next;
+		change_parent_insert_last(term->parent, it);
+		it = next;
 	}
-	
-	//remove self from parent
-	if(term->parent){
-		if(term->parent->child_count > 1){
-			if(term == term->parent->first_child) term->parent->first_child = term->next;
-			if(term == term->parent->last_child)  term->parent->last_child  = term->prev;
-		}else{
-			Assert(term == term->parent->first_child && term == term->parent->last_child, "if term is the only child term, it should be both the first and last child terms");
-			term->parent->first_child = 0;
-			term->parent->last_child  = 0;
-		}
-		term->parent->child_count--;
-	}
-	term->parent = 0;
-	
-	//remove self horizontally
+	remove_from_parent(term);
 	remove_horizontally(term);
 }
 
@@ -461,6 +456,7 @@ struct Expression2{
 	Term* equals;
 	b32 valid;
 	f64 solution;
+	u32 term_count;
 };
 #define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression2*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression2, term))))
