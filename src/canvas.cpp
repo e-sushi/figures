@@ -396,9 +396,11 @@ local Element2* selected_element;
 local GraphElement* activeGraph;
 local vec2f64 mouse_pos_world;
 local Font* math_font;
+local GraphElement defgraph; //temp default graph
 
 void init_canvas(){
 	//TODO default graph
+	//	   when we fix that render bug
 	
 	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");

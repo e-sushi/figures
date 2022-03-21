@@ -173,7 +173,7 @@ int main(){
 	Render::UseDefaultViewProjMatrix();
 	
 	//init suugu
-	//init_canvas();
+	init_canvas();
 	
 	//init debug
 	//TEST_deshi_core();
@@ -187,7 +187,7 @@ int main(){
 		DeshTime->Update();
 		DeshInput->Update();
 		DeshiImGui::NewFrame();
-		//update_canvas();
+		update_canvas();
 		{//update debug
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
@@ -214,10 +214,10 @@ int main(){
 					CustomItem_AddDrawCmd(item,dc);
 				}EndCustomItem();
 			}End();
-#endif	
 			Begin("renstats");
-			Render::DisplayRenderStats();
+				Render::DisplayRenderStats();
 			End();
+#endif	
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
