@@ -553,7 +553,8 @@ struct Operator{
 struct Literal{
 	Term term;
 	f64 value;
-	u32 decimal;
+	u32 decimal; //digits since decimal
+	u32 zeros;   //zeros at the end of input
 };
 #define LiteralFromTerm(term_ptr) ((Literal*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Literal, term))))
 

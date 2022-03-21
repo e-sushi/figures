@@ -825,10 +825,13 @@ void update_canvas(){
 						}
 						
 						if(expr->cursor->type == TermType_Literal){ //appending to a literal
+							ast_changed = true;
 							Literal* lit = LiteralFromTerm(expr->cursor);
 							if(lit->decimal){ //we are appending as decimal values
-								lit->value = lit->value + (input-48)/pow(10,lit->decimal);
+								lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
+								lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
 								lit->decimal++;
+								Logf("test","val: %.10f; zeros: %d; decimal: %d",lit->value,lit->zeros,lit->decimal);
 							}else{            //we are appending as integer values
 								lit->value = 10*lit->value + (input-48);
 							}
@@ -843,7 +846,8 @@ void update_canvas(){
 							expr->cursor = &lit->term;
 							
 							if(lit->decimal){ //we are appending as decimal values
-								lit->value = lit->value + (input-48)/pow(10,lit->decimal);
+								lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
+								lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
 								lit->decimal++;
 							}else{            //we are appending as integer values
 								lit->value = 10*lit->value + (input-48);
@@ -862,6 +866,7 @@ void update_canvas(){
 						}
 						
 						if(expr->cursor->type == TermType_Literal){
+							ast_changed = true;
 							Literal* lit = LiteralFromTerm(expr->cursor);
 							if(lit->decimal == 0) lit->decimal = 1;
 						}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
@@ -1030,14 +1035,23 @@ void update_canvas(){
 						}break;
 						
 						case TermType_Literal:{
+							Literal* lit = LiteralFromTerm(term);
+							u32  decimals = (lit->decimal) ? lit->decimal-1 : 0;
+							int   lit_len = 1 + snprintf(0, 0, "%.*f", decimals, lit->value);
+							char* lit_str = (char*)memory_talloc(lit_len*sizeof(char));
+							snprintf(lit_str, lit_len, "%.*f", decimals, lit->value);
+							
+							//add a space between different literals
 							if(term->left && term->left->type == TermType_Literal){
 								UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
 							}
 							
-							Literal* lit = LiteralFromTerm(term);
-							UI::Text(to_string(lit->value, true, deshi_temp_allocator).str, UITextFlags_NoWrap); UI::SameLine();
-							if(lit->decimal == 1){
-								UI::Text(".", UITextFlags_NoWrap); UI::SameLine(); //TODO decimal config here
+							//draw the literal string
+							UI::Text(lit_str, UITextFlags_NoWrap); UI::SameLine();
+							
+							//draw the decimal when a whole number with decimal inputs (since printf truncates)
+							if(lit->decimal == 1){ //TODO decimal config here
+								UI::Text(".", UITextFlags_NoWrap); UI::SameLine();
 							}
 						}break;
 					}
