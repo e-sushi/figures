@@ -267,7 +267,7 @@ enum ElementType : u32{
 	ElementType_NULL,
 	ElementType_Expression,
 	//ElementType_Workspace,
-	//ElementType_Graph,
+	ElementType_Graph,
 	//ElementType_Text,
 };
 
@@ -289,11 +289,11 @@ struct Element2{
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
-//struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
-//Element2 element;
-//Graph* graph;
-//};
-//#define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
+struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
+	Element2 element;
+	Graph* graph;
+};
+#define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
 
 //struct TextElement{
 //Element2 element;

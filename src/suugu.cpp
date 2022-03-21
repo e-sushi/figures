@@ -116,26 +116,18 @@ void graph_testing(){
 		init=1;
 	}
 	else{
-		UI::Begin("graphe", vec2::ONE, vec2::ONE*600, UIWindowFlags_NoScroll);
-		u32 res = UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2;
+		UI::Begin("graphe", vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
+		u32 res = Min(DeshWinSize.x, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
 		g.data={data.data,res};
-		g.xShowMinorLines=false;
-		g.yShowMinorLines=false;
-		f64 t = DeshTotalTime;
-		persist f64 floorer = 1/3.0; 
-		persist f64 floored = 1;
-		if(DeshInput->KeyPressed(Key::UP)) floorer += 0.1;
-		if(DeshInput->KeyPressed(Key::DOWN)) floorer -= 0.1;
 
-		UI::Text(toStr("  cpos", g.cameraPosition).str);
-		UI::Text(toStr("czoom ", g.cameraZoom).str);
+		f64 t = DeshTotalTime;
 
 		forI(res){
 			f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
 			f64& x = data[i].x;
 			f64& y = data[i].y;
 			x = alignment;
-			y = floor(x * floorer) / floorer;
+			y = exp(-x*x)*sin(20*x-t);
 		}
 		
 		
@@ -151,16 +143,14 @@ void graph_testing(){
 			gcp = g.cameraPosition;
 		}
 		if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
-			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / g.dimensions_per_unit_length;
+			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / (g.dimensions_per_unit_length*g.aspect_ratio);
 		}
 		if(DeshInput->LMouseReleased()){
 			UI::SetAllowInputs();
 			mp=vec2::ONE*FLT_MAX;
 		}
-		UI::Circle(gr->position+gr->size/2, 4, 1, 20, Color_Cyan);
 		
 		g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
-		UI::Text("after the graph");
 		UI::End();
 
 	}
@@ -183,7 +173,7 @@ int main(){
 	Render::UseDefaultViewProjMatrix();
 	
 	//init suugu
-	init_canvas();
+	//init_canvas();
 	
 	//init debug
 	//TEST_deshi_core();
@@ -197,12 +187,37 @@ int main(){
 		DeshTime->Update();
 		DeshInput->Update();
 		DeshiImGui::NewFrame();
-		update_canvas();
+		//update_canvas();
 		{//update debug
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
 			graph_testing();
+			using namespace UI;
+
+#if 0
+			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
+				UIItem* item = BeginCustomItem();{
+					UIDrawCmd dc;
+					persist u64 numlines = 1;
+					if(DeshInput->KeyDown(Key::UP)) numlines += 1;
+					if(DeshInput->KeyDown(Key::DOWN)) numlines = Max((numlines - 1), u64(0));
+
+					forI(numlines){
+						CustomItem_DCMakeLine(dc,
+							vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
+							vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
+							1,
+							color(0, f32(i)/100*255, 155)
+						);
+					}
+					CustomItem_AddDrawCmd(item,dc);
+				}EndCustomItem();
+			}End();
+#endif	
+			Begin("renstats");
+			Render::DisplayRenderStats();
+			End();
 			//draw_pixels();
 			//random_draw(200);
 			//random_walk_avoid();
