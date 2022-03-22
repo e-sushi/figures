@@ -493,14 +493,13 @@ void update_canvas(){
 							Operator* op = OperatorFromTerm(expr->cursor);
 							
 							if(expr->cursor->right){
-								b32 double_operator = false;
+								b32 extra_operator = false;
 								
 								//change parents of operator children
 								if(expr->cursor->child_count){
-									//TODO handle 3+ operators in a row
 									//if cursor operator is next to another operator, change child's parent to greater precedence operator
 									if(expr->cursor->left->type == TermType_Operator){
-										double_operator = true;
+										extra_operator = true;
 										if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
 											if(*OperatorFromTerm(expr->cursor->right->right) > OperatorFromTerm(expr->cursor->left)){
 												change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
@@ -518,14 +517,14 @@ void update_canvas(){
 												RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
 												AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
 											}
-										}else{
+										}else if(expr->cursor->right->type != TermType_Operator){ //if left and right are operators, do nothing
 											change_parent_insert_first(expr->cursor->left, expr->cursor->right);
 											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
 											AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
 										}
 									}
 									if(expr->cursor->right->type == TermType_Operator){
-										double_operator = true;
+										extra_operator = true;
 										if(expr->cursor->left->left && expr->cursor->left->left->type == TermType_Operator){
 											if(*OperatorFromTerm(expr->cursor->left->left) >= OperatorFromTerm(expr->cursor->right)){
 												change_parent_insert_last(expr->cursor->left->left, expr->cursor->left);
@@ -543,14 +542,14 @@ void update_canvas(){
 												RemoveFlag(it->flags, OPARG_MASK);
 												AddFlag(it->flags, TermFlag_OpArgRight);
 											}
-										}else{
+										}else if(expr->cursor->left->type != TermType_Operator){ //if left and right are operators, do nothing
 											change_parent_insert_first(expr->cursor->right, expr->cursor->left);
 											RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
 											AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
 										}
 									}
 									
-									if(!double_operator){
+									if(!extra_operator){
 										if(   expr->cursor->left == expr->cursor->first_child
 										   && expr->cursor->left->left
 										   && expr->cursor->left->left->type == TermType_Operator
@@ -571,7 +570,7 @@ void update_canvas(){
 								}
 								
 								//separate the sides of the expression
-								if(!double_operator){
+								if(!extra_operator){
 									if(expr->cursor->left){
 										Term* it = expr->cursor->left;
 										while(it->parent && it->parent->linear < expr->cursor->linear) it = it->parent;
