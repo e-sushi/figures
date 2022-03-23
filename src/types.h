@@ -349,6 +349,7 @@ struct Term{
 #define for_right(term_ptr) for(Term* it = term_ptr; it != 0; it = it->right)
 
 global_ inline void insert_left(Term* target, Term* term){
+	if(target->left) target->left->right = term;
 	term->right = target;
 	term->left  = target->left;
 	target->left = term;
@@ -357,6 +358,7 @@ global_ inline void insert_left(Term* target, Term* term){
 }
 
 global_ inline void insert_right(Term* target, Term* term){
+	if(target->right) target->right->left = term;
 	term->left   = target;
 	term->right  = target->right;
 	target->right = term;
@@ -432,8 +434,6 @@ global_ void change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
-	
-	//add self to new parent
 	insert_last(new_parent, term);
 }
 
@@ -443,17 +443,6 @@ global_ void change_parent_insert_first(Term* new_parent, Term* term){
 	remove_horizontally(term);
 	insert_first(new_parent, term);
 }
-
-global_ void remove(Term* term){
-	for(Term* it = term->first_child; it != 0; ) {
-		Term* next = it->next;
-		change_parent_insert_last(term->parent, it);
-		it = next;
-	}
-	remove_from_parent(term);
-	remove_horizontally(term);
-}
-
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
 //// @Expression
@@ -554,14 +543,15 @@ struct Operator{
 	OpType type;
 	
 	//NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
-	inline b32 operator> (Operator* rhs){ return (type & OPPRECEDENCE_MASK) <  (rhs->type & OPPRECEDENCE_MASK); }
-	inline b32 operator>=(Operator* rhs){ return (type & OPPRECEDENCE_MASK) <= (rhs->type & OPPRECEDENCE_MASK); }
-	inline b32 operator< (Operator* rhs){ return (type & OPPRECEDENCE_MASK) >  (rhs->type & OPPRECEDENCE_MASK); }
-	inline b32 operator<=(Operator* rhs){ return (type & OPPRECEDENCE_MASK) >= (rhs->type & OPPRECEDENCE_MASK); }
+	inline b32 operator> (Operator& rhs){ return (type & OPPRECEDENCE_MASK) <  (rhs.type & OPPRECEDENCE_MASK); }
+	inline b32 operator>=(Operator& rhs){ return (type & OPPRECEDENCE_MASK) <= (rhs.type & OPPRECEDENCE_MASK); }
+	inline b32 operator< (Operator& rhs){ return (type & OPPRECEDENCE_MASK) >  (rhs.type & OPPRECEDENCE_MASK); }
+	inline b32 operator<=(Operator& rhs){ return (type & OPPRECEDENCE_MASK) >= (rhs.type & OPPRECEDENCE_MASK); }
 };
 #define OperatorFromTerm(term_ptr) ((Operator*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Operator, term))))
 
 //TODO rework this to be string based (will just fix a bunch of different issues at the cost of storage)
+//     but move the input logic somehere since it acts as a string -> float scanner
 struct Literal{
 	Term term;
 	f64 value;
