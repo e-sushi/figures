@@ -7,16 +7,20 @@
 @utility
 @graph
 @ast
+@ast_insert_literal
+@ast_insert_operator
+@ast_insert_letter
+@ast_delete_operator
+@ast_delete_literal
 @canvas
 @input
 @input_tool
 @input_navigation
 @input_context
 @input_expression
+@input_expression_deletion
 @input_expression_cursor
-@input_expression_literals
-@input_expression_operators
-@input_expression_letters
+@input_expression_insertion
 @input_pencil
 @draw_elements
 @draw_elements_expression
@@ -46,7 +50,7 @@ local CanvasTool previous_tool = CanvasTool_Navigation;
 ////////////////
 //// @binds ////
 ////////////////
-enum CanvasBind_{
+enum CanvasBind_{ //TODO ideally support multiple keybinds per action
 	//[GLOBAL] SetTool
 	CanvasBind_SetTool_Navigation = Key::ESCAPE  | InputMod_Any,
 	CanvasBind_SetTool_Context    = Key::MBRIGHT | InputMod_AnyCtrl,
@@ -72,7 +76,10 @@ enum CanvasBind_{
 	CanvasBind_Expression_CursorRight = Key::RIGHT     | InputMod_None,
 	CanvasBind_Expression_CursorUp    = Key::UP        | InputMod_None,
 	CanvasBind_Expression_CursorDown  = Key::DOWN      | InputMod_None,
-	CanvasBind_Expression_CursorDeleteLeft = Key::BACKSPACE | InputMod_None,
+	//TODO CanvasBind_Expression_CursorHome
+	//TODO CanvasBind_Expression_CursorEnd
+	CanvasBind_Expression_CursorDeleteLeft  = Key::BACKSPACE | InputMod_None,
+	CanvasBind_Expression_CursorDeleteRight = Key::DELETE    | InputMod_None,
 	
 	//[LOCAL]  Pencil
 	CanvasBind_Pencil_Stroke             = Key::MBLEFT       | InputMod_Any, //pressed, held
@@ -114,21 +121,6 @@ local vec2f64 camera_pan_start_pos;
 local vec2    camera_pan_mouse_pos;
 local b32     camera_pan_active = false;
 
-
-//////////////////
-//// @context ////
-//////////////////
-local char context_input_buffer[256] = {};
-local u32 context_dropdown_selected_index = 0;
-local const char* context_dropdown_option_strings[] = {
-	"Tool: Navigation", "Tool: Expression", "Tool: Pencil",
-	"Add: Graph",
-};
-
-
-//////////////////
-//// @utility ////
-//////////////////
 local vec2 
 ToScreen(vec2f64 point){
 	point -= camera_pos;
@@ -159,12 +151,83 @@ WorldViewArea(){
 }
 
 
+//////////////////
+//// @context ////
+//////////////////
+local char context_input_buffer[256] = {};
+local u32 context_dropdown_selected_index = 0;
+local const char* context_dropdown_option_strings[] = {
+	"Tool: Navigation", "Tool: Expression", "Tool: Pencil",
+	"Add: Graph",
+};
+
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @ast
+#define SWITCH_START(x) switch(x){
+#define SWITCH_END() }
+
+#define PRINT_AST true
+#if PRINT_AST
+local s32 debug_print_indent = -1;
+void debug_print_term(Term* term, Term* cursor){
+	debug_print_indent++;
+	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
+	char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
+		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? "  R"
+		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
+		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
+		: "   ";
+	char* cursor_str = (term == cursor) ? " <- ": "    ";
+	
+	switch(term->type){
+		case TermType_Expression:{
+			Expression2* expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				for_node(term->first_child) debug_print_term(it, cursor);
+				if(expr->valid){
+					if(expr->equals){
+						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+					}else if(expr->solution != MAX_F32){
+						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+					}
+				}
+			}
+		}break;
+		
+		case TermType_Operator:{
+			switch(OperatorFromTerm(term)->type){
+				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_Division:              { Log("ast", indent, "/", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+			}
+			for_node(term->first_child) debug_print_term(it, cursor);
+		}break;
+		
+		case TermType_Literal:{
+			Literal* lit = LiteralFromTerm(term);
+			Log("ast", indent, stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->decimal-1 : 0, lit->value), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+		}break;
+		
+		//case TermType_Variable:{}break;
+		//case TermType_FunctionCall:{}break;
+	}
+	
+	debug_print_indent--;
+}
+#else
+#  define debug_print_term(term,cursor) (void)0
+#endif
+
 Operator* make_operator(OpType type, Term* cursor){
 	Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
 	op->type = type;
-	op->term.type = TermType_Operator;
+	op->term.type   = TermType_Operator;
+	op->term.linear = cursor->linear+1;
+	for_right(cursor->right) it->linear++;
+	insert_right(cursor, &op->term);
 	
 	//loop until we find a lesser precedence operator since it should be higher vertically in the tree
 	while((cursor->parent->type == TermType_Operator) && (*op <= OperatorFromTerm(cursor->parent))){
@@ -189,6 +252,434 @@ Operator* make_operator(OpType type, Term* cursor){
 	AddFlag(cursor->flags, TermFlag_OpArgLeft);
 	
 	return op;
+}
+
+//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
+//TODO remove duplication
+b32 term_insertion(Expression2* expr, char input){
+	b32 ast_changed = false;
+	b32 first_term = (expr->term.child_count == 0);
+	input = tolower(input);
+	SWITCH_START(input);
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @ast_insert_literal
+	case '0':case '1':case '2':case '3':case '4':case '5':case '6':case '7':case '8':case '9':{
+		if(first_term){
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			lit->term.type   = TermType_Literal;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			insert_first(&expr->term, &lit->term);
+			insert_right(&expr->term, &lit->term);
+			expr->cursor = &lit->term;
+		}
+		
+		if(expr->cursor->type == TermType_Literal){ //appending to a literal
+			ast_changed = true;
+			Literal* lit = LiteralFromTerm(expr->cursor);
+			if(lit->decimal){ //we are appending as decimal values
+				lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
+				lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
+				lit->decimal++;
+			}else{            //we are appending as integer values
+				lit->value = 10*lit->value + (input-48);
+			}
+		}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			if(lit->decimal){ //we are appending as decimal values
+				lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
+				lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
+				lit->decimal++;
+			}else{            //we are appending as integer values
+				lit->value = 10*lit->value + (input-48);
+			}
+			
+			lit->term.type   = TermType_Literal;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			if(expr->cursor->right && expr->cursor->right->type == TermType_Operator){
+				//if in between operators, become child of higher precedence one, and attach the operators
+				if(*OperatorFromTerm(expr->cursor->right) > OperatorFromTerm(expr->cursor)){
+					lit->term.flags  = TermFlag_OpArgLeft;
+					insert_first(expr->cursor->right, &lit->term);
+					
+					//TODO in-the-middle insertion
+				}else{
+					lit->term.flags  = TermFlag_OpArgRight;
+					insert_last(expr->cursor, &lit->term);
+					
+					//TODO in-the-middle insertion
+				}
+			}else{
+				//if not, insert as right child of the left operator
+				lit->term.flags  = TermFlag_OpArgRight;
+				insert_last(expr->cursor, &lit->term);
+			}
+			insert_right(expr->cursor, &lit->term);
+			expr->cursor = &lit->term;
+		}else if(expr->cursor->right->type == TermType_Operator){ //left side of operator
+			//NOTE no need to check if between operators here since the cursor would have been on an operator if there was one on left
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			lit->term.type   = TermType_Literal;
+			lit->term.flags  = TermFlag_OpArgLeft;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			insert_first(expr->cursor->right, &lit->term);
+			insert_right(expr->cursor, &lit->term);
+			expr->cursor = &lit->term;
+		}
+	}break;
+	
+	case '.':{ //TODO comma in EU input mode
+		if(first_term){
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			lit->term.type   = TermType_Literal;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			insert_first(&expr->term, &lit->term);
+			insert_right(&expr->term, &lit->term);
+			expr->cursor = &lit->term;
+		}
+		
+		if(expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Literal* lit = LiteralFromTerm(expr->cursor);
+			if(lit->decimal == 0) lit->decimal = 1;
+		}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			lit->decimal = 1;
+			
+			lit->term.type   = TermType_Literal;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			if(expr->cursor->right && expr->cursor->right->type == TermType_Operator){
+				//if in between operators, become child of higher precedence one, and attach the operators
+				if(*OperatorFromTerm(expr->cursor->right) > OperatorFromTerm(expr->cursor)){
+					lit->term.flags  = TermFlag_OpArgLeft;
+					insert_first(expr->cursor->right, &lit->term);
+					
+					//TODO in-the-middle insertion
+				}else{
+					lit->term.flags  = TermFlag_OpArgRight;
+					insert_last(expr->cursor, &lit->term);
+					
+					//TODO in-the-middle insertion
+				}
+			}else{
+				//if not, insert as right child of the left operator
+				lit->term.flags  = TermFlag_OpArgRight;
+				insert_last(expr->cursor, &lit->term);
+			}
+			insert_right(expr->cursor, &lit->term);
+			expr->cursor = &lit->term;
+		}else if(expr->cursor->right->type == TermType_Operator){ //left side of operator
+			ast_changed = true;
+			Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
+			lit->decimal = 1;
+			
+			lit->term.type   = TermType_Literal;
+			lit->term.flags  = TermFlag_OpArgLeft;
+			lit->term.linear = expr->cursor->linear+1;
+			for_right(expr->cursor->right) it->linear++;
+			insert_first(expr->cursor->right, &lit->term);
+			insert_right(expr->cursor, &lit->term);
+			expr->cursor = &lit->term;
+		}
+	}break;
+	
+	case 'e':{
+		//TODO exponential literal input
+	}break;
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @ast_insert_operator
+	//TODO in-the-middle insertion
+	case '*':{
+		if(!first_term && expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Operator* op = make_operator(OpType_ExplicitMultiplication, expr->cursor);
+			expr->cursor = &op->term;
+		}
+	}break;
+	
+	case '/':{
+		if(!first_term && expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Operator* op = make_operator(OpType_Division, expr->cursor);
+			expr->cursor = &op->term;
+		}
+	}break;
+	
+	case '+':{
+		if(!first_term && expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Operator* op = make_operator(OpType_Addition, expr->cursor);
+			expr->cursor = &op->term;
+		}
+	}break;
+	
+	case '-':{
+		if(!first_term && expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Operator* op = make_operator(OpType_Subtraction, expr->cursor);
+			expr->cursor = &op->term;
+		}
+	}break;
+	
+	case '=':{
+		if(!first_term && expr->cursor->type == TermType_Literal){
+			ast_changed = true;
+			Operator* op = make_operator(OpType_ExpressionEquals, expr->cursor);
+			expr->cursor = &op->term;
+			expr->equals = &op->term;
+		}
+	}break;
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @ast_insert_letter ('e' is handled above in ast_insert_literal)
+	case 'a':case 'b':case 'c':case 'd':         case 'f':case 'g':case 'h':case 'i':case 'j':case 'k':case 'l':case 'm':
+	case 'n':case 'o':case 'p':case 'q':case 'r':case 's':case 't':case 'u':case 'v':case 'w':case 'x':case 'y':case 'z':{
+		//TODO variables
+	}break;
+	SWITCH_END();
+	
+	return ast_changed;
+}
+
+b32 term_deletion(Expression2* expr, b32 delete_right){
+	b32 ast_changed = false;
+	if(delete_right){
+		if(expr->cursor->right == 0) return false;
+		expr->cursor = expr->cursor->right;
+	}
+	
+	SWITCH_START(expr->cursor->type);
+		case TermType_Expression:{
+			//TODO expression deletion
+	}break;
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @ast_delete_operator
+		case TermType_Operator:{ //TODO non-binary/non-linear operators
+			ast_changed = true;
+			Operator* op = OperatorFromTerm(expr->cursor);
+			
+			if(expr->cursor->right){
+				b32 extra_operator = false;
+				
+				//change parents of operator children
+				if(expr->cursor->child_count){
+					//if cursor operator is next to another operator, change child's parent to greater precedence operator
+					if(expr->cursor->left->type == TermType_Operator){
+						extra_operator = true;
+						if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
+							if(*OperatorFromTerm(expr->cursor->right->right) > OperatorFromTerm(expr->cursor->left)){
+								change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
+								RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+								AddFlag(expr->cursor->right->flags, TermFlag_OpArgLeft);
+								
+								//left op's parentmost changes parent to right op
+								Term* it = expr->cursor->left;
+								while(it->parent && it->parent != &expr->term && it->parent != expr->cursor && it->parent != expr->cursor->right->right) it = it->parent;
+								change_parent_insert_last(expr->cursor->right->right, it);
+								RemoveFlag(it->flags, OPARG_MASK);
+								AddFlag(it->flags, TermFlag_OpArgLeft);
+							}else{
+								change_parent_insert_first(expr->cursor->left, expr->cursor->right);
+								RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+								AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+							}
+						}else if(expr->cursor->right->type != TermType_Operator){ //if left and right are operators, do nothing
+							change_parent_insert_first(expr->cursor->left, expr->cursor->right);
+							RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+							AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+						}
+					}
+					if(expr->cursor->right->type == TermType_Operator){
+						extra_operator = true;
+						if(expr->cursor->left->left && expr->cursor->left->left->type == TermType_Operator){
+							if(*OperatorFromTerm(expr->cursor->left->left) >= OperatorFromTerm(expr->cursor->right)){
+								change_parent_insert_last(expr->cursor->left->left, expr->cursor->left);
+								RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+								AddFlag(expr->cursor->left->flags, TermFlag_OpArgRight);
+							}else{
+								change_parent_insert_first(expr->cursor->right, expr->cursor->left);
+								RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+								AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
+								
+								//right op's parentmost changes parent to left op
+								Term* it = expr->cursor->right;
+								while(it->parent && it->parent != &expr->term && it->parent != expr->cursor && it->parent != expr->cursor->left->left) it = it->parent;
+								change_parent_insert_last(expr->cursor->left->left, it);
+								RemoveFlag(it->flags, OPARG_MASK);
+								AddFlag(it->flags, TermFlag_OpArgRight);
+							}
+						}else if(expr->cursor->left->type != TermType_Operator){ //if left and right are operators, do nothing
+							change_parent_insert_first(expr->cursor->right, expr->cursor->left);
+							RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+							AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
+						}
+					}
+#if 0
+					debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
+#endif
+					
+					if(!extra_operator){
+						//if cursor has a left child, and that lit has a left op, make the lit a child of that op
+						if(   expr->cursor->left == expr->cursor->first_child
+						   && expr->cursor->left->left
+						   && expr->cursor->left->left->type == TermType_Operator
+						   && *op >= OperatorFromTerm(expr->cursor->left->left)){
+							change_parent_insert_first(expr->cursor->left->left, expr->cursor->left);
+							RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+							AddFlag(expr->cursor->left->flags, TermFlag_OpArgRight);
+						}
+						//if cursor has a right child, and that lit has a right op, make the lit a child of that op
+						if(   expr->cursor->right == expr->cursor->last_child
+						   && expr->cursor->right->right 
+						   && expr->cursor->right->right->type == TermType_Operator 
+						   && *op >= OperatorFromTerm(expr->cursor->right->right)){
+							change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+							RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+							AddFlag(expr->cursor->right->flags, TermFlag_OpArgLeft);
+						}
+#if 0
+						debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
+#endif
+					}
+				}
+				
+				if(!extra_operator){
+					//separate left side of cursor, if it has a left side
+					if(expr->cursor->left){
+						Term* it = expr->cursor->left;
+						while(it->parent && it->parent->linear < expr->cursor->linear) it = it->parent;
+						if(it != &expr->term){
+							change_parent_insert_last(&expr->term, it);
+							RemoveFlag(it->flags, OPARG_MASK);
+						}
+					}
+					//separate right side of cursor (we know it has one)
+					Term* it = expr->cursor->right;
+					while(it->parent && it->parent->linear > expr->cursor->linear) it = it->parent;
+					if(it != &expr->term){
+						change_parent_insert_last(&expr->term, it);
+						RemoveFlag(it->flags, OPARG_MASK);
+					}
+#if 0
+					debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
+#endif
+				}
+			}
+			
+			//remove this operator from AST
+			remove(expr->cursor);
+			expr->cursor = expr->cursor->left;
+			remove_leftright(expr->cursor->right);
+			
+			//update expression
+			if(&op->term == expr->equals) expr->equals = 0;
+			for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
+			expr->term_count--;
+			
+			memory_zfree(op);
+		}break;
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @ast_delete_literal
+		case TermType_Literal:{
+			ast_changed = true;
+			Literal* lit = LiteralFromTerm(expr->cursor);
+			
+			//if right or left edge, no need to reorganize things
+			if(expr->cursor->right && expr->cursor->left->type != TermType_Expression){
+				if(expr->cursor->left->type == TermType_Operator){
+					if(expr->cursor->right->type == TermType_Literal){
+						if(expr->cursor->right->parent->type == TermType_Operator){
+							if(*OperatorFromTerm(expr->cursor->left) >= OperatorFromTerm(expr->cursor->right->parent)){
+								//if left op is greater/equal to right op, left op steals right literal and becomes left child of right op
+								Term* right_op = expr->cursor->right->parent;
+								change_parent_insert_last(expr->cursor->parent, expr->cursor->right);
+								RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+							AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+							
+#if 0
+							debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
+#endif
+								
+								change_parent_insert_first(right_op, expr->cursor->left);
+								RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+								AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
+							}else{
+								//if left op is less than right op, right op's parentmost becomes right child of left op
+								Term* it = expr->cursor->right;
+								while(it->parent != &expr->term) it = it->parent;
+								change_parent_insert_last(expr->cursor->parent, it);
+								RemoveFlag(it->flags, OPARG_MASK);
+								AddFlag(it->flags, TermFlag_OpArgRight);
+							}
+						}else{
+							//if right's parent is not an operator, its dangling, so just change replace cursor with it
+							change_parent_insert_last(expr->cursor->parent, expr->cursor->right);
+							RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+							AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+						}
+					}
+				}else{
+					//left term is not an operator/expression, so its a literal/var/func (detached expression: 1+1 2+2)
+					if(expr->cursor->right->type == TermType_Operator){ //NOTE if neither right or left are operators, deleting this literal has no AST consequences
+						if(expr->cursor->left->parent->type == TermType_Operator){
+							if(*OperatorFromTerm(expr->cursor->left->parent) >= OperatorFromTerm(expr->cursor->right)){
+								//if left op is greater/equal to right op, left op's parentmost becomes left child of right op
+								Term* it = expr->cursor->left;
+								while(it->parent != &expr->term) it = it->parent;
+								change_parent_insert_first(expr->cursor->right, it);
+								RemoveFlag(it->flags, OPARG_MASK);
+								AddFlag(it->flags, TermFlag_OpArgLeft);
+							}else{
+								//if left op is less than right op, right op steals left literal and becomes right child of left op
+								Term* left_op = expr->cursor->left->parent;
+								change_parent_insert_first(expr->cursor->parent, expr->cursor->left);
+								RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+							AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
+							
+#if 0
+							debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
+#endif
+								
+								change_parent_insert_last(left_op, expr->cursor->right);
+								RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
+								AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
+							}
+						}else{
+							//if left's parent is not an operator, its dangling, so just change replace cursor with it
+							change_parent_insert_first(expr->cursor->parent, expr->cursor->left);
+							RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
+							AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
+						}
+					}
+				}
+			}
+			
+			//remove this literal from AST
+			remove(expr->cursor);
+			expr->cursor = expr->cursor->left;
+			remove_leftright(expr->cursor->right);
+			
+			//update expression
+			for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
+			expr->term_count--;
+			memory_zfree(lit);
+		}break;
+	SWITCH_END();
+	
+	return ast_changed;
 }
 
 //return false if the AST of the expression is invalid, true otherwise
@@ -232,58 +723,8 @@ b32 expression_is_valid(Expression2* expr){
 	return true;
 }
 
-#define PRINT_AST true
-#if PRINT_AST
-local s32 debug_print_indent = -1;
-void debug_print_term(Term* term, Term* cursor){
-	debug_print_indent++;
-	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
-	char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? " L"
-		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? " R"
-		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? " T"
-		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? " B"
-		: "  ";
-	char* cursor_str = (term == cursor) ? " <- ": "    ";
-	
-	switch(term->type){
-		case TermType_Expression:{
-			Expression2* expr = ExpressionFromTerm(term);
-			if(term->child_count){
-				for_node(term->first_child) debug_print_term(it, cursor);
-				if(expr->valid){
-					if(expr->equals){
-						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator).str, arg, cursor_str, term->left,",",term,",",term->right);
-					}else if(expr->solution != MAX_F32){
-						Log("ast", indent, (string("=", deshi_temp_allocator) + to_string(expr->solution, true, deshi_temp_allocator)).str, arg, cursor_str, term->left,",",term,",",term->right);
-					}
-				}
-			}
-		}break;
-		
-		case TermType_Operator:{
-			switch(OperatorFromTerm(term)->type){
-				case OpType_Addition:              { Log("ast", indent, "+", arg, cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_Subtraction:           { Log("ast", indent, "-", arg, cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_Division:              { Log("ast", indent, "/", arg, cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, cursor_str, term->left,",",term,",",term->right); }break;
-			}
-			for_node(term->first_child) debug_print_term(it, cursor);
-		}break;
-		
-		case TermType_Literal:{
-			Log("ast", indent, to_string(LiteralFromTerm(term)->value, true, deshi_temp_allocator).str, arg, cursor_str, term->left,",",term,",",term->right);
-		}break;
-		
-		//case TermType_Variable:{}break;
-		//case TermType_FunctionCall:{}break;
-	}
-	debug_print_indent--;
-}
-#else
-#  define debug_print_term(term,cursor) (void)0
-#endif
-
+#undef SWITCH_START
+#undef SWITCH_END
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
 local array<Element2*> elements(deshi_allocator);
@@ -483,351 +924,34 @@ void update_canvas(){
 				b32 ast_changed = false;
 				
 				//// @input_expression_cursor ////
-				if(expr->cursor && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteLeft)){
-					switch(expr->cursor->type){
-						case TermType_Expression:{
-							//TODO expression deletion
-						}break;
-						case TermType_Operator:{ //TODO non-binary/non-linear operators
-							ast_changed = true;
-							Operator* op = OperatorFromTerm(expr->cursor);
-							
-							if(expr->cursor->right){
-								b32 extra_operator = false;
-								
-								//change parents of operator children
-								if(expr->cursor->child_count){
-									//if cursor operator is next to another operator, change child's parent to greater precedence operator
-									if(expr->cursor->left->type == TermType_Operator){
-										extra_operator = true;
-										if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
-											if(*OperatorFromTerm(expr->cursor->right->right) > OperatorFromTerm(expr->cursor->left)){
-												change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
-												RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-												AddFlag(expr->cursor->right->flags, TermFlag_OpArgLeft);
-												
-												//left op's parentmost changes parent to right op
-												Term* it = expr->cursor->left;
-												while(it->parent && it->parent != &expr->term && it->parent != expr->cursor && it->parent != expr->cursor->right->right) it = it->parent;
-												change_parent_insert_last(expr->cursor->right->right, it);
-												RemoveFlag(it->flags, OPARG_MASK);
-												AddFlag(it->flags, TermFlag_OpArgLeft);
-											}else{
-												change_parent_insert_first(expr->cursor->left, expr->cursor->right);
-												RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-												AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
-											}
-										}else if(expr->cursor->right->type != TermType_Operator){ //if left and right are operators, do nothing
-											change_parent_insert_first(expr->cursor->left, expr->cursor->right);
-											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-											AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
-										}
-									}
-									if(expr->cursor->right->type == TermType_Operator){
-										extra_operator = true;
-										if(expr->cursor->left->left && expr->cursor->left->left->type == TermType_Operator){
-											if(*OperatorFromTerm(expr->cursor->left->left) >= OperatorFromTerm(expr->cursor->right)){
-												change_parent_insert_last(expr->cursor->left->left, expr->cursor->left);
-												RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-												AddFlag(expr->cursor->left->flags, TermFlag_OpArgRight);
-											}else{
-												change_parent_insert_first(expr->cursor->right, expr->cursor->left);
-												RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-												AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
-												
-												//right op's parentmost changes parent to left op
-												Term* it = expr->cursor->right;
-												while(it->parent && it->parent != &expr->term && it->parent != expr->cursor && it->parent != expr->cursor->left->left) it = it->parent;
-												change_parent_insert_last(expr->cursor->left->left, it);
-												RemoveFlag(it->flags, OPARG_MASK);
-												AddFlag(it->flags, TermFlag_OpArgRight);
-											}
-										}else if(expr->cursor->left->type != TermType_Operator){ //if left and right are operators, do nothing
-											change_parent_insert_first(expr->cursor->right, expr->cursor->left);
-											RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-											AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
-										}
-									}
-									
-									if(!extra_operator){
-										if(   expr->cursor->left == expr->cursor->first_child
-										   && expr->cursor->left->left
-										   && expr->cursor->left->left->type == TermType_Operator
-										   && *op >= OperatorFromTerm(expr->cursor->left->left)){
-											change_parent_insert_first(expr->cursor->left->left, expr->cursor->left);
-											RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-											AddFlag(expr->cursor->left->flags, TermFlag_OpArgRight);
-										}
-										if(   expr->cursor->right == expr->cursor->last_child
-										   && expr->cursor->right->right 
-										   && expr->cursor->right->right->type == TermType_Operator 
-										   && *op >= OperatorFromTerm(expr->cursor->right->right)){
-											change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
-											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-											AddFlag(expr->cursor->right->flags, TermFlag_OpArgLeft);
-										}
-									}
-								}
-								
-								//separate the sides of the expression
-								if(!extra_operator){
-									if(expr->cursor->left){
-										Term* it = expr->cursor->left;
-										while(it->parent && it->parent->linear < expr->cursor->linear) it = it->parent;
-										if(it != &expr->term){
-											change_parent_insert_last(&expr->term, it);
-											RemoveFlag(it->flags, OPARG_MASK);
-										}
-									}
-									Term* it = expr->cursor->right;
-									while(it->parent && it->parent->linear > expr->cursor->linear) it = it->parent;
-									if(it != &expr->term){
-										change_parent_insert_last(&expr->term, it);
-										RemoveFlag(it->flags, OPARG_MASK);
-									}
-								}
-							}
-							
-							//remove this operator from AST
-							remove(expr->cursor);
-							expr->cursor = expr->cursor->left;
-							remove_leftright(expr->cursor->right);
-							
-							//update expression
-							if(&op->term == expr->equals) expr->equals = 0;
-							for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
-							expr->term_count--;
-							
-							memory_zfree(op);
-						}break;
-						case TermType_Literal:{
-							ast_changed = true;
-							Literal* lit = LiteralFromTerm(expr->cursor);
-							
-							//if right or left edge, no need to reorganize things
-							if(expr->cursor->right && expr->cursor->left->type != TermType_Expression){
-								if(expr->cursor->left->type == TermType_Operator){
-									if(expr->cursor->right->type == TermType_Literal){
-										if(expr->cursor->right->parent->type == TermType_Operator){
-											if(*OperatorFromTerm(expr->cursor->left) >= OperatorFromTerm(expr->cursor->right->parent)){
-												//if left op is greater/equal to right op, left op steals right literal and becomes left child of right op
-												Term* right_op = expr->cursor->right->parent;
-												change_parent_insert_last(expr->cursor->parent, expr->cursor->right);
-												RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-												AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
-												
-												change_parent_insert_first(right_op, expr->cursor->left);
-												RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-												AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
-											}else{
-												//if left op is less than right op, right op's parentmost becomes right child of left op
-												Term* it = expr->cursor->right;
-												while(it->parent != &expr->term) it = it->parent;
-												change_parent_insert_last(expr->cursor->parent, it);
-												RemoveFlag(it->flags, OPARG_MASK);
-												AddFlag(it->flags, TermFlag_OpArgRight);
-											}
-										}else{
-											//if right's parent is not an operator, its dangling, so just change replace cursor with it
-											change_parent_insert_last(expr->cursor->parent, expr->cursor->right);
-											RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-											AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
-										}
-									}
-								}else{
-									//left term is not an operator/expression, so its a literal/var/func
-									if(expr->cursor->right->type == TermType_Operator){
-										if(expr->cursor->left->parent->type == TermType_Operator){
-											if(*OperatorFromTerm(expr->cursor->left->parent) >= OperatorFromTerm(expr->cursor->right)){
-												//if left op is greater/equal to right op, make it a child of right op
-												change_parent_insert_first(expr->cursor->right, expr->cursor->left->parent);
-												RemoveFlag(expr->cursor->left->parent->flags, OPARG_MASK);
-												AddFlag(expr->cursor->left->parent->flags, TermFlag_OpArgLeft);
-											}else{
-												//if left op is less than right op, right op steals left literal and becomes right child of left op
-												Term* left_op = expr->cursor->left->parent;
-												change_parent_insert_first(expr->cursor->parent, expr->cursor->left);
-												RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-												AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
-												
-												change_parent_insert_last(left_op, expr->cursor->right);
-												RemoveFlag(expr->cursor->right->flags, OPARG_MASK);
-												AddFlag(expr->cursor->right->flags, TermFlag_OpArgRight);
-											}
-										}else{
-											//if left's parent is not an operator, its dangling, so just change replace cursor with it
-											change_parent_insert_first(expr->cursor->parent, expr->cursor->left);
-											RemoveFlag(expr->cursor->left->flags, OPARG_MASK);
-											AddFlag(expr->cursor->left->flags, TermFlag_OpArgLeft);
-										}
-									}
-								}
-							}
-							
-							//remove this literal from AST
-							remove(expr->cursor);
-							expr->cursor = expr->cursor->left;
-							remove_leftright(expr->cursor->right);
-							
-							//update expression
-							for(Term* it = expr->cursor->right; it != 0; it = it->right) it->linear--;
-							expr->term_count--;
-							memory_zfree(lit);
-						}break;
-					}
-				}
-				
 				if(expr->cursor && expr->cursor->left && DeshInput->KeyPressed(CanvasBind_Expression_CursorLeft)){
 					ast_changed = true;
 					expr->cursor = expr->cursor->left;
 				}
-				
 				if(expr->cursor && expr->cursor->right && DeshInput->KeyPressed(CanvasBind_Expression_CursorRight)){
 					ast_changed = true;
 					expr->cursor = expr->cursor->right;
 				}
 				
-				//TODO support Unicode using iswdigit()/iswalpha() once we handle it in DeshInput->charIn
-				b32 first_term = (expr->cursor == &expr->term);
+				//character based input (letters, numbers, symbols)
+				//// @input_expression_insertion ////
 				forI(DeshInput->charCount){
-					char input = DeshInput->charIn[i];
-					
-					//// @input_expression_literals ////
-					//TODO remove duplication
-					//TODO in-the-middle insertion
-					if(isdigit(input)){
-						if(first_term){
-							ast_changed = true;
-							Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-							lit->term.type   = TermType_Literal;
-							lit->term.linear = expr->term_count++;
-							insert_first(&expr->term, &lit->term);
-							insert_right(&expr->term, &lit->term);
-							expr->cursor = &lit->term;
-						}
-						
-						if(expr->cursor->type == TermType_Literal){ //appending to a literal
-							ast_changed = true;
-							Literal* lit = LiteralFromTerm(expr->cursor);
-							if(lit->decimal){ //we are appending as decimal values
-								lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
-								lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
-								lit->decimal++;
-							}else{            //we are appending as integer values
-								lit->value = 10*lit->value + (input-48);
-							}
-						}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
-							ast_changed = true;
-							Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-							lit->term.type   = TermType_Literal;
-							lit->term.flags  = TermFlag_OpArgRight;
-							lit->term.linear = expr->term_count++;
-							insert_last(expr->cursor, &lit->term);
-							insert_right(expr->cursor, &lit->term);
-							expr->cursor = &lit->term;
-							
-							if(lit->decimal){ //we are appending as decimal values
-								lit->zeros = (input == '0') ? lit->zeros + 1 : 0;
-								lit->value = lit->value + (input-48)/pow(10,lit->decimal+lit->zeros);
-								lit->decimal++;
-							}else{            //we are appending as integer values
-								lit->value = 10*lit->value + (input-48);
-							}
-						}
-					}
-					else if(input == '.'){ //TODO comma in EU input mode
-						if(first_term){
-							ast_changed = true;
-							Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-							lit->term.type   = TermType_Literal;
-							lit->term.linear = expr->term_count++;
-							insert_first(&expr->term, &lit->term);
-							insert_right(&expr->term, &lit->term);
-							expr->cursor = &lit->term;
-						}
-						
-						if(expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Literal* lit = LiteralFromTerm(expr->cursor);
-							if(lit->decimal == 0) lit->decimal = 1;
-						}else if(expr->cursor->type == TermType_Operator){ //right side of operator //TODO non-binary/non-linear operators
-							ast_changed = true;
-							Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
-							lit->term.type   = TermType_Literal;
-							lit->term.flags  = TermFlag_OpArgRight;
-							lit->term.linear = expr->term_count++;
-							insert_last(expr->cursor, &lit->term);
-							insert_right(expr->cursor, &lit->term);
-							expr->cursor = &lit->term;
-							
-							if(lit->decimal == 0) lit->decimal = 1;
-						}
-					}
-					else if(input == 'e' || input == 'E'){
-						//TODO exponential literal input
-					}
-					
-					//// @input_expression_operators ////
-					//TODO in-the-middle insertion
-					else if(input == '+'){
-						if(!first_term && expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Operator* op = make_operator(OpType_Addition, expr->cursor);
-							op->term.linear = expr->term_count++;
-							insert_right(expr->cursor, &op->term);
-							expr->cursor = &op->term;
-						}
-					}
-					else if(input == '-'){
-						if(!first_term && expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Operator* op = make_operator(OpType_Subtraction, expr->cursor);
-							op->term.linear = expr->term_count++;
-							insert_right(expr->cursor, &op->term);
-							expr->cursor = &op->term;
-						}
-					}
-					else if(input == '*'){
-						if(!first_term && expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Operator* op = make_operator(OpType_ExplicitMultiplication, expr->cursor);
-							op->term.linear = expr->term_count++;
-							insert_right(expr->cursor, &op->term);
-							expr->cursor = &op->term;
-						}
-					}
-					else if(input == '/'){
-						if(!first_term && expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Operator* op = make_operator(OpType_Division, expr->cursor);
-							op->term.linear = expr->term_count++;
-							insert_right(expr->cursor, &op->term);
-							expr->cursor = &op->term;
-						}
-					}
-					else if(input == '='){
-						if(!first_term && expr->cursor->type == TermType_Literal){
-							ast_changed = true;
-							Operator* op = make_operator(OpType_ExpressionEquals, expr->cursor);
-							op->term.linear = expr->term_count++;
-							insert_right(expr->cursor, &op->term);
-							expr->cursor = &op->term;
-							expr->equals = &op->term;
-						}
-					}
-					
-					//// @input_expression_letters ////
-					else if(isalpha(input)){
-						//TODO variables
-					}
+					ast_changed = term_insertion(expr, DeshInput->charIn[i]);
+				}
+				
+				//// @input_expression_deletion ////
+				if(expr->cursor && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteLeft)){
+					ast_changed = term_deletion(expr, false);
+				}
+				if(expr->cursor && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteRight)){
+					ast_changed = term_deletion(expr, true);
 				}
 				
 				if(ast_changed){
 					expr->valid  = expression_is_valid(expr);
 					solve(&expr->term);
 #if PRINT_AST
-					debug_print_term(&expr->term, expr->cursor);
-					Log("ast","---------------------------------");
+					debug_print_term(&expr->term, expr->cursor); Log("ast","---------------------------------");
 #endif
 				}
 			}
@@ -880,7 +1004,7 @@ void update_canvas(){
 				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
 				UI::SetNextWindowPos(ToScreen(el->x, el->y));
 				UI::PushFont(math_font);
-				UI::Begin(toStr("expression_",u64(el)).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
+				UI::Begin(stringf(deshi_temp_allocator, "expression_0x%p",el).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 				
 				//draw terms from left to right
 				Expression2* expr = ElementToExpression(el);
@@ -916,10 +1040,7 @@ void update_canvas(){
 						
 						case TermType_Literal:{
 							Literal* lit = LiteralFromTerm(term);
-							u32  decimals = (lit->decimal) ? lit->decimal-1 : 0;
-							int   lit_len = 1 + snprintf(0, 0, "%.*f", decimals, lit->value);
-							char* lit_str = (char*)memory_talloc(lit_len*sizeof(char));
-							snprintf(lit_str, lit_len, "%.*f", decimals, lit->value);
+							string lit_str = stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->decimal-1 : 0, lit->value);
 							
 							//add a space between different literals
 							if(term->left && term->left->type == TermType_Literal){

@@ -344,13 +344,15 @@ struct Term{
 	u32   child_count;
 };
 
-global_ inline void insert_left(Term* target, Term* term){
+#define for_right(term_ptr) for(Term* it = term_ptr; it != 0; it = it->right)
+
+global_ inline void insert_left(Term* target, Term* term){ //TODO update linear here
 	term->right = target;
 	term->left = target->left;
 	target->left = term;
 }
 
-global_ inline void insert_right(Term* target, Term* term){
+global_ inline void insert_right(Term* target, Term* term){ //TODO update linear here
 	term->left = target;
 	term->right = target->right;
 	target->right = term;
@@ -552,6 +554,7 @@ struct Operator{
 };
 #define OperatorFromTerm(term_ptr) ((Operator*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Operator, term))))
 
+//TODO rework this to be string based (will just fix a bunch of different issues at the cost of storage)
 struct Literal{
 	Term term;
 	f64 value;

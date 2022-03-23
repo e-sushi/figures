@@ -19,6 +19,8 @@ thousand separator: space vs comma vs point vs apostrophe
 `Input`
 -------
 cursor inside literals
+add a simulator that reads in a file/string of inputs and adds an expression from it (for testing and rough raw text input)
+copy/paste expressions
 
 `Parser`
 --------
