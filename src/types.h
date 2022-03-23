@@ -324,8 +324,10 @@ enum TermFlags_{
 	TermFlag_OpArgRight  = (1 << 1),
 	TermFlag_OpArgTop    = (1 << 2),
 	TermFlag_OpArgBottom = (1 << 3),
-#define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
 }; typedef Flags TermFlags;
+#define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
+#define RemoveOpArgs(var) RemoveFlag(var, OPARG_MASK)
+#define ReplaceOpArgs(var, new_flags) ((var) = (((var) & ~OPARG_MASK) | new_flags))
 
 //term: generic base thing (literal, operator, variable, function call, etc)
 //TODO maybe union operator and literal structs into this?
@@ -346,21 +348,26 @@ struct Term{
 
 #define for_right(term_ptr) for(Term* it = term_ptr; it != 0; it = it->right)
 
-global_ inline void insert_left(Term* target, Term* term){ //TODO update linear here
+global_ inline void insert_left(Term* target, Term* term){
 	term->right = target;
-	term->left = target->left;
+	term->left  = target->left;
 	target->left = term;
+	term->linear = target->linear;
+	for_right(term->right) it->linear++;
 }
 
-global_ inline void insert_right(Term* target, Term* term){ //TODO update linear here
-	term->left = target;
-	term->right = target->right;
+global_ inline void insert_right(Term* target, Term* term){
+	term->left   = target;
+	term->right  = target->right;
 	target->right = term;
+	term->linear = target->linear+1;
+	for_right(term->right) it->linear++;
 }
 
 global_ inline void remove_leftright(Term* term){
 	if(term->right) term->right->left = term->left;
 	if(term->left)  term->left->right = term->right;
+	for_right(term->right) it->linear--;
 	term->right = term->left = 0;
 }
 
