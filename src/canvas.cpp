@@ -1111,7 +1111,7 @@ void update_canvas(){
 				GraphElement* ge = ElementToGraphElement(el);
 				vec2 tl = ToScreen(ge->element.x, ge->element.y);
 				vec2 br = ToScreen(ge->element.x + ge->element.width, ge->element.y - ge->element.height);
-				draw_graph(*ge->graph, vec2g{tl.x, tl.y}, vec2g{br.x - tl.x, br.y - tl.y});
+				draw_graph(ge->graph, vec2g{tl.x, tl.y}, vec2g{br.x - tl.x, br.y - tl.y});
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
