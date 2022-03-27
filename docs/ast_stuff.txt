@@ -416,4 +416,209 @@ literal deletion, right op deletion, nested left op equal, right op equal
 2->3) right lit changes parent to left op (insert_last, right arg)
 2->3) delete op
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+in-the middle term insertion (linear binary ops)
 
+---------------------------------------------------------------------
+op insertion, left literal, right op equal
+V          V
+1 + 3    1 +   + 3
+1___3    1___
+  +        +_____3
+  E            +
+             E
+1->2) left lit changes parent to op (insert_first)
+1->2) op changes parent to right op (insert_first)
+
+---------------------------------------------------------------------
+op insertion, left literal, right op greater
+V          V
+1 * 3    1 +   * 3
+1___3         ___3
+  *      1_____*
+  E        +
+             E
+1->2) left lit changes parent to op (insert_first)
+1->2) right op changes parent to op (insert_last)
+
+---------------------------------------------------------------------
+op insertion, left literal, nested right op greater, right right op equal
+V            V
+1 * 3 + 4    1 +   * 3 + 4
+1___3             ___3
+  *_____4    1_____*
+      +        +_________4
+  E                    +
+                   E
+1->2) left lit changes parent to op (insert_first)
+1->2) right op changes parent to op (insert_last)
+1->2) op changes parent to right op old parent (insert_first)
+
+---------------------------------------------------------------------
+op insertion, left literal, left op less, nested right op equal, right right op less
+    V                  V
+1 + 2 * 4 + 5    1 + 2 *   * 4 + 5
+    2___4            2___
+1_____*                *_____4
+  +_________5    1_________*
+          +        +_____________5
+      E                  E
+1->2) left lit changes parent to op (insert_first)
+1->2) op changes parent to right op (insert_last)
+
+---------------------------------------------------------------------
+op insertion, left literal, left op less, nested right op less, right right op less
+    V                  V
+1 + 2 + 4 + 5    1 + 2 *   + 4 + 5
+1___2                2___
+  +_____4        1_____*
+      +_____5      +_________4
+          +                +_____5
+      E                        +
+                         E
+1->2) left lit changes parent to op (insert_first)
+1->2) op changes parent to left op (insert_last)
+
+---------------------------------------------------------------------
+op insertion, left literal, left op equal, nested right op less, right right op less
+    V                  V
+1 * 2 + 4 + 5    1 * 2 *   + 4 + 5
+1___2            1___2
+  *_____4          *_____
+      +_____5          *_____4
+          +                +_____5
+      E                        +
+                         E
+1->2) left op changes parent to op (insert_first)
+1->2) op changes parent to right op (insert_first)
+
+---------------------------------------------------------------------
+op insertion, left literal, left op greater, nested right op greater, right right op equal
+    V                  V
+1 * 2 * 4 + 5    1 * 2 +   * 4 + 5
+1___2            1___2    ___4
+  *_____4          *_______*
+      *_____5          +_____4
+          +                +_____5
+      E                        +
+                         E
+1->2) left op changes parent to op (insert_first)
+1->2) right op changes parent to op (insert_last)
+1->2) op changes parent to right op old parent (insert_first)
+
+---------------------------------------------------------------------
+op insertion, left literal, nested left op greater, nested right op greater, left left op equal, right right op equal
+        V                      V
+1 + 2 * 3 * 5 + 6    1 + 2 * 3 +   * 5 + 6
+    2___3                2___3    ___5
+      *_____5              *_______*
+1_________*          1_________+
+  +_____________6      +_________________6
+              +                       +
+        E                      E
+1->2) left op changes parent to op (insert_first)
+1->2) right op changes parent to op (insert_last)
+1->2) op changes parent to right op old parent (insert_last)
+
+---------------------------------------------------------------------
+op insertion, left literal, nested left op greater, nested right op greater, left left op equal, right right op greater
+        V                      V
+1 + 2 * 3 * 5 * 6    1 + 2 * 3 +   * 5 * 6
+    2___3                2___3    ___5    
+      *_____5        1_____*       *_____6
+          *_____6      +_______________*
+1_____________*                +
+  +
+        E
+1->2) left op changes parent to left left op (insert_last)
+1->2) left left op changes parent to op (insert_first)
+1->2) right right op changes parent to op (insert_last)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   |
+1 +|3 * 4 + 5
+   |3___4
+1__|__*
+  +|________5
+   |      +
+          ^
+
+   | 3___4
+1__|__*      ___5
+  +|          +
+  ^
+
+   |   3___4
+1__|     *___5
+  +|     ^ +
+
+   |   3___4
+1__|   ^ *___5
+  +|       +
+
+---------------------------------------------------------------------
+
+1 + 2 *|3 * 4 + 5
+    2__|3
+      *|____4
+1______|__*
+  +____|________5
+       |      +
+              ^
+
+    2__|3
+      *|____4
+1______|__*     ___5
+  +    |         +
+  ^
+
+       2__|3
+         *|__4
+1___      |*___5
+  +       |^ +
+
+  2__|3    ___4
+1___*|      *___5
+  + ^|        +
+
+  2__|   3___4
+1___*|   ^ *___5
+  +  |       +
+
+---------------------------------------------------------------------
+
+2 * 2 +|3 * 3 + 4
+2___2  |3___3
+  *____|__*
+      +|________4
+       |      +
+              ^
+
+2___2  |3___3
+  *____|__*     ___4
+      +|         +
+      ^
+
+2___2  |3___3
+  *____|__*     ___4
+  ^   +|         +
+
+2___2  |3___3
+^ *____|__*     ___4
+      +|         +
+
+2___2  |3___3
+  *_^__|__*     ___4
+      +|         +
+
+2___2  |   3___3
+  *____|     *___4
+      +|     ^ +
+
+2___2  |   3___3
+  *____|   ^ *___4
+      +|       +
+
+2___2|   3___3
+  *__|     *^__4
+    +|       +

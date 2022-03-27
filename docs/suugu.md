@@ -79,6 +79,8 @@ workspace  | region of the canvas in which expressions are able to interact toge
 graph      | graphing grid with a local camera in which equations can be drawn  
 element    | anything with position, size, coordinate space, and display info  
 canvas     | manages the elements, world, and input
+
+&#9679; NOTE: In AST code comments, literals/lit might refer to literal, variable, or function call, since they all behave the same.
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Input)
