@@ -133,7 +133,7 @@ void graph_testing(){
 		}
 		
 		
-		draw_graph(g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
+		draw_graph(&g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
 		UIItem* gr = UI::GetLastItem();
 		
 		
@@ -145,7 +145,7 @@ void graph_testing(){
 			gcp = g.cameraPosition;
 		}
 		if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
-			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / (g.dimensions_per_unit_length*g.aspect_ratio);
+			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / (vec2g(g.dimensions_per_unit_length.x, g.dimensions_per_unit_length.x*g.aspect_ratio));
 			//Log("test",g.cameraPosition.x," ",g.cameraPosition.y);
 		}
 		if(DeshInput->LMouseReleased()){
@@ -195,12 +195,12 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			//graph_testing();
+			graph_testing();
 			
 #if 0
 			using namespace UI;
 			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
-				UIItem* item = BeginCustomItem();{
+				UIItem* item = BeginCustomItem();{a
 					UIDrawCmd dc;
 					persist u64 numlines = 1;
 					if(DeshInput->KeyDown(Key::UP)) numlines += 1;
