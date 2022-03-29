@@ -195,7 +195,7 @@ int main(){
 			persist b32 show_metrics = false;
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
-			graph_testing();
+			//graph_testing();
 			
 #if 0
 			using namespace UI;

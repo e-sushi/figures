@@ -533,8 +533,6 @@ enum OpType_{
 	
 	OpPrecedence_14 = (1 << 21),
 	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
-	
-	OpType_COUNT,
 }; typedef Type OpType;
 #define OPPRECEDENCE_MASK 0xFFFFFF00
 

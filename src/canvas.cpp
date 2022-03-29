@@ -222,7 +222,6 @@ void debug_print_term(Term* term, Term* cursor){
 #  define debug_print_term(term,cursor) (void)0
 #endif
 
-
 void attach_at_operators(Term* left_op, Term* right_op){
 	Term* old_parent = 0;
 	while(left_op && right_op){
@@ -275,22 +274,15 @@ void split_at_operator(Expression2* expr, Term* cursor){
 }
 
 Operator* make_operator(OpType type, Expression2* expr){
-	Operator* op = 0;
-	if(expr->term.child_count == 0){
-		op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
-		op->type = type;
-		op->term.type = TermType_Operator;
+	Operator* op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
+	op->type = type;
+	op->term.type = TermType_Operator;
+	
+	if(expr->cursor->type == TermType_Expression){
 		insert_first(&expr->term, &op->term);
-		insert_right(expr->cursor, &op->term);
-	}else if(expr->cursor->type == TermType_Expression){
-		op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
-		op->type = type;
-		op->term.type = TermType_Operator;
 		
 		if(expr->cursor->right){
 			if(expr->cursor->right->type == TermType_Literal){
-				insert_first(&expr->term, &op->term);
-				
 				if(expr->cursor->right->parent->type == TermType_Operator){
 					if(*op >= *OperatorFromTerm(expr->cursor->right->parent)){
 						//if op is greater/equal to right op, op steals right literal, then attach the sides
@@ -309,22 +301,13 @@ Operator* make_operator(OpType type, Expression2* expr){
 					ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgRight);
 				}
 			}else if(expr->cursor->right->type == TermType_Operator){
-				insert_first(&expr->term, &op->term);
-				
 				attach_at_operators(&op->term, expr->cursor->right);
 			}else{
 				NotImplemented;
 			}
-		}else{
-			insert_first(&expr->term, &op->term);
 		}
-		
-		insert_right(expr->cursor, &op->term);
-	}else if(expr->cursor->type == TermType_Operator){
-		op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
-		op->type = type;
-		op->term.type = TermType_Operator;
-		
+	}
+	else if(expr->cursor->type == TermType_Operator){
 		if(expr->cursor->right){
 			if(expr->cursor->right->type == TermType_Literal){
 				if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
@@ -398,24 +381,19 @@ Operator* make_operator(OpType type, Expression2* expr){
 		}else{
 			//insert op below a lower precedence operator on left side
 			if(*op <= *OperatorFromTerm(expr->cursor)){
-						Term* lower = expr->cursor;
-						while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
-						op->term.flags = (lower->flags & OPARG_MASK);
-						insert_last(lower->parent, &op->term);
-						change_parent_insert_first(&op->term, lower);
-						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					}else{
-						change_parent_insert_last(expr->cursor, &op->term);
-						ReplaceOpArgs(op->term.flags, TermFlag_OpArgRight);
-					}
+				Term* lower = expr->cursor;
+				while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
+				op->term.flags = (lower->flags & OPARG_MASK);
+				insert_last(lower->parent, &op->term);
+				change_parent_insert_first(&op->term, lower);
+				ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+			}else{
+				change_parent_insert_last(expr->cursor, &op->term);
+				ReplaceOpArgs(op->term.flags, TermFlag_OpArgRight);
+			}
 		}
-		
-		insert_right(expr->cursor, &op->term);
-	}else if(expr->cursor->type == TermType_Literal){
-		op = (Operator*)memory_alloc(sizeof(Operator)); //TODO expression arena
-		op->type = type;
-		op->term.type = TermType_Operator;
-		
+	}
+	else if(expr->cursor->type == TermType_Literal){
 		if(expr->cursor->right){
 			if(expr->cursor->right->type == TermType_Literal){
 				//if left and right are literals, the expression is split; so append op on left side, then attach the sides
@@ -426,7 +404,6 @@ Operator* make_operator(OpType type, Expression2* expr){
 				insert_last(lower->parent, &op->term);
 				change_parent_insert_first(&op->term, lower);
 				ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-				//debug_print_term(&expr->term, expr->cursor);
 				
 				if(expr->cursor->right->parent->type == TermType_Operator){
 					if(*op >= *OperatorFromTerm(expr->cursor->right->parent)){
@@ -458,7 +435,6 @@ Operator* make_operator(OpType type, Expression2* expr){
 						change_parent_insert_first(&op->term, expr->cursor);
 						ReplaceOpArgs(expr->cursor->flags, TermFlag_OpArgLeft);
 					}
-					//debug_print_term(&expr->term, expr->cursor);
 					
 					//insert op below a lower precedence operator on left side
 					if(*op <= *OperatorFromTerm(expr->cursor->left)){
@@ -472,11 +448,10 @@ Operator* make_operator(OpType type, Expression2* expr){
 						change_parent_insert_last(expr->cursor->left, &op->term);
 						ReplaceOpArgs(op->term.flags, TermFlag_OpArgRight);
 					}
-					//debug_print_term(&expr->term, expr->cursor);
 					
 					attach_at_operators(&op->term, expr->cursor->right);
 				}else{
-					//if left is a non-nested lit and right is an op, change left lit parent to op, attach the expressions
+					//if left is a dangling lit and right is an op, change left lit parent to op, attach the expressions
 					change_parent_insert_first(&op->term, expr->cursor);
 					ReplaceOpArgs(expr->cursor->flags, TermFlag_OpArgLeft);
 					
@@ -496,11 +471,11 @@ Operator* make_operator(OpType type, Expression2* expr){
 			change_parent_insert_first(&op->term, lower);
 			ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 		}
-		
-		insert_right(expr->cursor, &op->term);
 	}else{
 		NotImplemented;
 	}
+	
+	insert_right(expr->cursor, &op->term);
 	return op;
 }
 
