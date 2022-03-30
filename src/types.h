@@ -1,174 +1,76 @@
-﻿#pragma once
+/* Index:
+@token
+@vec2f64
+@element
+@term
+@expression
+*/
+
+#pragma once
 #ifndef SUUGU_TYPES_H
 #define SUUGU_TYPES_H
 
 #include "kigu/common.h"
 #include "core/memory.h"
 
+struct Constant{
+	str8 name;
+	str8 unit;
+	f64  value;
+};
+
 //-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Token
+//// @token
 //TODO add token types as their parsing is implemented
-enum TokenType : u32{
+enum TokenType_{
 	Token_Null = 0,
 	Token_ERROR = 0,                // when something doesnt make sense during lexing
 	Token_EOF,                      // end of file
 	
-	Token_Identifier,               // function/variable names
+	//Token_Identifier,               // function/variable names
 	Token_Literal,
 	
-	//// control ////
-	Token_Semicolon,                // ;
-	Token_OpenBrace,                // {
-	Token_CloseBrace,               // }
-	Token_OpenParen,                // (
-	Token_CloseParen,               // )
-	Token_OpenSquare,               // [
-	Token_CloseSquare,              // ]
-	Token_Comma,                    // ,
-	Token_QuestionMark,             // ?
-	Token_Colon,                    // :
-	Token_Dot,                      // .
-	Token_At,                       // @
-	Token_Pound,                    // #
-	Token_Backtick,                 // `
-	
-	//// operators ////
+	//Token_Semicolon,                // ;
+	//Token_OpenBrace,                // {
+	//Token_CloseBrace,               // }
+	//Token_OpenParen,                // (
+	//Token_CloseParen,               // )
+	//Token_OpenSquare,               // [
+	//Token_CloseSquare,              // ]
+	//Token_Comma,                    // ,
+	//Token_Dot,                      // .
 	Token_Plus,                     // +
-	Token_Negation,                 // -
+	Token_Minus,                    // -
 	Token_Multiplication,           // *
 	Token_Division,                 // /
-	Token_BitNOT,                   // ~
-	Token_BitAND,                   // &
-	Token_AND,                      // &&
-	Token_BitOR,                    // |
-	Token_OR,                       // ||
-	Token_BitXOR,                   // ^
-	Token_BitShiftLeft,             // <<
-	Token_BitShiftRight,            // >>
-	Token_Modulo,                   // %
-	Token_Assignment,               // =
-	Token_Equal,                    // ==
-	Token_NotEqual,                 // !=
-	Token_LogicalNOT,               // !
-	Token_LessThan,                 // <
-	Token_LessThanOrEqual,          // <=
-	Token_GreaterThan,              // >
-	Token_GreaterThanOrEqual,       // >=
+	//Token_BitwiseNOT,               // ~
+	//Token_BitwiseAND,               // &
+	//Token_BitwiseOR,                // |
+	//Token_BitwiseXOR,               // ^
+	//Token_LogicalAND,               // &&
+	//Token_LogicalOR,                // ||
+	//Token_LogicalNOT,               // !
+	//Token_BitShiftLeft,             // <<
+	//Token_BitShiftRight,            // >>
+	//Token_Modulo,                   // %
+	//Token_Equals,                   // =
+	//Token_BooleanEquals,            // ==
+	//Token_BooleanNotEquals,         // !=
+	//Token_LessThan,                 // <
+	//Token_LessThanOrEqual,          // <=
+	//Token_GreaterThan,              // >
+	//Token_GreaterThanOrEqual,       // >=
 	
 	Token_COUNT,
-	Token_CONTROLS_START   = Token_Semicolon,
-	Token_CONTROLS_END     = Token_Plus-1,
-	Token_OPERATORS_START  = Token_Plus,
-	Token_OPERATORS_END    = Token_COUNT-1,
-};
+}; typedef Type TokenType;
 
 struct Token{
 	TokenType type;
-	char raw[256] = {}; //TODO this is temporary
-	union{
-		f64 value;   //when literal
-		//cstring raw; //when not literal
-	};
+	cstring raw;
 };
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Expression
-enum ExpressionType : u32 {
-	Expression_NONE,
-	
-	Expression_IdentifierLHS,
-	Expression_IdentifierRHS,
-	
-	//Special ternary conditional expression type
-	//Expression_TernaryConditional,
-	
-	//Types
-	Expression_Literal,
-	
-	//Unary Operators
-	Expression_UnaryOpBitComp,
-	Expression_UnaryOpLogiNOT,
-	Expression_UnaryOpNegate,
-	
-	//Binary Operators
-	Expression_BinaryOpPlus,
-	Expression_BinaryOpMinus,
-	Expression_BinaryOpMultiply,
-	Expression_BinaryOpDivision,
-	Expression_BinaryOpAND,
-	Expression_BinaryOpBitAND,
-	Expression_BinaryOpOR,
-	Expression_BinaryOpBitOR,
-	Expression_BinaryOpLessThan,
-	Expression_BinaryOpGreaterThan,
-	Expression_BinaryOpLessThanOrEqual,
-	Expression_BinaryOpGreaterThanOrEqual,
-	Expression_BinaryOpEqual,
-	Expression_BinaryOpNotEqual,
-	Expression_BinaryOpModulo,
-	Expression_BinaryOpBitXOR,
-	Expression_BinaryOpBitShiftLeft,
-	Expression_BinaryOpBitShiftRight,
-	Expression_BinaryOpAssignment,
-};
-
-static const char* ExTypeStrings[] = {
-	"NONE",
-	
-	"idLHS: ",
-	"idRHS: ",
-	
-	//"tern: ",
-	
-	"literal: ",
-	
-	"~",
-	"!",
-	"-",
-	
-	"+",
-	"-",
-	"*",
-	"/",
-	"&&",
-	"&",
-	"||",
-	"|",
-	"<",
-	">",
-	"<=",
-	">=",
-	"==",
-	"!=",
-	"%",
-	"^",
-	"<<",
-	">>",
-	"=",
-};
-
-struct Expression {
-	ExpressionType type;
-	cstring expstr;
-	
-	//TODO support different types
-	f64 val;
-	
-	TNode node;
-	
-	Expression() {}
-	
-	Expression(char* str, ExpressionType type) {
-		this->type = type;
-		expstr={str, strlen(str)};
-	}
-};
-
-namespace Parser {
-	Expression parse(array<Token> tokens);
-	void pretty_print(Expression& e);
-}
-
+//// @vec2f64
 union vec2f64{
 	f64 arr[2];
 	struct{ f64 x; f64 y; };
@@ -204,60 +106,8 @@ inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
 inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
 inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
 
-struct Constant{
-	str8 name;
-	str8 unit;
-	f64  value;
-};
-
-struct Element{
-	vec2 pos; //NOTE world space //TODO maybe cache a screen position for elements 
-	vec2 size; //world size
-	s32 cursor = 0; //for tracking where in the token array we are editing
-	array<Token> tokens; //list of tokens the user has input and their strings to show 
-	Expression statement;
-	
-	void AddToken(TokenType t);
-	//draws input boxes and tokens
-	//TODO(sushi) add parameter for if element is active
-	void Update();
-	
-	Element() {};
-};
-
-//struct Graph{
-//	vec2f64 position{0,0};
-//	vec2f64 dimensions{2,-1.25};
-//	vec2f64 cameraPosition{0,0}; //in graph space
-//	f64     cameraZoom = 5.0;
-//	
-//	f64 gridZoomFit               = 5.0;
-//	f64 gridZoomFitIncrements[3]  = {2.0, 2.5, 2.0};
-//	u32 gridZoomFitIncrementIndex = 0;
-//	u32 gridMajorLinesCount       = 12;
-//	f64 gridMajorLinesIncrement   = 1.0;
-//	u32 gridMinorLinesCount       = 4;
-//	f64 gridMinorLinesIncrement   = 0.2;
-//	b32 gridShowMajorLines        = true;
-//	b32 gridShowMinorLines        = true;
-//	b32 gridShowAxisCoords        = true;
-//};
-
-struct Canvas{
-	Element* activeElement = 0;
-	Graph*   activeGraph = 0;
-	bool gathering = 0;
-	
-	array<Element> elements;
-	array<Graph> graphs;
-	
-	void HandleInput();
-	void Init();
-	void Update();
-};
-
 //-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Element
+//// @element
 enum CoordinateSpace : u32{
 	//CoordinateSpace_World,
 	//CoordinateSpace_Screen,
@@ -273,7 +123,7 @@ enum ElementType : u32{
 };
 
 //element: anything with position, size, coordinate space, and display info
-struct Element2{
+struct Element{
 	f64 x, y, z;
 	f64 width, height, depth;
 	//CoordinateSpace space;
@@ -281,23 +131,23 @@ struct Element2{
 };
 
 ////workspace: region of the canvas in which expressions are able to interact together  
-//struct Expression2;
+//struct Expression;
 //struct Workspace{
-//Element2 element;
+//Element element;
 //str8 name;
-//array<Expression2*> expressions = array<Expression2*>(deshi_allocator);
+//array<Expression*> expressions = array<Expression*>(deshi_allocator);
 //};
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
 struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
-	Element2 element;
+	Element element;
 	Graph* graph;
 };
 #define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
 
 //struct TextElement{
-//Element2 element;
+//Element element;
 //str8 text;
 //Font* font;
 //f32 font_height;
@@ -307,7 +157,7 @@ struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a 
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Term
+//// @term
 enum TermType_{
 	TermType_Expression,
 	TermType_Operator,
@@ -329,13 +179,98 @@ enum TermFlags_{
 #define RemoveOpArgs(var) RemoveFlag(var, OPARG_MASK)
 #define ReplaceOpArgs(var, new_flags) ((var) = (((var) & ~OPARG_MASK) | new_flags))
 
+//operator: symbol that represents an operation on one or many terms
+//NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
+//NOTE these are operation-based operators, not token-based operators
+//TODO try to find a way to store the number of arguments
+enum OpType_{
+	OpType_NULL = 0,
+	
+	OpPrecedence_1  = (1 << 8),
+	//OpType_Parentheses,
+	//OpType_SquareBrackets,
+	//OpType_CurlyBrackets,
+	//OpType_AbsoluteValue,
+	//OpType_Root,
+	//OpType_Derivative,
+	//OpType_Integral,
+	//OpType_Limit,
+	//OpType_Sum,
+	//OpType_PartialDerivative
+	
+	OpPrecedence_2  = (1 << 9),
+	//OpType_Exponential,
+	
+	OpPrecedence_3  = (1 << 10),
+	//OpType_Negation,
+	//OpType_BitwiseNOT,
+	//OpType_LogicalNOT,
+	
+	OpPrecedence_4  = (1 << 11),
+	//OpType_ImplicitMultiplication, //5x
+	OpType_ExplicitMultiplication, //5*x
+	OpType_Division,
+	//OpType_Modulo,
+	
+	OpPrecedence_5  = (1 << 12),
+	OpType_Addition,
+	OpType_Subtraction,
+	
+	OpPrecedence_6  = (1 << 13),
+	//OpType_ArithmaticShiftLeft,
+	//OpType_ArithmaticShiftRight,
+	//OpType_LogicalShiftLeft,
+	//OpType_LogicalShiftRight,
+	//OpType_CircularShiftLeft,
+	//OpType_CircularShiftRight,
+	
+	OpPrecedence_7  = (1 << 14),
+	//OpType_LessThan,
+	//OpType_LessThanEqual,
+	//OpType_GreaterThan,
+	//OpType_GreaterThanEqual,
+	
+	OpPrecedence_8  = (1 << 15),
+	//OpType_BooleanEquals,
+	//OpType_BooleanNotEquals,
+	
+	OpPrecedence_9  = (1 << 16),
+	//OpType_BitwiseAND,
+	
+	OpPrecedence_10 = (1 << 17),
+	//OpType_BitwiseXOR,
+	
+	OpPrecedence_11 = (1 << 18),
+	//OpType_BitwiseOR,
+	
+	OpPrecedence_12 = (1 << 19),
+	//OpType_LogicalAND,
+	
+	OpPrecedence_13 = (1 << 20),
+	//OpType_LogicalOR,
+	
+	OpPrecedence_14 = (1 << 21),
+	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
+}; typedef Type OpType;
+#define OPPRECEDENCE_MASK 0xFFFFFF00
+
+//NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
+#define OpIsGreater(op1,op2)      (((op1)->op_type & OPPRECEDENCE_MASK) <  ((op2)->op_type & OPPRECEDENCE_MASK))
+#define OpIsGreaterEqual(op1,op2) (((op1)->op_type & OPPRECEDENCE_MASK) <= ((op2)->op_type & OPPRECEDENCE_MASK))
+#define OpIsLesser(op1,op2)       (((op1)->op_type & OPPRECEDENCE_MASK) >  ((op2)->op_type & OPPRECEDENCE_MASK))
+#define OpIsLesserEqual(op1,op2)  (((op1)->op_type & OPPRECEDENCE_MASK) >= ((op2)->op_type & OPPRECEDENCE_MASK))
+
 //term: generic base thing (literal, operator, variable, function call, etc)
-//TODO maybe union operator and literal structs into this?
 struct Term{
 	TermType  type;
 	TermFlags flags;
-	u32 linear; //left to right position in expression
+	cstring raw;
+	union{
+		OpType op_type;
+		f64 lit_value;
+	};
 	
+	u32   linear; //left to right position in expression
 	Term* left;
 	Term* right;
 	Term* next;
@@ -445,117 +380,24 @@ global_ void change_parent_insert_first(Term* new_parent, Term* term){
 }
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @Expression
+//// @expression
 //expression: collection of terms in the form of a syntax tree
-struct Expression2{
-	Element2 element;
+struct Expression{
+	Element element;
 	//Workspace* workspace;
-	Term  term;
+	
+	Term term;
 	Term* cursor;
-	//Term* cursor_end;
 	Term* equals;
 	b32 valid;
 	f64 solution;
-	u32 term_count;
+	
+	array<Term> terms; //NOTE temporary until expression arena
+	string raw; //TODO support unicode
+	u32 raw_cursor_start;
+	//u32 raw_cursor_end;
 };
-#define ElementToExpression(elem_ptr) ((Expression2*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression2, element))))
-#define ExpressionFromTerm(term_ptr) ((Expression2*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression2, term))))
-
-//operator: symbol that represents an operation on one or many terms
-//NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
-//NOTE these are logical operators, not symbol-based operators
-//TODO try to find a way to store the number of arguments
-enum OpType_{
-	OpType_NULL = 0,
-	
-	OpPrecedence_1  = (1 << 8),
-	//OpType_Parentheses,
-	//OpType_SquareBrackets,
-	//OpType_CurlyBrackets,
-	//OpType_AbsoluteValue,
-	//OpType_Root,
-	//OpType_Derivative,
-	//OpType_Integral,
-	//OpType_Limit,
-	//OpType_Sum,
-	//OpType_PartialDerivative
-	
-	OpPrecedence_2  = (1 << 9),
-	//OpType_Exponential,
-	
-	OpPrecedence_3  = (1 << 10),
-	//OpType_Negation,
-	//OpType_BitwiseNOT,
-	//OpType_LogicalNOT,
-	
-	OpPrecedence_4  = (1 << 11),
-	//OpType_ImplicitMultiplication, //5x
-	OpType_ExplicitMultiplication, //5*x
-	OpType_Division,
-	//OpType_Modulo,
-	
-	OpPrecedence_5  = (1 << 12),
-	OpType_Addition,
-	OpType_Subtraction,
-	
-	OpPrecedence_6  = (1 << 13),
-	//OpType_ArithmaticShiftLeft,
-	//OpType_ArithmaticShiftRight,
-	//OpType_LogicalShiftLeft,
-	//OpType_LogicalShiftRight,
-	//OpType_CircularShiftLeft,
-	//OpType_CircularShiftRight,
-	
-	OpPrecedence_7  = (1 << 14),
-	//OpType_LessThan,
-	//OpType_LessThanEqual,
-	//OpType_GreaterThan,
-	//OpType_GreaterThanEqual,
-	
-	OpPrecedence_8  = (1 << 15),
-	//OpType_BooleanEquals,
-	//OpType_BooleanNotEquals,
-	
-	OpPrecedence_9  = (1 << 16),
-	//OpType_BitwiseAND,
-	
-	OpPrecedence_10 = (1 << 17),
-	//OpType_BitwiseXOR,
-	
-	OpPrecedence_11 = (1 << 18),
-	//OpType_BitwiseOR,
-	
-	OpPrecedence_12 = (1 << 19),
-	//OpType_LogicalAND,
-	
-	OpPrecedence_13 = (1 << 20),
-	//OpType_LogicalOR,
-	
-	OpPrecedence_14 = (1 << 21),
-	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
-}; typedef Type OpType;
-#define OPPRECEDENCE_MASK 0xFFFFFF00
-
-struct Operator{
-	Term term;
-	OpType type;
-	
-	//NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
-	inline b32 operator> (Operator& rhs){ return (type & OPPRECEDENCE_MASK) <  (rhs.type & OPPRECEDENCE_MASK); }
-	inline b32 operator>=(Operator& rhs){ return (type & OPPRECEDENCE_MASK) <= (rhs.type & OPPRECEDENCE_MASK); }
-	inline b32 operator< (Operator& rhs){ return (type & OPPRECEDENCE_MASK) >  (rhs.type & OPPRECEDENCE_MASK); }
-	inline b32 operator<=(Operator& rhs){ return (type & OPPRECEDENCE_MASK) >= (rhs.type & OPPRECEDENCE_MASK); }
-};
-#define OperatorFromTerm(term_ptr) ((Operator*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Operator, term))))
-
-//TODO rework this to be string based (will just fix a bunch of different issues at the cost of storage)
-//     but move the input logic somehere since it acts as a string -> float scanner
-struct Literal{
-	Term term;
-	f64 value;
-	u32 decimal; //digits since decimal
-	u32 zeros;   //zeros at the end of input
-};
-#define LiteralFromTerm(term_ptr) ((Literal*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Literal, term))))
+#define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
+#define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
 
 #endif //SUUGU_TYPES_H

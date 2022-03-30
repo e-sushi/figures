@@ -6,7 +6,6 @@ most math should be f64 instead of f32
 `Canvas`
 --------
 add checks to skip draw calls if they arent on screen
-extract graphing to its own deshi module
 workspaces
 arbitrary text
 custom to_string for f64 since we want to have config on sigfigs and it only goes to 6 decimals (this may be accuracy limit for f64)
@@ -38,9 +37,9 @@ constants loader
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------
 (03/07/22) fix zoom in/out consistency
-(03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved
+(03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved or ALT is pressed again (maybe a win32 issue?)
 (03/15/22) element hitboxes are incorrect
-(03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommonds() (vulkan) when you reopen the window
+(03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommands() (vulkan) when you reopen the window
 */
 
 #ifdef TRACY_ENABLE
@@ -80,15 +79,13 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #  include "graphviz/gvc.h"
 #endif
 #include "types.h"
-#include "parser.cpp"
+#include "ast.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
 
 //#include "kigu/deshi_utils_tests.cpp"
 //#include "core/deshi_core_tests.cpp"
 //#include "kigu/misc_testing.cpp"
-
-local Canvas canvas;
 
 typedef f64 (*MathFunc)(f64);
 

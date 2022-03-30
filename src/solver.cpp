@@ -6,7 +6,7 @@ f64   divide(f64 a, f64 b){return a/b;}
 f64 solve(Term* term){
 	switch(term->type){
 		case TermType_Expression:{ //TODO expression math
-			Expression2* expr = ExpressionFromTerm(term);
+			Expression* expr = ExpressionFromTerm(term);
 			if(expr->valid){
 				expr->solution = solve(term->first_child);
 				return expr->solution;
@@ -16,8 +16,7 @@ f64 solve(Term* term){
 		}break;
 		
 		case TermType_Operator:{
-			Operator* op = OperatorFromTerm(term);
-			switch(op->type){
+			switch(term->op_type){
 				case OpType_ExplicitMultiplication:{
 					return multiply(solve(term->first_child), solve(term->last_child));
 				}break;
@@ -37,15 +36,14 @@ f64 solve(Term* term){
 				}break;
 				
 				default:{
-					LogE("solver","Unknown operator type: ", term->type);
+					LogE("solver","Unknown operator type: ", term->op_type);
 					return MAX_F32;
 				}break;
 			}
 		}break;
 		
 		case TermType_Literal:{
-			Literal* lit = LiteralFromTerm(term);
-			return lit->value;
+			return term->lit_value;
 		}break;
 		
 		default:{
