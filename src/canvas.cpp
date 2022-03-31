@@ -254,7 +254,7 @@ void update_canvas(){
 			UI::TextF("Selected: %#x", selected_element);
 			UI::TextF("Position: (%g,%g)", selected_element->x,selected_element->y);
 			UI::TextF("Size:     (%g,%g)", selected_element->width,selected_element->height);
-			UI::TextF("Cursor:   %#x", (selected_element) ? ((Expression*)selected_element)->cursor : 0);
+			UI::TextF("Cursor:   %d", (selected_element) ? ((Expression*)selected_element)->cursor_start : 0);
 		}
 		UI::End();
 	}
@@ -343,9 +343,9 @@ void update_canvas(){
 				expr->element.width   = expr->element.height / 2.0;
 				expr->element.type    = ElementType_Expression;
 				expr->term.type       = TermType_Expression;
-				expr->cursor          = &expr->term;
 				expr->terms.allocator = deshi_allocator;
-				expr->raw.allocator   = deshi_allocator;
+				expr->raw             = string(" ", deshi_allocator);
+				expr->cursor_start    = 1;
 				
 				elements.add(&expr->element);
 				selected_element = &expr->element;
@@ -356,38 +356,36 @@ void update_canvas(){
 				b32 ast_changed = false;
 				
 				//// @input_expression_cursor ////
-				if(expr->cursor && expr->cursor->left && DeshInput->KeyPressed(CanvasBind_Expression_CursorLeft)){
-					//expr->cursor = expr->cursor->left;
-					//TODO update raw_cursor_start
+				if(expr->cursor_start > 1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorLeft)){
+						expr->cursor_start -= 1;
 				}
-				if(expr->cursor && expr->cursor->right && DeshInput->KeyPressed(CanvasBind_Expression_CursorRight)){
-					//expr->cursor = expr->cursor->right;
-					//TODO update raw_cursor_start
+				if(expr->cursor_start < expr->raw.count && DeshInput->KeyPressed(CanvasBind_Expression_CursorRight)){
+					expr->cursor_start += 1;
 				}
 				
 				//character based input (letters, numbers, symbols)
 				//// @input_expression_insertion ////
 				forI(DeshInput->charCount){
 					ast_changed = true;
-					expr->raw.insert(DeshInput->charIn[i], expr->raw_cursor_start);
-					expr->raw_cursor_start += 1;
+					expr->raw.insert(DeshInput->charIn[i], expr->cursor_start);
+					expr->cursor_start += 1;
 				}
 				
 				//// @input_expression_deletion ////
-				if(expr->raw_cursor_start > 0 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteLeft)){
+				if(expr->cursor_start > 1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteLeft)){
 					ast_changed = true;
-					expr->raw.erase(expr->raw_cursor_start-1);
-					expr->raw_cursor_start -= 1;
+					expr->raw.erase(expr->cursor_start-1);
+					expr->cursor_start -= 1;
 				}
-				if(expr->raw_cursor_start < expr->raw.count-1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteRight)){
+				if(expr->cursor_start < expr->raw.count-1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteRight)){
 					ast_changed = true;
-					expr->raw.erase(expr->raw_cursor_start);
+					expr->raw.erase(expr->cursor_start);
 				}
 				
 				if(ast_changed){
 					expr->valid = parse(expr);
 					solve(&expr->term);
-					debug_print_term(&expr->term, expr->cursor);
+					debug_print_term(&expr->term);
 				}
 			}
 		}break;
@@ -443,17 +441,16 @@ void update_canvas(){
 				
 				//draw terms from left to right
 				Expression* expr = ElementToExpression(el);
-				Term* term = &expr->term;
 				vec2 cursor_start;
 				f32 cursor_y;
-				while(term){
-					switch(term->type){
+				for_right(&expr->term){
+					switch(it->type){
 						case TermType_Expression:{
 							UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
 						}break;
 						
 						case TermType_Operator:{
-							switch(term->op_type){
+							switch(it->op_type){
 								case OpType_ExplicitMultiplication:{
 									UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
 								}break;
@@ -470,25 +467,35 @@ void update_canvas(){
 									UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
 								}break;
 							}
+							if((selected_element == el) && (it->raw.str == expr->raw.str + expr->cursor_start)){
+								cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y;
+								UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
+							}
 						}break;
 						
 						case TermType_Literal:{
 							//add a space between different literals
-							if(term->left && term->left->type == TermType_Literal){
+							if(it->left && it->left->type == TermType_Literal){
 								UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
 							}
 							
 							//draw the literal string
-							UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+							UI::Text(it->raw, UITextFlags_NoWrap); UI::SameLine();
+							
+							if(   (selected_element == el)
+							   && (it->raw.str <= expr->raw.str + expr->cursor_start)
+							   && (expr->raw.str + expr->cursor_start < it->raw.str + it->raw.count)){
+								f32 x_offset = UI::CalcTextSize(cstring{it->raw.str, upt(expr->raw.str + expr->cursor_start - it->raw.str)}).x;
+								cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+								UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
+							}
 						}break;
 					}
-					
-					if(selected_element == el && term == expr->cursor){
-						cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-						UI::Line(cursor_start, cursor_start - vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
-					}
-					term = term->right;
 				}
+				if((selected_element == el) && (expr->cursor_start == expr->raw.count)){
+								cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
+								UI::Line(cursor_start, cursor_start - vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
+							}
 				
 				//draw solution if its valid
 				if(expr->valid && expr->term.child_count){

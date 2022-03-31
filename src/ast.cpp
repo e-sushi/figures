@@ -15,7 +15,7 @@
 #define PRINT_AST true
 #if PRINT_AST
 local s32 debug_print_indent = -1;
-void debug_print_term(Term* term, Term* cursor){
+void debug_print_term(Term* term){
 	debug_print_indent++;
 	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
 	char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
@@ -23,19 +23,18 @@ void debug_print_term(Term* term, Term* cursor){
 		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
 		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
 		: "   ";
-	char* cursor_str = (term == cursor) ? " <- ": "    ";
 	
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			Log("ast",expr->raw);
 			if(expr->valid && term->child_count){
-				for_node(term->first_child) debug_print_term(it, cursor);
+				for_node(term->first_child) debug_print_term(it);
 				if(expr->valid){
 					if(expr->equals){
-						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
 					}else if(expr->solution != MAX_F32){
-						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
 					}
 				}
 			}
@@ -44,18 +43,18 @@ void debug_print_term(Term* term, Term* cursor){
 		
 		case TermType_Operator:{
 			switch(term->op_type){
-				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_Division:              { Log("ast", indent, "/", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
-				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right); }break;
+				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Division:              { Log("ast", indent, "/", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
 			}
-			for_node(term->first_child) debug_print_term(it, cursor);
+			for_node(term->first_child) debug_print_term(it);
 		}break;
 		
 		case TermType_Literal:{
-			//Log("ast", indent, stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->decimal-1 : 0, lit->value), arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
-			Log("ast", indent, term->raw, arg, " (",term->linear,") ", cursor_str, term->left,",",term,",",term->right);
+			//Log("ast", indent, stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->decimal-1 : 0, lit->value), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
+			Log("ast", indent, term->raw, arg, " (",term->linear,") ", term->left,",",term,",",term->right);
 		}break;
 		
 		//case TermType_Variable:{}break;
@@ -65,7 +64,7 @@ void debug_print_term(Term* term, Term* cursor){
 	debug_print_indent--;
 }
 #else
-#  define debug_print_term(term,cursor) (void)0
+#  define debug_print_term(term) (void)0
 #endif
 
 

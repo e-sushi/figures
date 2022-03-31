@@ -1,5 +1,4 @@
 /* Index:
-@token
 @vec2f64
 @element
 @term
@@ -19,57 +18,7 @@ struct Constant{
 	f64  value;
 };
 
-//-////////////////////////////////////////////////////////////////////////////////////////////////
-//// @token
-//TODO add token types as their parsing is implemented
-enum TokenType_{
-	Token_Null = 0,
-	Token_ERROR = 0,                // when something doesnt make sense during lexing
-	Token_EOF,                      // end of file
-	
-	//Token_Identifier,               // function/variable names
-	Token_Literal,
-	
-	//Token_Semicolon,                // ;
-	//Token_OpenBrace,                // {
-	//Token_CloseBrace,               // }
-	//Token_OpenParen,                // (
-	//Token_CloseParen,               // )
-	//Token_OpenSquare,               // [
-	//Token_CloseSquare,              // ]
-	//Token_Comma,                    // ,
-	//Token_Dot,                      // .
-	Token_Plus,                     // +
-	Token_Minus,                    // -
-	Token_Multiplication,           // *
-	Token_Division,                 // /
-	//Token_BitwiseNOT,               // ~
-	//Token_BitwiseAND,               // &
-	//Token_BitwiseOR,                // |
-	//Token_BitwiseXOR,               // ^
-	//Token_LogicalAND,               // &&
-	//Token_LogicalOR,                // ||
-	//Token_LogicalNOT,               // !
-	//Token_BitShiftLeft,             // <<
-	//Token_BitShiftRight,            // >>
-	//Token_Modulo,                   // %
-	//Token_Equals,                   // =
-	//Token_BooleanEquals,            // ==
-	//Token_BooleanNotEquals,         // !=
-	//Token_LessThan,                 // <
-	//Token_LessThanOrEqual,          // <=
-	//Token_GreaterThan,              // >
-	//Token_GreaterThanOrEqual,       // >=
-	
-	Token_COUNT,
-}; typedef Type TokenType;
-
-struct Token{
-	TokenType type;
-	cstring raw;
-};
-
-//-////////////////////////////////////////////////////////////////////////////////////////////////
+//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @vec2f64
 union vec2f64{
 	f64 arr[2];
@@ -106,7 +55,7 @@ inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
 inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
 inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
 
-//-////////////////////////////////////////////////////////////////////////////////////////////////
+//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @element
 enum CoordinateSpace : u32{
 	//CoordinateSpace_World,
@@ -156,7 +105,7 @@ struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a 
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
 
-//-////////////////////////////////////////////////////////////////////////////////////////////////
+//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @term
 enum TermType_{
 	TermType_Expression,
@@ -379,7 +328,7 @@ global_ void change_parent_insert_first(Term* new_parent, Term* term){
 	insert_first(new_parent, term);
 }
 
-//-////////////////////////////////////////////////////////////////////////////////////////////////
+//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @expression
 //expression: collection of terms in the form of a syntax tree
 struct Expression{
@@ -387,15 +336,14 @@ struct Expression{
 	//Workspace* workspace;
 	
 	Term term;
-	Term* cursor;
 	Term* equals;
 	b32 valid;
 	f64 solution;
 	
 	array<Term> terms; //NOTE temporary until expression arena
 	string raw; //TODO support unicode
-	u32 raw_cursor_start;
-	//u32 raw_cursor_end;
+	u32 cursor_start;
+	//u32 cursor_end;
 };
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
