@@ -43,10 +43,11 @@ void debug_print_term(Term* term){
 		
 		case TermType_Operator:{
 			switch(term->op_type){
-				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Negation:              { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
 				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
 				case OpType_Division:              { Log("ast", indent, "/", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
 				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
 			}
 			for_node(term->first_child) debug_print_term(it);
@@ -224,11 +225,20 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				
 				if      (cursor->type == TermType_Expression){
-					//TODO treat as negative literal
-					return false;
+					term->op_type = OpType_Negation;
+					
+					insert_last(&expr->term, term);
+					
+					insert_right(cursor, term);
+					cursor = term;
 				}else if(cursor->type == TermType_Operator){
-					//TODO treat as negative literal
-					return false;
+					term->op_type = OpType_Negation;
+					
+					insert_last(cursor, term);
+					term->flags = TermFlag_OpArgRight;
+					
+					insert_right(cursor, term);
+					cursor = term;
 				}else if(cursor->type == TermType_Literal){
 					term->op_type = OpType_Subtraction;
 					
@@ -288,15 +298,20 @@ b32 parse(Expression* expr){
 	for_right(&expr->term){
 		switch(it->type){
 			case TermType_Expression:{
-				if(it->right == 0  || it->right->type == TermType_Operator || it->child_count > 1){
-					//TODO unary operators
-					//TODO nested expressions
-					return false;
-				}
-				if(it->child_count == 1 && it->first_child->type == TermType_Literal) return false;
+				if(it->right == 0 || it->child_count == 0 || it->child_count > 1) return false;
+				if(it->first_child->type == TermType_Literal) return false;
+				if(it->first_child->type == TermType_Operator && it->first_child->op_type == OpType_Negation) return false;
+				//TODO nested expressions
 			}break;
 			case TermType_Operator:{
 				switch(it->op_type){
+					//// one arg operators ////
+					case OpType_Negation:{
+						if(it->child_count != 1) return false;
+						if(it->right == 0 || it->right->type != TermType_Literal) return false;
+						//TODO allow child parenthesis
+					}break;
+					
 					//// two arg operators ////
 					case OpType_ExplicitMultiplication:
 					case OpType_Division:
@@ -304,8 +319,9 @@ b32 parse(Expression* expr){
 					case OpType_Subtraction:
 					{
 						if(it->child_count != 2) return false;
-						if(it->left == 0  || it->left->type  != TermType_Literal) return false;
-						if(it->right == 0 || it->right->type != TermType_Literal) return false;
+						if(it->left == 0 || it->right == 0) return false;
+						if(it->left->type != TermType_Literal) return false;
+						if(it->right->type == TermType_Operator && it->right->op_type != OpType_Negation) return false;
 					}break;
 					
 					//// special operators ////

@@ -151,7 +151,7 @@ enum OpType_{
 	//OpType_Exponential,
 	
 	OpPrecedence_3  = (1 << 10),
-	//OpType_Negation,
+	OpType_Negation,
 	//OpType_BitwiseNOT,
 	//OpType_LogicalNOT,
 	

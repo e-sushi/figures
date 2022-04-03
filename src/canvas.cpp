@@ -460,7 +460,7 @@ void update_canvas(){
 								case OpType_Addition:{
 									UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
 								}break;
-								case OpType_Subtraction:{
+								case OpType_Negation: case OpType_Subtraction:{
 									UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
 								}break;
 								case OpType_ExpressionEquals:{
