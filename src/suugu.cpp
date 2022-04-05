@@ -79,6 +79,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #  include "graphviz/gvc.h"
 #endif
 #include "types.h"
+#include "constants.cpp"
 #include "ast.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
@@ -171,14 +172,15 @@ int main(){
 	Cmd::Init();
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
-	
+	DeshThreadManager->init();
+
 	//init suugu
 	init_canvas();
 	
 	//init debug
 	//TEST_deshi_core();
 	//TEST_kigu();
-	
+
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -193,9 +195,14 @@ int main(){
 			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 			if(show_metrics) UI::ShowMetricsWindow();
 			//graph_testing();
-			
-#if 0
 			using namespace UI;
+			Begin("snaptest", UIWindowFlags_SnapToOtherWindows);{
+				Text("this window will snap to other windows");
+			}End();
+			Begin("snaptest2");{
+				Text("this window should be snapped to");
+			}End();
+#if 0
 			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
 				UIItem* item = BeginCustomItem();{a
 					UIDrawCmd dc;
