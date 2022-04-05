@@ -356,7 +356,8 @@ b32 parse(Expression* expr){
 					term->op_type = OpType_Negation;
 					
 					insert_last(&expr->term, term);
-				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+					//NOTE do an additional check to see if this is an opening or closing paren
 					term->op_type = OpType_Subtraction;
 					
 					//loop until we find a lower precedence operator, then insert op below it
@@ -434,6 +435,8 @@ b32 parse(Expression* expr){
 					case OpType_Parentheses:{
 						if(it->child_count != 1) return false;
 						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
+						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Operator
+						   && it->first_child->op_type == OpType_Negation && it->first_child->first_child && it->first_child->first_child->type == TermType_Literal) return false;
 						if(!HasFlag(it->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
 					}break;
 					

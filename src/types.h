@@ -125,7 +125,8 @@ enum TermFlags_{
 	TermFlag_OpArgBottom = (1 << 3),
 	
 	TermFlag_LeftParenHasMatchingRightParen = (1 << 4),
-	TermFlag_DanglingClosingParenToRight = (1 << 5),
+	TermFlag_DanglingClosingParenToRight    = (1 << 5),
+	//TermFlag_DrawParenthesesAsBlock         = (1 << 6),
 }; typedef Flags TermFlags;
 #define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
 #define RemoveOpArgs(var) RemoveFlag(var, OPARG_MASK)
