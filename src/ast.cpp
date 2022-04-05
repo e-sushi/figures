@@ -42,6 +42,7 @@ void debug_print_term(Term* term){
 		case TermType_Operator:{
 			switch(term->op_type){
 				case OpType_Parentheses:           { Log("ast", indent, "()", arg); }break;
+				case OpType_Exponential:           { Log("ast", indent, "^",  arg); }break;
 				case OpType_Negation:              { Log("ast", indent, "-",  arg); }break;
 				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*",  arg); }break;
 				case OpType_Division:              { Log("ast", indent, "/",  arg); }break;
@@ -193,6 +194,38 @@ b32 parse(Expression* expr){
 					AddFlag(cursor->flags, TermFlag_DanglingClosingParenToRight);
 				}
 			}break;
+			
+			case '^':{
+				stream++;
+				
+				expr->terms.add(Term{});
+				Term* term = &expr->terms[expr->terms.count-1];
+				term->type      = TermType_Operator;
+				term->raw.str   = token_start;
+				term->raw.count = TOKEN_LENGTH;
+				term->op_type   = OpType_Exponential;
+				
+				if      (cursor->type == TermType_Expression){
+					insert_last(&expr->term, term);
+				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+					//loop until we find a lower precedence operator, then insert op below it
+					Term* lower = cursor;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesser(term, lower->parent) //NOTE right-to-left precedence
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
+					term->flags = (lower->flags & OPARG_MASK);
+					insert_last(lower->parent, term);
+					change_parent_insert_first(term, lower);
+					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+				}else{
+					valid = false;
+					insert_last(&expr->term, term);
+				}
+				cursor = term;
+			}break;
+			
 			case '*':{
 				stream++;
 				
@@ -249,6 +282,7 @@ b32 parse(Expression* expr){
 				}
 				cursor = term;
 			}break;
+			
 			case '+':{
 				stream++;
 				
@@ -290,8 +324,6 @@ b32 parse(Expression* expr){
 					term->op_type = OpType_Negation;
 					
 					insert_last(&expr->term, term);
-					
-					cursor = term;
 				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					term->op_type = OpType_Subtraction;
 					
@@ -317,6 +349,7 @@ b32 parse(Expression* expr){
 				}
 				cursor = term;
 			}break;
+			
 			case '=':{
 				stream++;
 				
@@ -377,6 +410,7 @@ b32 parse(Expression* expr){
 						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
 					}break;
 					
+					case OpType_Exponential:
 					case OpType_ExplicitMultiplication:
 					case OpType_Division:
 					case OpType_Addition:

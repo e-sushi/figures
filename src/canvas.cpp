@@ -207,6 +207,14 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 					}
 				}break;
 				
+				case OpType_Exponential:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("^", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				
 				case OpType_Negation:{
 					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }

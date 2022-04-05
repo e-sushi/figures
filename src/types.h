@@ -149,7 +149,7 @@ enum OpType_{
 	//OpType_PartialDerivative
 	
 	OpPrecedence_2  = (1 << 9),
-	//OpType_Exponential,
+	OpType_Exponential,
 	
 	OpPrecedence_3  = (1 << 10),
 	OpType_Negation,

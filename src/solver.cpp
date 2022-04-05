@@ -16,6 +16,10 @@ f64 solve(Term* term){
 					return solve(term->first_child);
 				}break;
 				
+				case OpType_Exponential:{
+					return pow(solve(term->first_child), solve(term->last_child));
+				}break;
+				
 				case OpType_Negation:{
 					return -solve(term->first_child);
 				}break;
