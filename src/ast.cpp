@@ -28,14 +28,14 @@ void debug_print_term(Term* term){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			Log("ast",expr->raw);
-				for_node(term->first_child) debug_print_term(it);
-				if(expr->valid){
-					if(expr->equals){
-						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg);
-					}else if(expr->solution != MAX_F32){
-						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg);
-					}
+			for_node(term->first_child) debug_print_term(it);
+			if(expr->valid){
+				if(expr->equals){
+					Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg);
+				}else if(expr->solution != MAX_F32){
+					Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg);
 				}
+			}
 			Log("ast","---------------------------------");
 		}break;
 		
@@ -116,7 +116,7 @@ b32 parse(Expression* expr){
 				if      (cursor->type == TermType_Expression){
 					insert_last(&expr->term, term);
 				}else if(cursor->type == TermType_Operator){
-						insert_last(cursor, term);
+					insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
 				}else{
 					valid = false;
@@ -208,7 +208,7 @@ b32 parse(Expression* expr){
 						  && OpIsLesserEqual(term, lower->parent)
 						  && lower->parent->op_type != OpType_Parentheses){
 						lower = lower->parent;
-						}
+					}
 					term->flags = (lower->flags & OPARG_MASK);
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
@@ -217,7 +217,7 @@ b32 parse(Expression* expr){
 					valid = false;
 					insert_last(&expr->term, term);
 				}
-					cursor = term;
+				cursor = term;
 			}break;
 			case '/':{
 				stream++;
@@ -245,7 +245,7 @@ b32 parse(Expression* expr){
 					valid = false;
 					insert_last(&expr->term, term);
 				}
-					cursor = term;
+				cursor = term;
 			}break;
 			case '+':{
 				stream++;
@@ -273,7 +273,7 @@ b32 parse(Expression* expr){
 					valid = false;
 					insert_last(&expr->term, term);
 				}
-					cursor = term;
+				cursor = term;
 			}break;
 			case '-':{
 				stream++;
@@ -313,7 +313,7 @@ b32 parse(Expression* expr){
 					valid = false;
 					insert_last(&expr->term, term);
 				}
-					cursor = term;
+				cursor = term;
 			}break;
 			case '=':{
 				stream++;
@@ -341,8 +341,8 @@ b32 parse(Expression* expr){
 					valid = false;
 					insert_last(&expr->term, term);
 				}
-					cursor = term;
-					expr->equals = term;
+				cursor = term;
+				expr->equals = term;
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////

@@ -167,8 +167,8 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 			Expression* expr = ExpressionFromTerm(term);
 			if(term->child_count){
 				for_node(term->first_child){
-				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
-				draw_term(expr, it, cursor_start, cursor_y);
+					UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+					draw_term(expr, it, cursor_start, cursor_y);
 				}
 			}else{
 				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
@@ -297,7 +297,7 @@ void init_canvas(){
 	elements.add(&defgraph.element);
 	
 	//load_constants();
-
+	
 	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
 }
@@ -475,7 +475,7 @@ void update_canvas(){
 				
 				//// @input_expression_cursor ////
 				if(expr->cursor_start > 1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorLeft)){
-						expr->cursor_start -= 1;
+					expr->cursor_start -= 1;
 				}
 				if(expr->cursor_start < expr->raw.count && DeshInput->KeyPressed(CanvasBind_Expression_CursorRight)){
 					expr->cursor_start += 1;
