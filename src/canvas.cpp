@@ -180,6 +180,8 @@ void init_canvas(){
 	defgraph.graph->yAxisLabel.count = 1;
 	elements.add(&defgraph.element);
 	
+	//load_constants();
+
 	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
 }
