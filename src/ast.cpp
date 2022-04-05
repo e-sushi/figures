@@ -28,34 +28,32 @@ void debug_print_term(Term* term){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			Log("ast",expr->raw);
-			if(expr->valid && term->child_count){
 				for_node(term->first_child) debug_print_term(it);
 				if(expr->valid){
 					if(expr->equals){
-						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
+						Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg);
 					}else if(expr->solution != MAX_F32){
-						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
+						Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg);
 					}
 				}
-			}
 			Log("ast","---------------------------------");
 		}break;
 		
 		case TermType_Operator:{
 			switch(term->op_type){
-				case OpType_Negation:              { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_Division:              { Log("ast", indent, "/", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_Addition:              { Log("ast", indent, "+", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_Subtraction:           { Log("ast", indent, "-", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
-				case OpType_ExpressionEquals:      { Log("ast", indent, "=", arg, " (",term->linear,") ", term->left,",",term,",",term->right); }break;
+				case OpType_Parentheses:           { Log("ast", indent, "()", arg); }break;
+				case OpType_Negation:              { Log("ast", indent, "-",  arg); }break;
+				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*",  arg); }break;
+				case OpType_Division:              { Log("ast", indent, "/",  arg); }break;
+				case OpType_Addition:              { Log("ast", indent, "+",  arg); }break;
+				case OpType_Subtraction:           { Log("ast", indent, "-",  arg); }break;
+				case OpType_ExpressionEquals:      { Log("ast", indent, "=",  arg); }break;
 			}
 			for_node(term->first_child) debug_print_term(it);
 		}break;
 		
 		case TermType_Literal:{
-			//Log("ast", indent, stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->decimal-1 : 0, lit->value), arg, " (",term->linear,") ", term->left,",",term,",",term->right);
-			Log("ast", indent, term->raw, arg, " (",term->linear,") ", term->left,",",term,",",term->right);
+			Log("ast", indent, term->raw, arg);
 		}break;
 		
 		//case TermType_Variable:{}break;
@@ -72,6 +70,7 @@ void debug_print_term(Term* term){
 //~///////////////////////////////////////////////////////////////////////////////////////////////
 //// @parse
 b32 parse(Expression* expr){
+	b32 valid = true;
 	expr->term = Term{TermType_Expression};
 	expr->terms.clear();
 	
@@ -117,12 +116,12 @@ b32 parse(Expression* expr){
 				if      (cursor->type == TermType_Expression){
 					insert_last(&expr->term, term);
 				}else if(cursor->type == TermType_Operator){
-					insert_last(cursor, term);
+						insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
 				}else{
-					return false;
+					valid = false;
 				}
-				insert_right(cursor, term);
+				
 				cursor = term;
 			}break;
 			
@@ -140,6 +139,58 @@ b32 parse(Expression* expr){
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_operator
+			case '(':{
+				stream++;
+				
+				expr->terms.add(Term{});
+				Term* term = &expr->terms[expr->terms.count-1];
+				term->type      = TermType_Operator;
+				term->raw.str   = token_start;
+				term->raw.count = TOKEN_LENGTH;
+				term->op_type   = OpType_Parentheses;
+				
+				if      (cursor->type == TermType_Expression){
+					insert_last(&expr->term, term);
+				}else if(cursor->type == TermType_Operator){
+					if(cursor->op_type == OpType_Parentheses){
+						//TODO implicit multiplication
+						valid = false;
+						insert_last(cursor->parent, term);
+					}else{
+						insert_last(cursor, term);
+						term->flags = TermFlag_OpArgRight;
+					}
+				}else if(cursor->type == TermType_Literal){
+					//TODO implicit multiplication
+					valid = false;
+					insert_last(cursor->parent, term);
+				}else{
+					valid = false;
+					insert_last(cursor->parent, term);
+				}
+				
+				cursor = term;
+			}break;
+			case ')':{
+				stream++;
+				
+				//find last parenthesis op and make it the cursor
+				for(s32 i = expr->terms.count-1; i >= 0; --i){
+					if(expr->terms[i].type == TermType_Operator && expr->terms[i].op_type == OpType_Parentheses){
+						cursor = expr->terms.data + i;
+						break;
+					}
+				}
+				
+				if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					cursor->raw.count = stream.str - cursor->raw.str - 1;
+					AddFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen);
+				}else{
+					//parenthesis was not found
+					valid = false;
+					AddFlag(cursor->flags, TermFlag_DanglingClosingParenToRight);
+				}
+			}break;
 			case '*':{
 				stream++;
 				
@@ -150,20 +201,23 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_ExplicitMultiplication;
 				
-				if(cursor->type == TermType_Literal){
+				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
-					while((lower->parent->type == TermType_Operator) && OpIsLesserEqual(term, lower->parent)) lower = lower->parent;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+						}
 					term->flags = (lower->flags & OPARG_MASK);
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-					insert_right(cursor, term);
-					cursor = term;
 				}else{
-					return false;
+					valid = false;
+					insert_last(&expr->term, term);
 				}
+					cursor = term;
 			}break;
 			case '/':{
 				stream++;
@@ -175,20 +229,23 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Division;
 				
-				if(cursor->type == TermType_Literal){
+				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
-					while((lower->parent->type == TermType_Operator) && OpIsLesserEqual(term, lower->parent)) lower = lower->parent;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
 					term->flags = (lower->flags & OPARG_MASK);
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-					insert_right(cursor, term);
-					cursor = term;
 				}else{
-					return false;
+					valid = false;
+					insert_last(&expr->term, term);
 				}
+					cursor = term;
 			}break;
 			case '+':{
 				stream++;
@@ -200,20 +257,23 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Addition;
 				
-				if(cursor->type == TermType_Literal){
+				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
-					while((lower->parent->type == TermType_Operator) && OpIsLesserEqual(term, lower->parent)) lower = lower->parent;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
 					term->flags = (lower->flags & OPARG_MASK);
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-					insert_right(cursor, term);
-					cursor = term;
 				}else{
-					return false;
+					valid = false;
+					insert_last(&expr->term, term);
 				}
+					cursor = term;
 			}break;
 			case '-':{
 				stream++;
@@ -229,32 +289,31 @@ b32 parse(Expression* expr){
 					
 					insert_last(&expr->term, term);
 					
-					insert_right(cursor, term);
 					cursor = term;
+				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+					term->op_type = OpType_Subtraction;
+					
+					//loop until we find a lower precedence operator, then insert op below it
+					Term* lower = cursor;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
+					term->flags = (lower->flags & OPARG_MASK);
+					insert_last(lower->parent, term);
+					change_parent_insert_first(term, lower);
+					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 				}else if(cursor->type == TermType_Operator){
 					term->op_type = OpType_Negation;
 					
 					insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
-					
-					insert_right(cursor, term);
-					cursor = term;
-				}else if(cursor->type == TermType_Literal){
-					term->op_type = OpType_Subtraction;
-					
-					//loop until we find a lower precedence operator, then insert op below it
-					Term* lower = cursor;
-					while((lower->parent->type == TermType_Operator) && OpIsLesserEqual(term, lower->parent)) lower = lower->parent;
-					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
-					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-					insert_right(cursor, term);
-					cursor = term;
 				}else{
-					return false;
+					valid = false;
+					insert_last(&expr->term, term);
 				}
+					cursor = term;
 			}break;
 			case '=':{
 				stream++;
@@ -266,69 +325,65 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_ExpressionEquals;
 				
-				if(cursor->type == TermType_Literal){
+				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
-					while((lower->parent->type == TermType_Operator) && OpIsLesserEqual(term, lower->parent)) lower = lower->parent;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
 					term->flags = (lower->flags & OPARG_MASK);
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-					insert_right(cursor, term);
+				}else{
+					valid = false;
+					insert_last(&expr->term, term);
+				}
 					cursor = term;
 					expr->equals = term;
-				}else{
-					return false;
-				}
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_error
 			default:{
 				LogE("lexer", "Unhandled token '",*stream,"' at (",TOKEN_OFFSET,").");
-				return false;
+				valid = false;
 			}break;
 		}
 #undef TOKEN_OFFSET
 #undef TOKEN_LENGTH
 	}
 	
-	//check if AST is valid
-	for_right(&expr->term){
+	//check if the AST is valid
+	if(!valid) return false;
+	if(expr->term.child_count == 0 || expr->term.child_count > 1) return false;
+	if(expr->term.first_child->type == TermType_Literal) return false;
+	forE(expr->terms){
 		switch(it->type){
-			case TermType_Expression:{
-				if(it->right == 0 || it->child_count == 0 || it->child_count > 1) return false;
-				if(it->first_child->type == TermType_Literal) return false;
-				if(it->first_child->type == TermType_Operator && it->first_child->op_type == OpType_Negation) return false;
-				//TODO nested expressions
-			}break;
 			case TermType_Operator:{
 				switch(it->op_type){
-					//// one arg operators ////
-					case OpType_Negation:{
+					case OpType_Parentheses:{
 						if(it->child_count != 1) return false;
-						if(it->right == 0 || it->right->type != TermType_Literal) return false;
-						//TODO allow child parenthesis
+						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
+						if(!HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
 					}break;
 					
-					//// two arg operators ////
+					case OpType_Negation:{
+						if(it->child_count != 1) return false;
+						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
+					}break;
+					
 					case OpType_ExplicitMultiplication:
 					case OpType_Division:
 					case OpType_Addition:
-					case OpType_Subtraction:
-					{
+					case OpType_Subtraction:{
 						if(it->child_count != 2) return false;
-						if(it->left == 0 || it->right == 0) return false;
-						if(it->left->type != TermType_Literal) return false;
-						if(it->right->type == TermType_Operator && it->right->op_type != OpType_Negation) return false;
 					}break;
 					
-					//// special operators ////
 					case OpType_ExpressionEquals:{
-						//TODO right side of equals
-						//NOTE case TermType_Expression above handles when = is first term
-						if(it->left == 0) return false;
+						if(it->child_count == 0) return false;
 					}break;
 				}
 			}break;

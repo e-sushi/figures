@@ -12,8 +12,12 @@ f64 solve(Term* term){
 		
 		case TermType_Operator:{
 			switch(term->op_type){
+				case OpType_Parentheses:{
+					return solve(term->first_child);
+				}break;
+				
 				case OpType_Negation:{
-					return -1.0f * solve(term->first_child);
+					return -solve(term->first_child);
 				}break;
 				
 				case OpType_ExplicitMultiplication:{

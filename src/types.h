@@ -123,6 +123,9 @@ enum TermFlags_{
 	TermFlag_OpArgRight  = (1 << 1),
 	TermFlag_OpArgTop    = (1 << 2),
 	TermFlag_OpArgBottom = (1 << 3),
+	
+	TermFlag_LeftParenHasMatchingRightParen = (1 << 4),
+	TermFlag_DanglingClosingParenToRight = (1 << 5),
 }; typedef Flags TermFlags;
 #define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
 #define RemoveOpArgs(var) RemoveFlag(var, OPARG_MASK)
@@ -136,9 +139,7 @@ enum OpType_{
 	OpType_NULL = 0,
 	
 	OpPrecedence_1  = (1 << 8),
-	//OpType_Parentheses,
-	//OpType_SquareBrackets,
-	//OpType_CurlyBrackets,
+	OpType_Parentheses,
 	//OpType_AbsoluteValue,
 	//OpType_Root,
 	//OpType_Derivative,
@@ -219,9 +220,6 @@ struct Term{
 		f64 lit_value;
 	};
 	
-	u32   linear; //left to right position in expression
-	Term* left;
-	Term* right;
 	Term* next;
 	Term* prev;
 	Term* parent;
@@ -229,33 +227,6 @@ struct Term{
 	Term* last_child;
 	u32   child_count;
 };
-
-#define for_right(term_ptr) for(Term* it = term_ptr; it != 0; it = it->right)
-
-global_ inline void insert_left(Term* target, Term* term){
-	if(target->left) target->left->right = term;
-	term->right = target;
-	term->left  = target->left;
-	target->left = term;
-	term->linear = target->linear;
-	for_right(term->right) it->linear++;
-}
-
-global_ inline void insert_right(Term* target, Term* term){
-	if(target->right) target->right->left = term;
-	term->left   = target;
-	term->right  = target->right;
-	target->right = term;
-	term->linear = target->linear+1;
-	for_right(term->right) it->linear++;
-}
-
-global_ inline void remove_leftright(Term* term){
-	if(term->right) term->right->left = term->left;
-	if(term->left)  term->left->right = term->right;
-	for_right(term->right) it->linear--;
-	term->right = term->left = 0;
-}
 
 global_ inline void insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;

@@ -156,6 +156,122 @@ local const char* context_dropdown_option_strings[] = {
 };
 
 
+////////////////////
+//// @draw_term ////
+////////////////////
+void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
+	if(term == 0) return;
+	
+	switch(term->type){
+		case TermType_Expression:{
+			Expression* expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				for_node(term->first_child){
+				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+				draw_term(expr, it, cursor_start, cursor_y);
+				}
+			}else{
+				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+			}
+			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				if(expr->cursor_start == 1){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+			}
+			if(expr->cursor_start == expr->raw.count){ cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = -UI::GetLastItemSize().y; }
+			
+			//draw solution if its valid
+			if(expr->valid){
+				UI::PushColor(UIStyleCol_Text, Color_Grey);
+				if(expr->equals){
+					UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					UI::SameLine();
+				}else if(expr->solution != MAX_F32){
+					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					UI::SameLine();
+				}
+				UI::PopColor();
+			}
+			UI::Text(" ", UITextFlags_NoWrap);
+		}break;
+		
+		case TermType_Operator:{
+			switch(term->op_type){
+				case OpType_Parentheses:{
+					UI::Text("(", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
+						UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+						if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					}
+				}break;
+				
+				case OpType_Negation:{
+					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				
+				case OpType_ExplicitMultiplication:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				case OpType_Division:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("/", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				
+				case OpType_Addition:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				case OpType_Subtraction:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+				
+				case OpType_ExpressionEquals:{
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+				}break;
+			}
+			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+			}
+		}break;
+		
+		case TermType_Literal:{
+			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+			}
+			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+			}
+		}break;
+	}
+}
+
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
 local array<Element*> elements(deshi_allocator);
@@ -439,78 +555,12 @@ void update_canvas(){
 				UI::PushFont(math_font);
 				UI::Begin(stringf(deshi_temp_allocator, "expression_0x%p",el).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 				
-				//draw terms from left to right
 				Expression* expr = ElementToExpression(el);
-				vec2 cursor_start;
-				f32 cursor_y;
-				for_right(&expr->term){
-					switch(it->type){
-						case TermType_Expression:{
-							UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
-						}break;
-						
-						case TermType_Operator:{
-							switch(it->op_type){
-								case OpType_ExplicitMultiplication:{
-									UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
-								}break;
-								case OpType_Division:{
-									UI::Text("/", UITextFlags_NoWrap); UI::SameLine();
-								}break;
-								case OpType_Addition:{
-									UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
-								}break;
-								case OpType_Negation: case OpType_Subtraction:{
-									UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
-								}break;
-								case OpType_ExpressionEquals:{
-									UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
-								}break;
-							}
-							if((selected_element == el) && (it->raw.str == expr->raw.str + expr->cursor_start)){
-								cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y;
-								UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
-							}
-						}break;
-						
-						case TermType_Literal:{
-							//add a space between different literals
-							if(it->left && it->left->type == TermType_Literal){
-								UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
-							}
-							
-							//draw the literal string
-							UI::Text(it->raw, UITextFlags_NoWrap); UI::SameLine();
-							
-							if(   (selected_element == el)
-							   && (it->raw.str <= expr->raw.str + expr->cursor_start)
-							   && (expr->raw.str + expr->cursor_start < it->raw.str + it->raw.count)){
-								f32 x_offset = UI::CalcTextSize(cstring{it->raw.str, upt(expr->raw.str + expr->cursor_start - it->raw.str)}).x;
-								cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
-								UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
-							}
-						}break;
-					}
+				vec2 cursor_start; f32 cursor_y;
+				draw_term(expr, &expr->term, cursor_start, cursor_y);
+				if(selected_element == el){
+					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
 				}
-				if((selected_element == el) && (expr->cursor_start == expr->raw.count)){
-								cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = UI::GetLastItemSize().y;
-								UI::Line(cursor_start, cursor_start - vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
-							}
-				
-				//draw solution if its valid
-				if(expr->valid && expr->term.child_count){
-					UI::PushColor(UIStyleCol_Text, Color_Grey);
-					if(expr->equals){
-						UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-						UI::SameLine();
-					}else if(expr->solution != MAX_F32 && expr->term.first_child->type != TermType_Literal){
-						UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
-						UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
-						UI::SameLine();
-					}
-					UI::PopColor();
-				}
-				UI::Text(" ", UITextFlags_NoWrap);
 				
 				UI::End();
 				UI::PopFont();
