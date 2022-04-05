@@ -176,7 +176,9 @@ b32 parse(Expression* expr){
 				
 				//find last parenthesis op and make it the cursor
 				for(s32 i = expr->terms.count-1; i >= 0; --i){
-					if(expr->terms[i].type == TermType_Operator && expr->terms[i].op_type == OpType_Parentheses){
+					if(   expr->terms[i].type == TermType_Operator
+					   && expr->terms[i].op_type == OpType_Parentheses
+					   && !HasFlag(expr->terms[i].flags, TermFlag_LeftParenHasMatchingRightParen)){
 						cursor = expr->terms.data + i;
 						break;
 					}
@@ -367,7 +369,7 @@ b32 parse(Expression* expr){
 					case OpType_Parentheses:{
 						if(it->child_count != 1) return false;
 						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
-						if(!HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
+						if(!HasFlag(it->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
 					}break;
 					
 					case OpType_Negation:{
