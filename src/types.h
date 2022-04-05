@@ -160,7 +160,7 @@ enum OpType_{
 	//OpType_ImplicitMultiplication, //5x
 	OpType_ExplicitMultiplication, //5*x
 	OpType_Division,
-	//OpType_Modulo,
+	OpType_Modulo,
 	
 	OpPrecedence_5  = (1 << 12),
 	OpType_Addition,

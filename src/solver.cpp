@@ -30,6 +30,9 @@ f64 solve(Term* term){
 				case OpType_Division:{
 					return solve(term->first_child) / solve(term->last_child);
 				}break;
+				case OpType_Modulo:{
+					return fmod(solve(term->first_child), solve(term->last_child));
+				}break;
 				
 				case OpType_Addition:{
 					return solve(term->first_child) + solve(term->last_child);

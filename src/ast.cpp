@@ -46,9 +46,11 @@ void debug_print_term(Term* term){
 				case OpType_Negation:              { Log("ast", indent, "-",  arg); }break;
 				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*",  arg); }break;
 				case OpType_Division:              { Log("ast", indent, "/",  arg); }break;
+				case OpType_Modulo:                { Log("ast", indent, "%",  arg); }break;
 				case OpType_Addition:              { Log("ast", indent, "+",  arg); }break;
 				case OpType_Subtraction:           { Log("ast", indent, "-",  arg); }break;
 				case OpType_ExpressionEquals:      { Log("ast", indent, "=",  arg); }break;
+				default:                           { Log("ast", indent, "?",  arg); }break;
 			}
 			for_node(term->first_child) debug_print_term(it);
 		}break;
@@ -59,6 +61,8 @@ void debug_print_term(Term* term){
 		
 		//case TermType_Variable:{}break;
 		//case TermType_FunctionCall:{}break;
+		
+		default: { Log("ast", indent, "?",  arg); }break;
 	}
 	
 	debug_print_indent--;
@@ -282,6 +286,34 @@ b32 parse(Expression* expr){
 				}
 				cursor = term;
 			}break;
+			case '%':{
+				stream++;
+				
+				expr->terms.add(Term{});
+				Term* term = &expr->terms[expr->terms.count-1];
+				term->type      = TermType_Operator;
+				term->raw.str   = token_start;
+				term->raw.count = TOKEN_LENGTH;
+				term->op_type   = OpType_Modulo;
+				
+				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+					//loop until we find a lower precedence operator, then insert op below it
+					Term* lower = cursor;
+					while(   lower->parent->type == TermType_Operator
+						  && OpIsLesserEqual(term, lower->parent)
+						  && lower->parent->op_type != OpType_Parentheses){
+						lower = lower->parent;
+					}
+					term->flags = (lower->flags & OPARG_MASK);
+					insert_last(lower->parent, term);
+					change_parent_insert_first(term, lower);
+					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+				}else{
+					valid = false;
+					insert_last(&expr->term, term);
+				}
+				cursor = term;
+			}break;
 			
 			case '+':{
 				stream++;
@@ -413,6 +445,7 @@ b32 parse(Expression* expr){
 					case OpType_Exponential:
 					case OpType_ExplicitMultiplication:
 					case OpType_Division:
+					case OpType_Modulo:
 					case OpType_Addition:
 					case OpType_Subtraction:{
 						if(it->child_count != 2) return false;
