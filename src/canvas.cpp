@@ -183,9 +183,9 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 			if(expr->valid){
 				UI::PushColor(UIStyleCol_Text, Color_Grey);
 				if(expr->equals){
-					UI::Text((expr->solution == MAX_F32) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					UI::Text((expr->solution == MAX_F64) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
 					UI::SameLine();
-				}else if(expr->solution != MAX_F32){
+				}else if(expr->solution != MAX_F64){
 					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
 					UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
 					UI::SameLine();
@@ -272,7 +272,8 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 			}
 		}break;
 		
-		case TermType_Literal:{
+		case TermType_Literal:
+		case TermType_Variable:{
 			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;

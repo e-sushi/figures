@@ -29,13 +29,7 @@ void debug_print_term(Term* term){
 			Expression* expr = ExpressionFromTerm(term);
 			Log("ast",expr->raw);
 			for_node(term->first_child) debug_print_term(it);
-			if(expr->valid){
-				if(expr->equals){
-					Log("ast", indent, to_string(expr->solution, true, deshi_temp_allocator), arg);
-				}else if(expr->solution != MAX_F32){
-					Log("ast", indent, stringf(deshi_temp_allocator, "=%g", expr->solution), arg);
-				}
-			}
+			if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg);
 			Log("ast","---------------------------------");
 		}break;
 		
@@ -55,14 +49,12 @@ void debug_print_term(Term* term){
 			for_node(term->first_child) debug_print_term(it);
 		}break;
 		
-		case TermType_Literal:{
+		case TermType_Literal: case TermType_Variable:{
 			Log("ast", indent, term->raw, arg);
 		}break;
 		
-		//case TermType_Variable:{}break;
 		//case TermType_FunctionCall:{}break;
-		
-		default: { Log("ast", indent, "?",  arg); }break;
+		default:{ Log("ast", indent, "?",  arg); }break;
 	}
 	
 	debug_print_indent--;
@@ -123,10 +115,14 @@ b32 parse(Expression* expr){
 				}else if(cursor->type == TermType_Operator){
 					insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
+				}else if(cursor->type == TermType_Variable){
+					//TODO implicit multiplication
+					valid = false;
+					insert_last(cursor->parent, term);
 				}else{
 					valid = false;
+					insert_last(cursor->parent, term);
 				}
-				
 				cursor = term;
 			}break;
 			
@@ -138,8 +134,33 @@ b32 parse(Expression* expr){
             case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
             case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
             case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            case '_':{
-				//TODO variables and functions
+            case '_':{ //TODO functions/hotstrings
+				stream++;
+				
+				expr->terms.add(Term{});
+				Term* term = &expr->terms[expr->terms.count-1];
+				term->type      = TermType_Variable;
+				term->raw.str   = token_start;
+				term->raw.count = TOKEN_LENGTH;
+				
+				if      (cursor->type == TermType_Expression){
+					insert_last(&expr->term, term);
+				}else if(cursor->type == TermType_Operator){
+					insert_last(cursor, term);
+					term->flags = TermFlag_OpArgRight;
+				}else if(cursor->type == TermType_Literal){
+					//TODO implicit multiplication
+					valid = false;
+					insert_last(&expr->term, term);
+				}else if(cursor->type == TermType_Variable){
+					//TODO functions/hotstrings
+					valid = false;
+					insert_last(&expr->term, term);
+				}else{
+					valid = false;
+					insert_last(&expr->term, term);
+				}
+				cursor = term;
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,18 +181,18 @@ b32 parse(Expression* expr){
 					if(cursor->op_type == OpType_Parentheses){
 						//TODO implicit multiplication
 						valid = false;
-						insert_last(cursor->parent, term);
+						insert_last(&expr->term, term);
 					}else{
 						insert_last(cursor, term);
 						term->flags = TermFlag_OpArgRight;
 					}
-				}else if(cursor->type == TermType_Literal){
+				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
 					//TODO implicit multiplication
 					valid = false;
-					insert_last(cursor->parent, term);
+					insert_last(&expr->term, term);
 				}else{
 					valid = false;
-					insert_last(cursor->parent, term);
+					insert_last(&expr->term, term);
 				}
 				
 				cursor = term;
@@ -209,9 +230,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Exponential;
 				
-				if      (cursor->type == TermType_Expression){
-					insert_last(&expr->term, term);
-				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -240,7 +261,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_ExplicitMultiplication;
 				
-				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -268,7 +291,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Division;
 				
-				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -296,7 +321,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Modulo;
 				
-				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -325,7 +352,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_Addition;
 				
-				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -356,8 +385,10 @@ b32 parse(Expression* expr){
 					term->op_type = OpType_Negation;
 					
 					insert_last(&expr->term, term);
-				}else if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-					//NOTE do an additional check to see if this is an opening or closing paren
+				}else if(   cursor->type == TermType_Literal
+						 || cursor->type == TermType_Variable
+						 || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+					//NOTE do an additional check to see if this is a closing paren to treat it as subtraction rather than negation
 					term->op_type = OpType_Subtraction;
 					
 					//loop until we find a lower precedence operator, then insert op below it
@@ -393,7 +424,9 @@ b32 parse(Expression* expr){
 				term->raw.count = TOKEN_LENGTH;
 				term->op_type   = OpType_ExpressionEquals;
 				
-				if(cursor->type == TermType_Literal || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				if(   cursor->type == TermType_Literal
+				   || cursor->type == TermType_Variable
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -425,24 +458,28 @@ b32 parse(Expression* expr){
 	}
 	
 	//check if the AST is valid
-	if(!valid) return false;
+	if(!valid) return false; //early out if we already know its invalid
 	if(expr->term.child_count == 0 || expr->term.child_count > 1) return false;
-	if(expr->term.first_child->type == TermType_Literal) return false;
 	forE(expr->terms){
+		Assert(it->parent != 0, "all non-expression terms must have a parent node");
+		
 		switch(it->type){
 			case TermType_Operator:{
 				switch(it->op_type){
 					case OpType_Parentheses:{
 						if(it->child_count != 1) return false;
-						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
-						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Operator
-						   && it->first_child->op_type == OpType_Negation && it->first_child->first_child && it->first_child->first_child->type == TermType_Literal) return false;
+						if(   it->parent->type == TermType_Expression
+						   && (it->first_child->type == TermType_Literal || it->first_child->type == TermType_Variable )) return false;
+						if(   it->parent->type == TermType_Expression && it->first_child->type == TermType_Operator
+						   && it->first_child->op_type == OpType_Negation && it->first_child->first_child
+						   && (it->first_child->first_child->type == TermType_Literal || it->first_child->type == TermType_Variable)) return false;
 						if(!HasFlag(it->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
 					}break;
 					
 					case OpType_Negation:{
 						if(it->child_count != 1) return false;
-						if(it->parent->type == TermType_Expression && it->first_child->type == TermType_Literal) return false;
+						if(   it->parent->type == TermType_Expression
+						   && (it->first_child->type == TermType_Literal || it->first_child->type == TermType_Variable)) return false;
 					}break;
 					
 					case OpType_Exponential:
@@ -455,9 +492,21 @@ b32 parse(Expression* expr){
 					}break;
 					
 					case OpType_ExpressionEquals:{
-						if(it->child_count == 0) return false;
+						if(it->child_count == 0 || it->child_count > 2) return false;
 					}break;
 				}
+			}break;
+			
+			case TermType_Literal:{
+				Assert(it->child_count == 0, "literals should never have children");
+				if(it->parent->type == TermType_Expression) return false;
+			}break;
+			
+			case TermType_Variable:{
+				Assert(it->child_count == 0, "variables should never have children");
+				if(it->parent->type == TermType_Expression) return false;
+				//if(expr->equals == 0) return false; //NOTE cant solve if there is no right side of equals
+				//if(expr->equals->child_count != 2) return false;
 			}break;
 		}
 	}

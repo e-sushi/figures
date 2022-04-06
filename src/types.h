@@ -111,7 +111,7 @@ enum TermType_{
 	TermType_Expression,
 	TermType_Operator,
 	TermType_Literal,
-	//TermType_Variable,
+	TermType_Variable,
 	//TermType_FunctionCall,
 }; typedef Type TermType;
 
@@ -126,7 +126,7 @@ enum TermFlags_{
 	
 	TermFlag_LeftParenHasMatchingRightParen = (1 << 4),
 	TermFlag_DanglingClosingParenToRight    = (1 << 5),
-	//TermFlag_DrawParenthesesAsBlock         = (1 << 6),
+	//TermFlag_DrawParenthesesAsBlock         = (1 << 6), //TODO symbolab style input boxes (test with parentheses and exponents)
 }; typedef Flags TermFlags;
 #define OPARG_MASK (TermFlag_OpArgLeft | TermFlag_OpArgRight | TermFlag_OpArgTop | TermFlag_OpArgBottom)
 #define RemoveOpArgs(var) RemoveFlag(var, OPARG_MASK)
@@ -140,7 +140,7 @@ enum OpType_{
 	OpType_NULL = 0,
 	
 	OpPrecedence_1  = (1 << 8),
-	OpType_Parentheses,
+	OpType_Parentheses, //TODO maybe just make this a term type since it doesnt behave like an operator?
 	//OpType_AbsoluteValue,
 	//OpType_Root,
 	//OpType_Derivative,

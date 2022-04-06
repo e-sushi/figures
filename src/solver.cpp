@@ -1,12 +1,17 @@
+b32 solve_error = false;
 f64 solve(Term* term){
+	if(solve_error) return MAX_F64;
+	
 	switch(term->type){
 		case TermType_Expression:{ //TODO expression math
 			Expression* expr = ExpressionFromTerm(term);
 			if(expr->valid){
 				expr->solution = solve(term->first_child);
+				solve_error = false;
 				return expr->solution;
 			}else{
-				return MAX_F32;
+				solve_error = false;
+				return MAX_F64;
 			}
 		}break;
 		
@@ -17,28 +22,51 @@ f64 solve(Term* term){
 				}break;
 				
 				case OpType_Exponential:{
-					return pow(solve(term->first_child), solve(term->last_child));
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					if(b < 0) return 1.0 / pow(a, abs(b));
+					return pow(a, b);
 				}break;
 				
 				case OpType_Negation:{
-					return -solve(term->first_child);
+					f64 a = solve(term->first_child);
+					if(a == MAX_F64) return MAX_F64;
+					return -a;
 				}break;
 				
 				case OpType_ExplicitMultiplication:{
-					return solve(term->first_child) * solve(term->last_child);
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					return a * b;
 				}break;
 				case OpType_Division:{
-					return solve(term->first_child) / solve(term->last_child);
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					if(b == 0) return MAX_F64;
+					return a / b;
 				}break;
 				case OpType_Modulo:{
-					return fmod(solve(term->first_child), solve(term->last_child));
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					if(b == 0) return MAX_F64;
+					return fmod(a, b);
 				}break;
 				
 				case OpType_Addition:{
-					return solve(term->first_child) + solve(term->last_child);
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					return a + b;
 				}break;
 				case OpType_Subtraction:{
-					return solve(term->first_child) - solve(term->last_child);
+					f64 a = solve(term->first_child);
+					f64 b = solve(term->last_child);
+					if(a == MAX_F64 || b == MAX_F64) return MAX_F64;
+					return a - b;
 				}break;
 				
 				case OpType_ExpressionEquals:{ //TODO variable solving
@@ -47,7 +75,8 @@ f64 solve(Term* term){
 				
 				default:{
 					LogE("solver","Unknown operator type: ", term->op_type);
-					return MAX_F32;
+					solve_error = true;
+					return MAX_F64;
 				}break;
 			}
 		}break;
@@ -56,9 +85,15 @@ f64 solve(Term* term){
 			return term->lit_value;
 		}break;
 		
+		case TermType_Variable:{
+			solve_error = true;
+			return MAX_F64; //TODO variable solving
+		}break;
+		
 		default:{
 			LogE("solver","Unknown term type: ", term->type);
-			return MAX_F32;
+			solve_error = true;
+			return MAX_F64;
 		}break;
 	}
 }
