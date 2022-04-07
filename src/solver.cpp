@@ -90,6 +90,18 @@ f64 solve(Term* term){
 			return MAX_F64; //TODO variable solving
 		}break;
 		
+		case TermType_FunctionCall:{
+			switch(term->func->args){
+				case 1:{
+					return ((Function1Arg)term->func->ptr)(solve(term->first_child));
+				}break;
+				default:{
+					solve_error = true;
+					return MAX_F64;
+				}break;
+			};
+		}break;
+		
 		default:{
 			LogE("solver","Unknown term type: ", term->type);
 			solve_error = true;

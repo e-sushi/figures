@@ -284,6 +284,15 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 		}break;
+		
+		case TermType_FunctionCall:{
+			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+			}
+			for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+		}break;
 	}
 }
 

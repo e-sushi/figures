@@ -18,6 +18,13 @@ struct Constant{
 	f64  value;
 };
 
+struct Function{
+	cstring text;
+	void*   ptr;
+	u32     args;
+};
+typedef f64(*Function1Arg)(f64 a);
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @vec2f64
 union vec2f64{
@@ -112,7 +119,7 @@ enum TermType_{
 	TermType_Operator,
 	TermType_Literal,
 	TermType_Variable,
-	//TermType_FunctionCall,
+	TermType_FunctionCall,
 }; typedef Type TermType;
 
 enum TermFlags_{
@@ -219,6 +226,7 @@ struct Term{
 	union{
 		OpType op_type;
 		f64 lit_value;
+		Function* func;
 	};
 	
 	Term* next;

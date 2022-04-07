@@ -80,6 +80,7 @@ Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 #endif
 #include "types.h"
 #include "constants.cpp"
+#include "functions.cpp"
 #include "ast.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
