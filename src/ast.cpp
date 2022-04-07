@@ -53,7 +53,10 @@ void debug_print_term(Term* term){
 			Log("ast", indent, term->raw, arg);
 		}break;
 		
-		//case TermType_FunctionCall:{}break;
+		case TermType_FunctionCall:{
+			Log("ast", indent, term->raw, arg);
+			for_node(term->first_child) debug_print_term(it);
+		}break;
 		default:{ Log("ast", indent, "?",  arg); }break;
 	}
 	
@@ -134,14 +137,14 @@ b32 parse(Expression* expr){
             case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
             case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
             case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            case '_':{ //TODO hotstrings
-				stream++;
-				
-				b32 is_func_call = false;
-				while(stream && isalpha(*stream)){ stream++; }
-				if(stream && *stream == '('){
+            case '_':{ //TODO hotstrings/constants
+				cstring temp = stream;
+				while(temp && *temp != '(') temp++;
+				if(temp && *temp == '('){
 					forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
-						if(strncmp(token_start, it->text.str, it->text.count) == 0){
+						//NOTE compare until the length of the larger string
+						if(strncmp(it->text.str, token_start, (it->text.count > (temp.str - token_start)) ? it->text.count : temp.str - token_start) == 0){
+							stream = temp;
 							stream++;
 							
 							expr->terms.add(Term{});
@@ -177,14 +180,12 @@ b32 parse(Expression* expr){
 								insert_last(&expr->term, func);
 							}
 							cursor = paren;
-							
-							is_func_call = true;
 							break;
 						}
 					}
-				}
-				
-				if(!is_func_call){
+				}else{
+					stream++;
+					
 					forI(TOKEN_LENGTH){
 						expr->terms.add(Term{});
 						Term* term = &expr->terms[expr->terms.count-1];
@@ -513,6 +514,7 @@ b32 parse(Expression* expr){
 			default:{
 				LogE("lexer", "Unhandled token '",*stream,"' at (",TOKEN_OFFSET,").");
 				valid = false;
+				stream++;
 			}break;
 		}
 #undef TOKEN_OFFSET
