@@ -91,13 +91,13 @@ canvas     | manages the elements, world, and input
 <details class="container"> <summary>todos</summary>
 
 - [ ] simple math input (operators)
-    - [x] literals
+    - [ ] literals
     - [ ] variables
-    - [x] addition/subtraction
-    - [x] multiplication/division
+    - [ ] addition/subtraction
+    - [ ] multiplication/division
     - [ ] parenthesis
     - [ ] exponentials
-	- [x] equals
+	- [ ] equals
 - [ ] complex math input
     - [ ] implicit multiplication between variables (and constants)
     - [ ] variable super/sub script
@@ -118,15 +118,12 @@ canvas     | manages the elements, world, and input
     - [ ] intAB  expands to a definite integral evaluated from A to B of a given expression
     - [ ] ddX    expands to a derivative of a given expression of variable X
     - [ ] pdX    expands to a partial derivative of a given expression of variable X
-    - [ ] sqrtN  expands to a square root to the power of N
+    - [ ] sqrt   expands to a square root
+    - [ ] rootN  expands to a N root
 	- [ ] logN   expands to a log of base N
 	- [ ] abs    expands to absolute value
     - [ ] deg    expands to degrees symbol
-- [ ] builtin functions (argument based functions like coding)
-    - [ ] sin/cos/tan (inverse/hyperbolic versions)
-    - [ ] ceil/floor/round
-	- [ ] min/max
-	- [ ] logarithms
+- [ ] builtin functions
 - [ ] expression assignment
 - [ ] symbols menu
 - [ ] ability to quickly switch between math and programmer inputs
@@ -173,21 +170,21 @@ canvas     | manages the elements, world, and input
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Parsing)
 ## Parsing
 ### Lexing and parsing the math input into an AST
-##### types.h, lexer.cpp, parser.cpp
+##### types.h, parser.cpp, functions.cpp
 <div class="indent">
 
 &#9679; The exponent operator in programmer input is `**`.
 
 <details class="container"> <summary>todos</summary>
 
-- [ ] simple math
-    - [ ] literals
-    - [ ] variables
-    - [ ] addition/subtraction
-    - [ ] multiplication/division
-    - [ ] parenthesis
-    - [ ] exponentials
-	- [ ] equals/assignment
+- [x] simple math
+    - [x] literals (03/11/22)
+    - [x] variables (04/06/22)
+    - [x] addition/subtraction (03/11/22)
+    - [x] multiplication/division (03/12/22)
+    - [x] parenthesis (04/05/22)
+    - [x] exponentials (04/05/22)
+	- [x] equals (03/14/22)
 - [ ] complex math
     - [ ] implicit multiplication between variables (and constants)
     - [ ] variable super/sub script
@@ -200,22 +197,19 @@ canvas     | manages the elements, world, and input
     - [ ] vectors/matrices
     - [ ] ± (plus or minus)
 - [ ] programmer math
-    - [ ] literals
-    - [ ] variables
-    - [ ] addition/subtraction
-    - [ ] multiplication/division
-    - [ ] parenthesis
-    - [ ] exponentials
-	- [ ] equals/assignment
+    - [ ] bitwise
+    - [ ] logical
+    - [ ] bitshift
+    - [x] modulo (04/05/22)
 - [ ] hotstrings (turn into symbols or place slots in non-linear ways)
-- [ ] functions (argument based functions like coding)
+- [x] functions (04/06/22)
 </details>
 </div>
 
 [//]: # (///////////////////////////////////////////////////////////////////////////////////////// Solving)
 ## Solving
 ### Solving the AST received from Parsing
-##### types.h, solver.cpp
+##### types.h, solver.cpp, functions.cpp
 <div class="indent">
 
 <details> <summary>It might be confusing to define variables with the = operators, so we could use : instead.</summary>
@@ -235,9 +229,10 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 
 <details class="container"> <summary>todos</summary>
 
-- [x] addition/subtraction
-- [x] multiplication/division
-- [ ] exponentials
+- [x] addition/subtraction (03/14/22)
+- [x] multiplication/division (03/14/22)
+- [x] parenthesis (04/05/22)
+- [x] exponentials (04/05/22)
 - [ ] inequalities
 - [ ] integrals/derivatives
 - [ ] limits
@@ -246,8 +241,15 @@ c is 2x + 3 + 5x = 4y + 6 + 5x
 - [ ] patterns
 - [ ] vectors/matrices
 - [ ] ± (plus or minus)
-- [ ] functions
 - [ ] units solving
+- [ ] builtin functions
+    - [x] sin/cos/tan (04/06/22)
+    - [x] asin/acos/atan (04/07/22)
+    - [ ] sinh/cosh/tanh
+    - [ ] ceil/floor/round
+	- [ ] min/max
+	- [ ] logarithms
+- [ ] custom functions
 </details>
 </div>
 

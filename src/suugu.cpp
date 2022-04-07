@@ -8,7 +8,7 @@ most math should be f64 instead of f32
 add checks to skip draw calls if they arent on screen
 workspaces
 arbitrary text
-custom to_string for f64 since we want to have config on sigfigs and it only goes to 6 decimals (this may be accuracy limit for f64)
+custom float_to_string/str_to_float since we want to have custom precision types
 
 `Config`
 --------
@@ -17,14 +17,13 @@ thousand separator: space vs comma vs point vs apostrophe
 
 `Input`
 -------
-cursor inside literals
 add a simulator that reads in a file/string of inputs and adds an expression from it (for testing and rough raw text input)
 copy/paste expressions
 
 `Parser`
 --------
-implement a system for adding to an already existing AST tree
-parser is copying tokens from elements rather than simply viewing them
+hotstrings
+constants
 
 `Serialization`
 --------------
@@ -32,7 +31,7 @@ constants loader
 
 `Solver`
 --------
-
+variable solving (NOTE ast.cpp@parse_valid OpType_ExpressionEquals needs to be modified for validity when variable solving is added)
 
 Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
 ---------

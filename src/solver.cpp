@@ -3,7 +3,7 @@ f64 solve(Term* term){
 	if(solve_error) return MAX_F64;
 	
 	switch(term->type){
-		case TermType_Expression:{ //TODO expression math
+		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			if(expr->valid){
 				expr->solution = solve(term->first_child);

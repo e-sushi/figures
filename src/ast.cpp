@@ -4,6 +4,7 @@
 @parse_literal
 @parse_letter
 @parse_operator
+@parse_valid
 @old_ast
 @old_ast_insert_literal
 @old_ast_insert_operator
@@ -131,13 +132,13 @@ b32 parse(Expression* expr){
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_letter
-            case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
-            case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
-            case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-            case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
-            case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
-            case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-            case '_':{ //TODO hotstrings/constants
+			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
+			case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
+			case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
+			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
+			case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
+			case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+			case '_':{ //TODO hotstrings/constants
 				cstring temp = stream;
 				while(temp && *temp != '(') temp++;
 				if(temp && *temp == '('){
@@ -521,7 +522,8 @@ b32 parse(Expression* expr){
 #undef TOKEN_LENGTH
 	}
 	
-	//check if the AST is valid
+	//-/////////////////////////////////////////////////////////////////////////////////////////////
+	//// @parse_valid (check if the AST is valid)
 	if(!valid) return false; //early out if we already know its invalid
 	if(expr->term.child_count == 0 || expr->term.child_count > 1) return false;
 	forE(expr->terms){
