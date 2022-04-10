@@ -211,7 +211,6 @@ enum OpType_{
 	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
 }; typedef Type OpType;
 #define OPPRECEDENCE_MASK 0xFFFFFF00
-
 //NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
 #define OpIsGreater(op1,op2)      (((op1)->op_type & OPPRECEDENCE_MASK) <  ((op2)->op_type & OPPRECEDENCE_MASK))
 #define OpIsGreaterEqual(op1,op2) (((op1)->op_type & OPPRECEDENCE_MASK) <= ((op2)->op_type & OPPRECEDENCE_MASK))
@@ -229,29 +228,37 @@ struct Term{
 		Function* func;
 	};
 	
-	Term* next;
+	//syntax tree
 	Term* prev;
+	Term* next;
 	Term* parent;
 	Term* first_child;
 	Term* last_child;
 	u32   child_count;
+	
+	//linear
+	Term* left;
+	Term* right;
+	Term* outside;
+	Term* first_inside;
+	Term* last_inside;
 };
 
-global_ inline void insert_after(Term* target, Term* term){
+global_ void insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;
 	term->next = target->next;
 	term->prev = target;
 	target->next = term;
 }
 
-global_ inline void insert_before(Term* target, Term* term){
+global_ void insert_before(Term* target, Term* term){
 	if(target->prev) target->prev->next = term;
 	term->prev = target->prev;
 	term->next = target;
 	target->prev = term;
 }
 
-global_ inline void remove_horizontally(Term* term){
+global_ void remove_horizontally(Term* term){
 	if(term->next) term->next->prev = term->prev;
 	if(term->prev) term->prev->next = term->next;
 	term->next = term->prev = 0;
@@ -307,6 +314,42 @@ global_ void change_parent_insert_first(Term* new_parent, Term* term){
 	remove_horizontally(term);
 	insert_first(new_parent, term);
 }
+
+global_ void insert_left(Term* target, Term* term){
+	if(target->left) target->left->right = term;
+	term->right = target;
+	term->left  = target->left;
+	target->left = term;
+	if(target->outside){
+		term->outside = target->outside;
+		if(target == target->outside->first_inside){
+			target->outside->first_inside = term;
+		}
+	}
+}
+
+global_ void insert_right(Term* target, Term* term){
+	if(target->right) target->right->left = term;
+	term->left  = target;
+	term->right = target->right;
+	target->right = term;
+	if(target->outside){
+		term->outside = target->outside;
+		if(target == target->outside->last_inside){
+			target->outside->last_inside = term;
+		}
+	}
+}
+
+global_ void remove_linear(Term* term){
+	if(term->right) term->right->left = term->left;
+	if(term->left)  term->left->right = term->right;
+	if(term->outside){
+		if(term == term->outside->first_inside) term->outside->first_inside = term->right;
+		if(term == term->outside->last_inside) term->outside->last_inside = term->left;
+	}
+}
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @expression

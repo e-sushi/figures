@@ -200,7 +200,13 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 				case OpType_Parentheses:{
 					UI::Text("(", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+					if(term->first_child){
+						draw_term(expr, term->first_child, cursor_start, cursor_y);
+						for_node(term->first_child->next){
+							UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+							draw_term(expr, it, cursor_start, cursor_y);
+						}
+					}
 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
 						UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
 						if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
@@ -274,6 +280,7 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 		
 		case TermType_Literal:
 		case TermType_Variable:{
+			//TODO italics for variables
 			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;

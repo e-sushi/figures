@@ -117,32 +117,45 @@ b32 parse(Expression* expr){
 				term->lit_value = value;
 				
 				if      (cursor->type == TermType_Expression){
-					insert_last(&expr->term, term);
-				}else if(cursor->type == TermType_Operator){
-					if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-						expr->terms.add(Term{});
-						Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-						implicit_multiply->type      = TermType_Operator;
-						implicit_multiply->raw.str   = 0;
-						implicit_multiply->raw.count = 0;
-						implicit_multiply->op_type   = OpType_ImplicitMultiplication;
-						
-						//loop until we find a lower precedence operator, then insert op below it
-						Term* lower = cursor;
-						while(   lower->parent->type == TermType_Operator
-							  && OpIsLesserEqual(implicit_multiply, lower->parent)
-							  && lower->parent->op_type != OpType_Parentheses){
-							lower = lower->parent;
-						}
-						implicit_multiply->flags = (lower->flags & OPARG_MASK);
-						insert_last(lower->parent, implicit_multiply);
-						change_parent_insert_first(implicit_multiply, lower);
-						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-						
-						insert_last(implicit_multiply, term);
-						term->flags = TermFlag_OpArgRight;
-					}else{
 					insert_last(cursor, term);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator){
+					if(cursor->op_type == OpType_Parentheses){
+						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+							expr->terms.add(Term{});
+							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
+							implicit_multiply->type      = TermType_Operator;
+							implicit_multiply->raw.str   = 0;
+							implicit_multiply->raw.count = 0;
+							implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+							
+							//loop until we find a lower precedence operator, then insert op below it
+							Term* lower = cursor;
+							while(   lower->parent->type == TermType_Operator
+								  && OpIsLesserEqual(implicit_multiply, lower->parent)
+								  && lower->parent->op_type != OpType_Parentheses){
+								lower = lower->parent;
+							}
+							implicit_multiply->flags = (lower->flags & OPARG_MASK);
+							insert_last(lower->parent, implicit_multiply);
+							change_parent_insert_first(implicit_multiply, lower);
+							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+							
+							insert_last(implicit_multiply, term);
+							term->flags = TermFlag_OpArgRight;
+							insert_right(cursor, term);
+						}else{
+							insert_last(cursor, term);
+							term->flags = TermFlag_OpArgRight;
+							if(cursor->first_inside){
+								insert_left(cursor->first_inside, term);
+							}else{
+								term->outside = cursor;
+								cursor->first_inside = cursor->last_inside = term;
+							}
+						}
+					}else{
+						insert_last(cursor, term);
 						term->flags = TermFlag_OpArgRight;
 					}
 				}else if(cursor->type == TermType_Variable){
@@ -167,9 +180,11 @@ b32 parse(Expression* expr){
 					
 					insert_last(implicit_multiply, term);
 					term->flags = TermFlag_OpArgRight;
+					insert_right(cursor, term);
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -206,32 +221,46 @@ b32 parse(Expression* expr){
 							paren->raw.count = 1;
 							paren->op_type   = OpType_Parentheses;
 							insert_last(func, paren);
+							insert_right(func, paren);
 							
 							if      (cursor->type == TermType_Expression){
-								insert_last(&expr->term, func);
+								insert_last(cursor, func);
+								insert_right(cursor, func);
 							}else if(cursor->type == TermType_Operator){
-								if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-									expr->terms.add(Term{});
-									Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-									implicit_multiply->type      = TermType_Operator;
-									implicit_multiply->raw.str   = 0;
-									implicit_multiply->raw.count = 0;
-									implicit_multiply->op_type   = OpType_ImplicitMultiplication;
-									
-									//loop until we find a lower precedence operator, then insert op below it
-									Term* lower = cursor;
-									while(   lower->parent->type == TermType_Operator
-										  && OpIsLesserEqual(implicit_multiply, lower->parent)
-										  && lower->parent->op_type != OpType_Parentheses){
-										lower = lower->parent;
+								if(cursor->op_type == OpType_Parentheses){
+									if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+										expr->terms.add(Term{});
+										Term* implicit_multiply = &expr->terms[expr->terms.count-1];
+										implicit_multiply->type      = TermType_Operator;
+										implicit_multiply->raw.str   = 0;
+										implicit_multiply->raw.count = 0;
+										implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+										
+										//loop until we find a lower precedence operator, then insert op below it
+										Term* lower = cursor;
+										while(   lower->parent->type == TermType_Operator
+											  && OpIsLesserEqual(implicit_multiply, lower->parent)
+											  && lower->parent->op_type != OpType_Parentheses){
+											lower = lower->parent;
+										}
+										implicit_multiply->flags = (lower->flags & OPARG_MASK);
+										insert_last(lower->parent, implicit_multiply);
+										change_parent_insert_first(implicit_multiply, lower);
+										ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+										
+										insert_last(implicit_multiply, func);
+										func->flags = TermFlag_OpArgRight;
+										insert_right(cursor, func);
+									}else{
+										insert_last(cursor, func);
+										func->flags = TermFlag_OpArgRight;
+										if(cursor->first_inside){
+											insert_left(cursor->first_inside, func);
+										}else{
+											func->outside = cursor;
+											cursor->first_inside = cursor->last_inside = func;
+										}
 									}
-									implicit_multiply->flags = (lower->flags & OPARG_MASK);
-									insert_last(lower->parent, implicit_multiply);
-									change_parent_insert_first(implicit_multiply, lower);
-									ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-									
-									insert_last(implicit_multiply, func);
-									func->flags = TermFlag_OpArgRight;
 								}else{
 									insert_last(cursor, func);
 									func->flags = TermFlag_OpArgRight;
@@ -258,11 +287,12 @@ b32 parse(Expression* expr){
 								
 								insert_last(implicit_multiply, func);
 								func->flags = TermFlag_OpArgRight;
+								insert_right(cursor, func);
 							}else{
 								valid = false;
-								insert_last((inside_this_paren) ? inside_this_paren : &expr->term, func);
+								insert_right(cursor, func);
+								insert_last((func->outside) ? func->outside : &expr->term, func);
 							}
-							inside_this_paren = paren;
 							cursor = paren;
 							break;
 						}
@@ -278,10 +308,21 @@ b32 parse(Expression* expr){
 						term->raw.count = 1;
 						
 						if      (cursor->type == TermType_Expression){
-							insert_last(&expr->term, term);
+							insert_last(cursor, term);
+							insert_right(cursor, term);
 						}else if(cursor->type == TermType_Operator){
 							insert_last(cursor, term);
 							term->flags = TermFlag_OpArgRight;
+							if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+								insert_right(cursor, term);
+							}else{
+								if(cursor->first_inside){
+									insert_left(cursor->first_inside, term);
+								}else{
+									term->outside = cursor;
+									cursor->first_inside = cursor->last_inside = term;
+								}
+							}
 						}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
 							expr->terms.add(Term{});
 							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
@@ -304,9 +345,11 @@ b32 parse(Expression* expr){
 							
 							insert_last(implicit_multiply, term);
 							term->flags = TermFlag_OpArgRight;
+							insert_right(cursor, term);
 						}else{
 							valid = false;
-							insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+							insert_right(cursor, term);
+							insert_last((term->outside) ? term->outside : &expr->term, term);
 						}
 						cursor = term;
 					}
@@ -326,33 +369,47 @@ b32 parse(Expression* expr){
 				term->op_type   = OpType_Parentheses;
 				
 				if      (cursor->type == TermType_Expression){
-					insert_last(&expr->term, term);
+					insert_last(cursor, term);
+					insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator){
-					if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-						expr->terms.add(Term{});
-						Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-						implicit_multiply->type      = TermType_Operator;
-						implicit_multiply->raw.str   = 0;
-						implicit_multiply->raw.count = 0;
-						implicit_multiply->op_type   = OpType_ImplicitMultiplication;
-						
-						//loop until we find a lower precedence operator, then insert op below it
-						Term* lower = cursor;
-						while(   lower->parent->type == TermType_Operator
-							  && OpIsLesserEqual(implicit_multiply, lower->parent)
-							  && lower->parent->op_type != OpType_Parentheses){
-							lower = lower->parent;
+					if(cursor->op_type == OpType_Parentheses){
+						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+							expr->terms.add(Term{});
+							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
+							implicit_multiply->type      = TermType_Operator;
+							implicit_multiply->raw.str   = 0;
+							implicit_multiply->raw.count = 0;
+							implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+							
+							//loop until we find a lower precedence operator, then insert op below it
+							Term* lower = cursor;
+							while(   lower->parent->type == TermType_Operator
+								  && OpIsLesserEqual(implicit_multiply, lower->parent)
+								  && lower->parent->op_type != OpType_Parentheses){
+								lower = lower->parent;
+							}
+							implicit_multiply->flags = (lower->flags & OPARG_MASK);
+							insert_last(lower->parent, implicit_multiply);
+							change_parent_insert_first(implicit_multiply, lower);
+							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+							
+							insert_last(implicit_multiply, term);
+							term->flags = TermFlag_OpArgRight;
+							insert_right(cursor, term);
+						}else{
+							insert_last(cursor, term);
+							term->flags = TermFlag_OpArgRight;
+							if(cursor->first_inside){
+								insert_left(cursor->first_inside, term);
+							}else{
+								term->outside = cursor;
+								cursor->first_inside = cursor->last_inside = term;
+							}
 						}
-						implicit_multiply->flags = (lower->flags & OPARG_MASK);
-						insert_last(lower->parent, implicit_multiply);
-						change_parent_insert_first(implicit_multiply, lower);
-						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-						
-						insert_last(implicit_multiply, term);
-						term->flags = TermFlag_OpArgRight;
 					}else{
 						insert_last(cursor, term);
 						term->flags = TermFlag_OpArgRight;
+						insert_right(cursor, term);
 					}
 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
 					expr->terms.add(Term{});
@@ -376,11 +433,12 @@ b32 parse(Expression* expr){
 					
 					insert_last(implicit_multiply, term);
 					term->flags = TermFlag_OpArgRight;
+					insert_right(cursor, term);
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
-				inside_this_paren = term;
 				cursor = term;
 			}break;
 			case ')':{
@@ -399,7 +457,6 @@ b32 parse(Expression* expr){
 				if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					cursor->raw.count = stream.str - cursor->raw.str - 1;
 					AddFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen);
-					inside_this_paren = 0;
 					
 					if(cursor->parent->type == TermType_FunctionCall){
 						cursor = cursor->parent;
@@ -424,7 +481,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -436,9 +493,18 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -456,7 +522,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -468,9 +534,18 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -487,7 +562,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -499,9 +574,18 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -518,7 +602,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -530,9 +614,18 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -550,7 +643,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -562,9 +655,18 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -580,7 +682,8 @@ b32 parse(Expression* expr){
 				if      (cursor->type == TermType_Expression){
 					term->op_type = OpType_Negation;
 					
-					insert_last(&expr->term, term);
+					insert_last(cursor, term);
+					insert_right(cursor, term);
 				}else if(   cursor->type == TermType_Literal
 						 || cursor->type == TermType_Variable
 						 || cursor->type == TermType_FunctionCall
@@ -599,14 +702,27 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator){
 					term->op_type = OpType_Negation;
 					
 					insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
+					if(cursor->op_type == OpType_Parentheses){
+						if(cursor->first_inside){
+							insert_left(cursor->first_inside, term);
+						}else{
+							term->outside = cursor;
+							cursor->first_inside = cursor->last_inside = term;
+						}
+					}else{
+						insert_right(cursor, term);
+					}
 				}else{
+					term->op_type = OpType_Negation;
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -624,7 +740,7 @@ b32 parse(Expression* expr){
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
 				   || cursor->type == TermType_FunctionCall
-				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses)){
+				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
 					while(   lower->parent->type == TermType_Operator
@@ -636,9 +752,19 @@ b32 parse(Expression* expr){
 					insert_last(lower->parent, term);
 					change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+					insert_right(cursor, term);
+				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+					valid = false; //NOTE equals operator cant be inside of parentheses
+					if(cursor->first_inside){
+						insert_left(cursor->first_inside, term);
+					}else{
+						term->outside = cursor;
+						cursor->first_inside = cursor->last_inside = term;
+					}
 				}else{
 					valid = false;
-					insert_last((inside_this_paren) ? inside_this_paren : &expr->term, term);
+					insert_right(cursor, term);
+					insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 				expr->equals = term;
