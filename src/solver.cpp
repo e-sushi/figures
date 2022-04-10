@@ -35,6 +35,7 @@ f64 solve(Term* term){
 					return -a;
 				}break;
 				
+				case OpType_ImplicitMultiplication:
 				case OpType_ExplicitMultiplication:{
 					f64 a = solve(term->first_child);
 					f64 b = solve(term->last_child);
@@ -73,11 +74,8 @@ f64 solve(Term* term){
 					return solve(term->first_child);
 				}break;
 				
-				default:{
-					LogE("solver","Unknown operator type: ", term->op_type);
-					solve_error = true;
-					return MAX_F64;
-				}break;
+				
+				default: Assert(!"operator type solving not setup"); return MAX_F64;
 			}
 		}break;
 		
@@ -102,11 +100,7 @@ f64 solve(Term* term){
 			};
 		}break;
 		
-		default:{
-			LogE("solver","Unknown term type: ", term->type);
-			solve_error = true;
-			return MAX_F64;
-		}break;
+		default: Assert(!"term type solving not setup"); return MAX_F64;
 	}
 }
 

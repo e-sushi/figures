@@ -165,7 +165,7 @@ enum OpType_{
 	//OpType_LogicalNOT,
 	
 	OpPrecedence_4  = (1 << 11),
-	//OpType_ImplicitMultiplication, //5x
+	OpType_ImplicitMultiplication, //5x
 	OpType_ExplicitMultiplication, //5*x
 	OpType_Division,
 	OpType_Modulo,
