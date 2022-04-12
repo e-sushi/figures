@@ -64,18 +64,20 @@ enum CanvasBind_{ //TODO ideally support multiple keybinds per action
 	CanvasBind_Navigation_ResetZoom = Key::NUMPAD0 | InputMod_None,
 	
 	//[LOCAL]  Expression
-	CanvasBind_Expression_Select            = Key::MBLEFT    | InputMod_None,
-	CanvasBind_Expression_Create            = Key::MBRIGHT   | InputMod_None,
-	CanvasBind_Expression_CursorLeft        = Key::LEFT      | InputMod_None,
-	CanvasBind_Expression_CursorWordLeft    = Key::LEFT      | InputMod_AnyCtrl,
-	CanvasBind_Expression_CursorRight       = Key::RIGHT     | InputMod_None,
-	CanvasBind_Expression_CursorWordRight   = Key::RIGHT     | InputMod_AnyCtrl,
-	CanvasBind_Expression_CursorUp          = Key::UP        | InputMod_None,
-	CanvasBind_Expression_CursorDown        = Key::DOWN      | InputMod_None,
-	CanvasBind_Expression_CursorHome        = Key::HOME      | InputMod_None,
-	CanvasBind_Expression_CursorEnd         = Key::END       | InputMod_None,
-	CanvasBind_Expression_CursorDeleteLeft  = Key::BACKSPACE | InputMod_None,
-	CanvasBind_Expression_CursorDeleteRight = Key::DELETE    | InputMod_None,
+	CanvasBind_Expression_Select                = Key::MBLEFT    | InputMod_None,
+	CanvasBind_Expression_Create                = Key::MBRIGHT   | InputMod_None,
+	CanvasBind_Expression_CursorLeft            = Key::LEFT      | InputMod_None,
+	CanvasBind_Expression_CursorRight           = Key::RIGHT     | InputMod_None,
+	CanvasBind_Expression_CursorWordLeft        = Key::LEFT      | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorWordRight       = Key::RIGHT     | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorUp              = Key::UP        | InputMod_None,
+	CanvasBind_Expression_CursorDown            = Key::DOWN      | InputMod_None,
+	CanvasBind_Expression_CursorHome            = Key::HOME      | InputMod_None,
+	CanvasBind_Expression_CursorEnd             = Key::END       | InputMod_None,
+	CanvasBind_Expression_CursorDeleteLeft      = Key::BACKSPACE | InputMod_None,
+	CanvasBind_Expression_CursorDeleteRight     = Key::DELETE    | InputMod_None,
+	CanvasBind_Expression_CursorDeleteWordLeft  = Key::BACKSPACE | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorDeleteWordRight = Key::DELETE    | InputMod_AnyCtrl,
 	
 	//[LOCAL]  Pencil
 	CanvasBind_Pencil_Stroke             = Key::MBLEFT       | InputMod_Any,
@@ -554,9 +556,11 @@ void update_canvas(){
 				//character based input (letters, numbers, symbols)
 				//// @input_expression_insertion ////
 				forI(DeshInput->charCount){
+					if(DeshInput->charIn[i] != ' '){
 					ast_changed = true;
 					expr->raw.insert(DeshInput->charIn[i], expr->cursor_start);
-					expr->cursor_start += 1;
+						expr->cursor_start += 1;
+					}
 				}
 				
 				//// @input_expression_deletion ////
@@ -568,6 +572,42 @@ void update_canvas(){
 				if(expr->cursor_start < expr->raw.count-1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteRight)){
 					ast_changed = true;
 					expr->raw.erase(expr->cursor_start);
+				}
+				if(expr->cursor_start > 1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteWordLeft)){
+					ast_changed = true;
+					if(*(expr->raw.str+expr->cursor_start-1) == ')'){
+						while(expr->cursor_start > 1 && *(expr->raw.str+expr->cursor_start-1) != '('){
+							expr->raw.erase(expr->cursor_start-1);
+							expr->cursor_start -= 1;
+						}
+						if(*(expr->raw.str+expr->cursor_start-1) == '('){
+							expr->raw.erase(expr->cursor_start-1);
+							expr->cursor_start -= 1;
+						}
+					}else if(ispunct(*(expr->raw.str+expr->cursor_start-1)) && *(expr->raw.str+expr->cursor_start-1) != '.'){
+						expr->raw.erase(expr->cursor_start-1);
+						expr->cursor_start -= 1;
+					}else{
+						while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
+							expr->raw.erase(expr->cursor_start-1);
+							expr->cursor_start -= 1;
+						}
+					}
+				}
+				if(expr->cursor_start < expr->raw.count-1 && DeshInput->KeyPressed(CanvasBind_Expression_CursorDeleteWordRight)){
+					ast_changed = true;
+					if(*(expr->raw.str+expr->cursor_start) == '('){
+						while(expr->cursor_start < expr->raw.count && *(expr->raw.str+expr->cursor_start) != ')'){
+							expr->raw.erase(expr->cursor_start);
+						}
+						if(*(expr->raw.str+expr->cursor_start) == ')') expr->raw.erase(expr->cursor_start);
+					}else if(ispunct(*(expr->raw.str+expr->cursor_start)) && *(expr->raw.str+expr->cursor_start) != '.'){
+						expr->raw.erase(expr->cursor_start);
+					}else{
+						while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
+							expr->raw.erase(expr->cursor_start);
+						}
+					}
 				}
 				
 				if(ast_changed){
