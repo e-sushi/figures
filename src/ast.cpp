@@ -2,7 +2,10 @@
 @parse
 @parse_whitespace
 @parse_literal
-@parse_letter
+@parse_letters
+@parse_letters_logarithm
+@parse_letters_function
+@parse_letters_term
 @parse_operator
 @parse_valid
 @old_ast
@@ -55,10 +58,12 @@ void debug_print_term(Term* term){
 			Log("ast", indent, term->raw, arg);
 		}break;
 		
-		case TermType_FunctionCall:{
+		case TermType_FunctionCall:
+		case TermType_Logarithm:{
 			Log("ast", indent, term->raw, arg);
 			for_node(term->first_child) debug_print_term(it);
 		}break;
+		
 		default:{ Log("ast", indent, "?",  arg); }break;
 	}
 	
@@ -97,7 +102,7 @@ b32 parse(Expression* expr){
 				f64 value = MAX_F64;
 				
 				while(isdigit(*stream)){ stream++; } //skip to non-digit
-				if(*stream == '.' || *stream == 'E'){ //TODO handle E (exponential form)
+				if(*stream == '.'){
 					stream++;
 					while(isdigit(*stream)){ stream++; } //skip to non-digit
 					value = stod(cstring{token_start, upt(TOKEN_LENGTH)});
@@ -190,7 +195,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_letter
+			//// @parse_letters
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
 			case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
 			case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
@@ -198,74 +203,69 @@ b32 parse(Expression* expr){
 			case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
 			case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
 			case '_':{ //TODO hotstrings/constants
-				cstring temp = stream;
-				while(temp && *temp != '(') temp++;
-				if(temp && *temp == '('){
-					forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
-						//NOTE compare until the length of the larger string
-						if(strncmp(it->text.str, token_start, (it->text.count > (temp.str - token_start)) ? it->text.count : temp.str - token_start) == 0){
-							stream = temp;
+				Term* func = 0;
+				cstring open_paren = stream;
+				while(open_paren && *open_paren != '(') open_paren++;
+				if(open_paren && *open_paren == '('){
+					//-///////////////////////////////////////////////////////////////////////////////////////////
+					//// @parse_letters_logarithm
+					if(strncmp("log_", token_start, 4) == 0){
+						b32 decimal_already = false;
+						char* base_cursor = token_start+4;
+						while(isdigit(*base_cursor) || (*base_cursor == '.' && !decimal_already)){
+							if(*base_cursor == '.') decimal_already = true;
+							base_cursor++;
+						}
+						if(*base_cursor == '('){
+							stream = open_paren;
 							stream++;
 							
 							expr->terms.add(Term{});
-							Term* func = &expr->terms[expr->terms.count-1];
-							func->type      = TermType_FunctionCall;
+							func = &expr->terms[expr->terms.count-1];
+							func->type      = TermType_Logarithm;
 							func->raw.str   = token_start;
 							func->raw.count = TOKEN_LENGTH - 1;
-							func->func      = it;
-							
-							expr->terms.add(Term{});
-							Term* paren = &expr->terms[expr->terms.count-1];
-							paren->type      = TermType_Operator;
-							paren->raw.str   = stream.str - 1;
-							paren->raw.count = 1;
-							paren->op_type   = OpType_Parentheses;
-							insert_last(func, paren);
-							insert_right(func, paren);
-							
-							if      (cursor->type == TermType_Expression){
-								insert_last(cursor, func);
-								insert_right(cursor, func);
-							}else if(cursor->type == TermType_Operator){
-								if(cursor->op_type == OpType_Parentheses){
-									if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-										expr->terms.add(Term{});
-										Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-										implicit_multiply->type      = TermType_Operator;
-										implicit_multiply->raw.str   = 0;
-										implicit_multiply->raw.count = 0;
-										implicit_multiply->op_type   = OpType_ImplicitMultiplication;
-										
-										//loop until we find a lower precedence operator, then insert op below it
-										Term* lower = cursor;
-										while(   lower->parent->type == TermType_Operator
-											  && OpIsLesserEqual(implicit_multiply, lower->parent)
-											  && lower->parent->op_type != OpType_Parentheses){
-											lower = lower->parent;
-										}
-										implicit_multiply->flags = (lower->flags & OPARG_MASK);
-										insert_last(lower->parent, implicit_multiply);
-										change_parent_insert_first(implicit_multiply, lower);
-										ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-										
-										insert_last(implicit_multiply, func);
-										func->flags = TermFlag_OpArgRight;
-										insert_right(cursor, func);
-									}else{
-										insert_last(cursor, func);
-										func->flags = TermFlag_OpArgRight;
-										if(cursor->first_inside){
-											insert_left(cursor->first_inside, func);
-										}else{
-											func->outside = cursor;
-											cursor->first_inside = cursor->last_inside = func;
-										}
-									}
-								}else{
-									insert_last(cursor, func);
-									func->flags = TermFlag_OpArgRight;
-								}
-							}else if(cursor->type == TermType_Literal){
+							func->log_base  = stod(cstring{token_start+4, upt(base_cursor-(token_start+4))});
+						}
+					}
+					
+					//-///////////////////////////////////////////////////////////////////////////////////////////
+					//// @parse_letters_function
+					if(func == 0){
+						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
+							//NOTE compare until the length of the larger string
+							if(strncmp(it->text.str, token_start, (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
+								stream = open_paren;
+								stream++;
+								
+								expr->terms.add(Term{});
+								func = &expr->terms[expr->terms.count-1];
+								func->type      = TermType_FunctionCall;
+								func->raw.str   = token_start;
+								func->raw.count = TOKEN_LENGTH - 1;
+								func->func      = it;
+								break;
+							}
+						}
+					}
+				}
+				
+				if(func){
+					expr->terms.add(Term{});
+					Term* paren = &expr->terms[expr->terms.count-1];
+					paren->type      = TermType_Operator;
+					paren->raw.str   = stream.str - 1;
+					paren->raw.count = 1;
+					paren->op_type   = OpType_Parentheses;
+					insert_last(func, paren);
+					insert_right(func, paren);
+					
+					if      (cursor->type == TermType_Expression){
+						insert_last(cursor, func);
+						insert_right(cursor, func);
+					}else if(cursor->type == TermType_Operator){
+						if(cursor->op_type == OpType_Parentheses){
+							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
 								expr->terms.add(Term{});
 								Term* implicit_multiply = &expr->terms[expr->terms.count-1];
 								implicit_multiply->type      = TermType_Operator;
@@ -289,17 +289,52 @@ b32 parse(Expression* expr){
 								func->flags = TermFlag_OpArgRight;
 								insert_right(cursor, func);
 							}else{
-								valid = false;
-								insert_right(cursor, func);
-								insert_last((func->outside) ? func->outside : &expr->term, func);
+								insert_last(cursor, func);
+								func->flags = TermFlag_OpArgRight;
+								if(cursor->first_inside){
+									insert_left(cursor->first_inside, func);
+								}else{
+									func->outside = cursor;
+									cursor->first_inside = cursor->last_inside = func;
+								}
 							}
-							cursor = paren;
-							break;
+						}else{
+							insert_last(cursor, func);
+							func->flags = TermFlag_OpArgRight;
 						}
+					}else if(cursor->type == TermType_Literal){
+						expr->terms.add(Term{});
+						Term* implicit_multiply = &expr->terms[expr->terms.count-1];
+						implicit_multiply->type      = TermType_Operator;
+						implicit_multiply->raw.str   = 0;
+						implicit_multiply->raw.count = 0;
+						implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+						
+						//loop until we find a lower precedence operator, then insert op below it
+						Term* lower = cursor;
+						while(   lower->parent->type == TermType_Operator
+							  && OpIsLesserEqual(implicit_multiply, lower->parent)
+							  && lower->parent->op_type != OpType_Parentheses){
+							lower = lower->parent;
+						}
+						implicit_multiply->flags = (lower->flags & OPARG_MASK);
+						insert_last(lower->parent, implicit_multiply);
+						change_parent_insert_first(implicit_multiply, lower);
+						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+						
+						insert_last(implicit_multiply, func);
+						func->flags = TermFlag_OpArgRight;
+						insert_right(cursor, func);
+					}else{
+						valid = false;
+						insert_right(cursor, func);
+						insert_last((func->outside) ? func->outside : &expr->term, func);
 					}
+					cursor = paren;
 				}else{
+					//-////////////////////////////////////////////////////////////////////////////////////////////
+					//// @parse_letters_term
 					stream++;
-					
 					forI(TOKEN_LENGTH){
 						expr->terms.add(Term{});
 						Term* term = &expr->terms[expr->terms.count-1];
@@ -845,7 +880,11 @@ b32 parse(Expression* expr){
 			
 			case TermType_FunctionCall:{
 				Assert(it->func != 0, "function calls in the tree must have a valid function pointer");
-				if(it->child_count != it->func->args) return false;
+				if(it->child_count != 1) return false;
+			}break;
+			
+			case TermType_Logarithm:{
+				if(it->child_count != 1) return false;
 			}break;
 			
 			default: Assert(!"term type validity not setup"); break;

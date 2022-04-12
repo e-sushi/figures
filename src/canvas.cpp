@@ -305,6 +305,15 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 			for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
 		}break;
 		
+		case TermType_Logarithm:{
+			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+			}
+			for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+		}break;
+		
 		default: Assert(!"term type drawing not setup"); break;
 	}
 }
@@ -527,8 +536,8 @@ void update_canvas(){
 					}else if(ispunct(*(expr->raw.str+expr->cursor_start-1)) && *(expr->raw.str+expr->cursor_start-1) != '.'){
 						expr->cursor_start -= 1;
 					}else{
-					while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
-						expr->cursor_start -= 1;
+						while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
+							expr->cursor_start -= 1;
 						}
 					}
 				}
@@ -541,8 +550,8 @@ void update_canvas(){
 					}else if(ispunct(*(expr->raw.str+expr->cursor_start)) && *(expr->raw.str+expr->cursor_start) != '.'){
 						expr->cursor_start += 1;
 					}else{
-					while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
-						expr->cursor_start += 1;
+						while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
+							expr->cursor_start += 1;
 						}
 					}
 				}
@@ -557,8 +566,8 @@ void update_canvas(){
 				//// @input_expression_insertion ////
 				forI(DeshInput->charCount){
 					if(DeshInput->charIn[i] != ' '){
-					ast_changed = true;
-					expr->raw.insert(DeshInput->charIn[i], expr->cursor_start);
+						ast_changed = true;
+						expr->raw.insert(DeshInput->charIn[i], expr->cursor_start);
 						expr->cursor_start += 1;
 					}
 				}

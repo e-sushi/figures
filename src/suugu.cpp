@@ -19,6 +19,8 @@ thousand separator: space vs comma vs point vs apostrophe
 -------
 add a simulator that reads in a file/string of inputs and adds an expression from it (for testing and rough raw text input)
 copy/paste expressions
+implicit right parenthesis (like desmos)
+expression term selection with keybinds and mouse
 
 `Parser`
 --------
@@ -33,12 +35,12 @@ constants loader
 --------
 variable solving (NOTE ast.cpp@parse_valid OpType_ExpressionEquals needs to be modified for validity when variable solving is added)
 
-Bug Board       //NOTE mark these with a last-known active date (MM/DD/YY)
+Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and last-known active date (MM/DD/YY)
 ---------
-(03/07/22) fix zoom in/out consistency
-(03/07/22) the program freezes if ALT is pressed and doesnt resume until the window is moved or ALT is pressed again (maybe a win32 issue?)
-(03/15/22) element hitboxes are incorrect
-(03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommands() (vulkan) when you reopen the window
+[03/07/22](04/12/22) fix zoom in/out consistency (zoom in then zoom out should return to the same value)
+[03/07/22](04/12/22) the program freezes if ALT is pressed and doesnt resume until the window is moved or ALT is pressed again (maybe a win32 issue?)
+[03/15/22](04/12/22) element hitboxes are incorrect
+[03/19/22](03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommands() (vulkan) when you reopen the window
 */
 
 #ifdef TRACY_ENABLE

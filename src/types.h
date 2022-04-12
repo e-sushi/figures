@@ -21,7 +21,7 @@ struct Constant{
 struct Function{
 	cstring text;
 	void*   ptr;
-	u32     args;
+	s32     args;
 };
 typedef f64(*Function1Arg)(f64 a);
 
@@ -120,6 +120,7 @@ enum TermType_{
 	TermType_Literal,
 	TermType_Variable,
 	TermType_FunctionCall,
+	TermType_Logarithm,
 }; typedef Type TermType;
 
 enum TermFlags_{
@@ -226,6 +227,7 @@ struct Term{
 		OpType op_type;
 		f64 lit_value;
 		Function* func;
+		f64 log_base;
 	};
 	
 	//syntax tree
