@@ -17,13 +17,14 @@ REM ____________________________________________________________________________
 REM                                      Compiler and Linker Flags
 REM _____________________________________________________________________________________________________
 
+REM NOTE(delle): /MD is used because vulkan's shader compilation lib requires dynamic linking with the CRT
 @set WARNINGS=/wd4201 /wd4100 /wd4189 /wd4706 /wd4311
-@set COMPILE_FLAGS=/diagnostics:column /EHsc /nologo /MD /MP /Oi /GR /Gm- /Fm /std:c++17 %WARNINGS%
+@set COMPILE_FLAGS=/diagnostics:column /EHsc /nologo /MD /MP /Oi /GR /Gm- /Fm /std:c++17 /utf-8 %WARNINGS%
 @set LINK_FLAGS=/nologo /opt:ref /incremental:no
 @set OUT_EXE=suugu.exe
 
 REM _____________________________________________________________________________________________________
-REM                                            Defines
+REM                                            Platform
 REM _____________________________________________________________________________________________________
 
 REM  BUILD_SLOW:      slow code allowed (Assert, etc)
@@ -37,10 +38,10 @@ REM  DESHI_OPENGL:    build for OpenGL
 REM  DESHI_OPENGL:    build for OpenGL
 REM  DESHI_DIRECTX12: build for DirectX12
 
-@set DEFINES_DEBUG=/D"BUILD_INTERNAL=1" /D"BUILD_SLOW=1" /D"BUILD_RELEASE=0"
-@set DEFINES_RELEASE=/D"BUILD_INTERNAL=0" /D"BUILD_SLOW=0" /D"BUILD_RELEASE=1"
-@set DEFINES_OS=/D"DESHI_WINDOWS=1" /D"DESHI_MAC=0" /D"DESHI_LINUX=0"
-@set DEFINES_RENDERER=/D"DESHI_VULKAN=0" /D"DESHI_OPENGL=1" /D"DESHI_DIRECTX12=0"
+@set FLAGS_DEBUG=/D"BUILD_INTERNAL=1" /D"BUILD_SLOW=1" /D"BUILD_RELEASE=0"
+@set FLAGS_RELEASE=/D"BUILD_INTERNAL=0" /D"BUILD_SLOW=0" /D"BUILD_RELEASE=1"
+@set FLAGS_OS=/D"DESHI_WINDOWS=1" /D"DESHI_MAC=0" /D"DESHI_LINUX=0"
+@set FLAGS_RENDERER=/D"DESHI_VULKAN=0" /D"DESHI_OPENGL=1" /D"DESHI_DIRECTX12=0"
 
 REM _____________________________________________________________________________________________________
 REM                                    Command Line Arguments
@@ -60,7 +61,7 @@ ECHO %DATE% %TIME%    Debug
 ECHO ---------------------------------
 @set OUT_DIR="..\build\debug"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /Z7 /Od /W1 %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
+cl /Z7 /Od /W1 %COMPILE_FLAGS% %FLAGS_DEBUG% %FLAGS_OS% %FLAGS_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
 GOTO DONE
 
 REM _____________________________________________________________________________________________________
@@ -75,7 +76,7 @@ ECHO [93mWarning: debugging might not work with one-file compilation[0m
 
 @set OUT_DIR="..\build\debug"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /c /Z7 /W1 %COMPILE_FLAGS% %DEFINES_DEBUG% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %~2 /Fo%OUT_DIR%/
+cl /c /Z7 /W1 %COMPILE_FLAGS% %FLAGS_DEBUG% %FLAGS_OS% %FLAGS_RENDERER% %INCLUDES% %~2 /Fo%OUT_DIR%/
 pushd ..\build\Debug
 link %LINK_FLAGS% *.obj %LIBS% /OUT:%OUT_EXE% 
 popd
@@ -101,7 +102,7 @@ REM ____________________________________________________________________________
 ECHO %DATE% %TIME%    Release
 @set OUT_DIR="..\build\release"
 IF NOT EXIST %OUT_DIR% mkdir %OUT_DIR%
-cl /O2 /W4 %COMPILE_FLAGS% %DEFINES_RELEASE% %DEFINES_OS% %DEFINES_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
+cl /O2 /W4 %COMPILE_FLAGS% %FLAGS_RELEASE% %FLAGS_OS% %FLAGS_RENDERER% %INCLUDES% %SOURCES% /Fe%OUT_DIR%/%OUT_EXE% /Fo%OUT_DIR%/ /link %LINK_FLAGS% %LIBS%
 GOTO DONE
 
 :DONE
