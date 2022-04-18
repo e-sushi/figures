@@ -1,4 +1,4 @@
-﻿/* suugu
+/* suugu
 TODO Board
 ----------------------------------------------------
 most math should be f64 instead of f32
@@ -86,10 +86,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "solver.cpp"
 #include "canvas.cpp"
 
-//#include "kigu/deshi_utils_tests.cpp"
-//#include "core/deshi_core_tests.cpp"
-//#include "kigu/misc_testing.cpp"
-
 typedef f64 (*MathFunc)(f64);
 
 f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
@@ -159,6 +155,51 @@ void graph_testing(){
 	}
 }
 
+void update_debug(){
+	persist b32 show_metrics = false;
+	if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
+	if(show_metrics) UI::ShowMetricsWindow();
+	
+	//graph_testing();
+	using namespace UI;
+	Begin("snaptest", UIWindowFlags_SnapToOtherWindows);{
+		Text("this window will snap to other windows");
+	}End();
+	Begin("snaptest2");{
+		Text("this window should be snapped to");
+	}End();
+#if 0
+	Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
+		UIItem* item = BeginCustomItem();{a
+				UIDrawCmd dc;
+			persist u64 numlines = 1;
+			if(DeshInput->KeyDown(Key::UP)) numlines += 1;
+			if(DeshInput->KeyDown(Key::DOWN)) numlines = Max((numlines - 1), u64(0));
+			
+			forI(numlines){
+				CustomItem_DCMakeLine(dc,
+									  vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
+									  vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
+									  1,
+									  color(0, f32(i)/100*255, 155)
+									  );
+			}
+			CustomItem_AddDrawCmd(item,dc);
+		}EndCustomItem();
+	}End();
+	Begin("renstats");
+	Render::DisplayRenderStats();
+	End();
+#endif	
+	//draw_pixels();
+	//random_draw(200);
+	//random_walk_avoid();
+	//vector_field();
+	//UI::DemoWindow();
+	//Storage::StorageBrowserUI();
+	//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
+}
+
 int main(){
 	//init deshi
 	Assets::enforceDirectories();
@@ -175,13 +216,9 @@ int main(){
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
 	DeshThreadManager->init();
-
+	
 	//init suugu
 	init_canvas();
-	
-	//init debug
-	//TEST_deshi_core();
-	//TEST_kigu();
 
 	//start main loop
 	TIMER_START(t_f);
@@ -192,49 +229,7 @@ int main(){
 		DeshInput->Update();
 		DeshiImGui::NewFrame();
 		update_canvas();
-		{//update debug
-			persist b32 show_metrics = false;
-			if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
-			if(show_metrics) UI::ShowMetricsWindow();
-			//graph_testing();
-			using namespace UI;
-			Begin("snaptest", UIWindowFlags_SnapToOtherWindows);{
-				Text("this window will snap to other windows");
-			}End();
-			Begin("snaptest2");{
-				Text("this window should be snapped to");
-			}End();
-#if 0
-			Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
-				UIItem* item = BeginCustomItem();{a
-					UIDrawCmd dc;
-					persist u64 numlines = 1;
-					if(DeshInput->KeyDown(Key::UP)) numlines += 1;
-					if(DeshInput->KeyDown(Key::DOWN)) numlines = Max((numlines - 1), u64(0));
-					
-					forI(numlines){
-						CustomItem_DCMakeLine(dc,
-											  vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
-											  vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
-											  1,
-											  color(0, f32(i)/100*255, 155)
-											  );
-					}
-					CustomItem_AddDrawCmd(item,dc);
-				}EndCustomItem();
-			}End();
-			Begin("renstats");
-			Render::DisplayRenderStats();
-			End();
-#endif	
-			//draw_pixels();
-			//random_draw(200);
-			//random_walk_avoid();
-			//vector_field();
-			//UI::DemoWindow();
-			//Storage::StorageBrowserUI();
-			//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
-		}
+		update_debug();
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();
