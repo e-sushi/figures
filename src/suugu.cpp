@@ -212,7 +212,7 @@ int main(){
 	DeshiImGui::Init();
 	Storage::Init();
 	UI::Init();
-	Cmd::Init();
+	cmd_init();
 	DeshWindow->ShowWindow();
 	Render::UseDefaultViewProjMatrix();
 	DeshThreadManager->init();
