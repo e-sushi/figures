@@ -204,7 +204,7 @@ int main(){
 	//init deshi
 	Assets::enforceDirectories();
 	memory_init(Gigabytes(1), Gigabytes(1));
-	Logger::Init(5, true);
+	logger_init();
 	DeshConsole->Init();
 	DeshTime->Init();
 	DeshWindow->Init("suugu", 1280, 720);
@@ -219,7 +219,7 @@ int main(){
 	
 	//init suugu
 	init_canvas();
-
+	
 	//start main loop
 	TIMER_START(t_f);
 	TIMER_START(fun);
@@ -233,6 +233,7 @@ int main(){
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();
+		logger_update();
 		memory_clear_temp();
 		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
 	}
@@ -240,6 +241,6 @@ int main(){
 	//cleanup deshi
 	Render::Cleanup();
 	DeshWindow->Cleanup();
-	Logger::Cleanup();
+	logger_cleanup();
 	memory_cleanup();
 }
