@@ -1,4 +1,4 @@
-/* suugu
+﻿/* suugu
 TODO Board
 ----------------------------------------------------
 most math should be f64 instead of f32
@@ -229,7 +229,7 @@ int main(){
 		DeshInput->Update();
 		DeshiImGui::NewFrame();
 		update_canvas();
-		update_debug();
+		//update_debug();
 		DeshConsole->Update();
 		UI::Update();
 		Render::Update();

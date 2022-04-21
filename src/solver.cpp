@@ -123,7 +123,7 @@ f64 solve(Term* term){
 		}break;
 		
 		case TermType_Logarithm:{
-			f64 a = solve(term->first_child);
+			f64 a = solve(term->first_child); SOLVER_ERROR_PASSTHRU(a);
 			if(term->log_base == 0) return SOLVER_ERROR(SolverError_LogarithmBaseZero);
 			if(term->log_base == 1) return SOLVER_ERROR(SolverError_LogarithmBaseOne);
 			if(term->log_base == a) return 1;

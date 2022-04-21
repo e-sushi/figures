@@ -163,9 +163,141 @@ local const char* context_dropdown_option_strings[] = {
 ////////////////////
 //// @draw_term ////
 ////////////////////
-void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
+struct DrawContext{
+	vec2        bbx; // the bounding box formed by child nodes 
+	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
+	u32*     istart;
+	u32 vcount, icount;
+};
+
+//////////////////Does not apply yet///////////////////NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
+//////////////////Does not apply yet///////////////////			   this means the memory is organized backwards and when we readjust we just interate from the start of
+//////////////////Does not apply yet///////////////////			   the drawCmd's vertices to the overall count
+//////////////////Does not apply yet///////////////////NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
+//////////////////Does not apply yet///////////////////             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
+void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y, UIDrawCmd& drawCmd = UIDrawCmd()){
 	if(term == 0) return;
-	
+
+#if 0
+	using namespace UI;
+	UIStyle style = GetStyle();
+	UIItem* item = BeginCustomItem();
+	item->position = GetWinCursor();
+	DrawContext drawContext;
+
+	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
+	//if it will we just add the drawcmd to the item and make a new one
+	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 verticies, 6 indices)
+	//then feel free to remove the lambda wrapping the if statement and just have it do this everytime the function is called instead with arbitrary tolerances
+	//i BELIEVE that would still be safe to do, but i may be wrong
+	auto check_drawcmd = [&](u32 vcount, u32 icount){
+		if(drawCmd.counts.x + vcount > UIDRAWCMD_MAX_VERTICES || drawCmd.counts.y + icount > UIDRAWCMD_MAX_INDICES){
+			CustomItem_AddDrawCmd(item, drawCmd);
+			drawCmd.vertices = (Vertex2*)memtrealloc(drawCmd.vertices, drawCmd.counts.x*2);
+			drawCmd.indices = (u32*)memtrealloc(drawCmd.vertices, drawCmd.counts.y*2);
+		}
+	};
+
+	switch(term->type){
+		case TermType_Expression:{
+			Expression* expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				for_node(term->first_child){
+					drawContext = draw_term(expr, it, cursor_start, cursor_y, drawCmd);
+				}
+			}
+			else{
+				
+			}
+			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+				
+			}
+
+		}break;
+		
+		case TermType_Operator:{
+			switch(term->op_type){
+				case OpType_Parentheses:{
+					if(term->first_child){
+						drawContext.vstart = drawCmd.vertices + 1; 
+						drawContext.istart = drawCmd.indices + 1;
+						vec2 maxbbx = vec2::ZERO; //we do this to dynamically scale the ( over y to the max y of the children
+						for_node(term->first_child){
+							DrawContext drawContextRet = draw_term(expr, term->first_child, cursor_start, cursor_y, drawCmd);
+							drawContext.vcount += drawContextRet.vcount;
+							drawContext.icount += drawContextRet.icount;
+							maxbbx = Max(drawContext.bbx, maxbbx);
+						}
+						cstring  sym = cstr("(");
+						vec2 symsize = CalcTextSize(sym);
+						f32    ratio = (maxbbx.y ? maxbbx.y / symsize.y : 1);
+						forI(drawContext.vcount){ //offset all child node vertices to proper position (at this point drawContext only contains info about returned drawContexts)
+							drawCmd.vertices[i].x += symsize.x;
+						}
+						drawContext.bbx.x = drawContext.bbx.x + symsize.x;
+						drawContext.bbx.y = drawContext.bbx.y;
+					}
+					drawContext.vcount += 4;
+					drawContext.icount += 6;
+					check_drawcmd(4,6);
+					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio));
+					return drawContext;
+				}break;
+				case OpType_Exponential:{
+					drawContext.vstart = drawCmd.vertices + 1; 
+					drawContext.istart = drawCmd.indices + 1;
+				}break;
+				case OpType_Negation:{
+					
+				}break;
+				case OpType_ImplicitMultiplication:{
+					
+				}break;
+				case OpType_ExplicitMultiplication:{
+					
+				}break;
+				case OpType_Division:{
+					
+				}break;
+				case OpType_Modulo:{
+					
+				}break;
+				case OpType_Addition:{
+				
+				}break;
+				case OpType_Subtraction:{
+				
+				}break;
+				case OpType_ExpressionEquals:{
+				
+				}break;
+				
+				default: Assert(!"operator type drawing not setup"); break;
+			}
+			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+				
+			}
+		}break;
+		
+		case TermType_Literal:
+		case TermType_Variable:{
+			
+		}break;
+		
+		case TermType_FunctionCall:{
+			
+		}break;
+		
+		case TermType_Logarithm:{
+			
+		}break;
+		
+		default: Assert(!"term type drawing not setup"); break;
+	}
+
+	EndCustomItem();
+#endif
+
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
@@ -284,7 +416,7 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 		
 		case TermType_Literal:
 		case TermType_Variable:{
-			//TODO italics for variables
+			//TODO italics for variables (make this an option)
 			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
@@ -316,6 +448,9 @@ void draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
+
+	//Assert(0, "all control paths should return something");
+	//return DrawContext();
 }
 
 
