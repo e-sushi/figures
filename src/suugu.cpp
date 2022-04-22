@@ -232,7 +232,6 @@ int main(){
 		update_canvas();
 		//update_debug();
 		console_update();
-		UI::ShowMetricsWindow();
 		UI::Update();
 		Render::Update();
 		logger_update();
