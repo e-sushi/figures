@@ -205,7 +205,7 @@ int main(){
 	Assets::enforceDirectories();
 	memory_init(Gigabytes(1), Gigabytes(1));
 	logger_init();
-	DeshConsole->Init();
+	console_init();
 	DeshTime->Init();
 	DeshWindow->Init("suugu", 1280, 720);
 	Render::Init();
@@ -219,6 +219,7 @@ int main(){
 	
 	//init suugu
 	init_canvas();
+
 	
 	//start main loop
 	TIMER_START(t_f);
@@ -230,7 +231,8 @@ int main(){
 		DeshiImGui::NewFrame();
 		update_canvas();
 		//update_debug();
-		DeshConsole->Update();
+		console_update();
+		UI::ShowMetricsWindow();
 		UI::Update();
 		Render::Update();
 		logger_update();
