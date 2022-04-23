@@ -183,21 +183,25 @@ struct{ //information for the current instance of draw_term, this will need to b
 //			   the drawCmd's vertices to the overall count
 //NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
 //             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
-DrawContext draw_term(Expression* expr, Term* term){
+DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	using namespace UI;
-	
+	DPTracyDynMessage(toStr("initialized: ", drawinfo.initialized));
 	if(term == 0) return DrawContext();
-	if(!drawinfo.initialized){
-		drawinfo.item = BeginCustomItem();
-		drawinfo.drawCmd = UIDrawCmd();
-		drawinfo.initialized = true;
-		drawinfo.item->position = GetWinCursor();
-	}
+	if(!drawinfo.initialized) return DrawContext();
+	//initializing internally has some issues so for now drawinfo must be initialized before calling this function
+	//if(!drawinfo.initialized){
+	//	drawinfo.item = BeginCustomItem();
+	//	drawinfo.drawCmd = UIDrawCmd();
+	//	drawinfo.initialized = true;
+	//	drawinfo.item->position = GetWinCursor();
+	//}
 
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
+
+	const vec2 textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
 
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
@@ -214,13 +218,19 @@ DrawContext draw_term(Expression* expr, Term* term){
 
 	switch(term->type){
 		case TermType_Expression:{
+			DPTracyDynMessage(toStr("initialized(expression1): ", drawinfo.initialized));
 			Expression* expr = ExpressionFromTerm(term);
 			vec2 mmbbx = vec2::ZERO;
 			if(term->child_count){
+				
 				for_node(term->first_child){
 					drawContext = draw_term(expr, it);
-					mmbbx.x = Max(mmbbx.x, drawContext.bbx.x);
+					forI(drawContext.vcount){
+						(drawContext.vstart + i)->pos.x += mmbbx.x;
+					}
+					mmbbx.x += drawContext.bbx.x;
 					mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
+					DPTracyDynMessage("exp child end");
 				}
 			}
 			else{
@@ -230,17 +240,17 @@ DrawContext draw_term(Expression* expr, Term* term){
 				
 			}
 			//expression is the topmost node so drawing will always be finished when it finishes (i hope)
-			drawinfo.initialized = false;
 			item->size = mmbbx;
 			CustomItem_AdvanceCursor(item);
 			CustomItem_AddDrawCmd(item, drawCmd);
 			//DrawDebugRect(GetWindow()->position + item->position, item->size);
-
-			EndCustomItem();
+			//EndCustomItem();
+			//drawinfo.initialized = false;			
 			return DrawContext();
 		}break;
 		
 		case TermType_Operator:{
+			DPTracyDynMessage(toStr("initialized(operator): ", drawinfo.initialized));
 			switch(term->op_type){
 				case OpType_Parentheses:{
 					cstring sym = cstr("(");
@@ -267,9 +277,10 @@ DrawContext draw_term(Expression* expr, Term* term){
 					drawContext.vcount += 4;
 					drawContext.icount += 6;
 					check_drawcmd(4,6);
-					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio));
+					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio) * textScale);
 					return drawContext;
 				}break;
+		
 				case OpType_Exponential:{
 					drawContext.vstart = drawCmd.vertices + 1; 
 					drawContext.istart = drawCmd.indices + 1;
@@ -277,42 +288,76 @@ DrawContext draw_term(Expression* expr, Term* term){
 					//drawContext.bbx = 
 					
 				}break;
+
 				case OpType_Negation:{
 					
 				}break;
+
 				case OpType_ImplicitMultiplication:{
 					
 				}break;
+
 				case OpType_ExplicitMultiplication:{
 					
 				}break;
+				
 				case OpType_Division:{
-					
+
 				}break;
+				
 				case OpType_Modulo:{
 					
 				}break;
-				case OpType_Addition:{
+				
+				case OpType_Addition:
+				case OpType_Subtraction:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-					drawContext.istart = drawCmd.indices + u32(drawCmd.counts.y);
-					if(term->first_child && term->last_child && term->last_child != term->first_child){
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					cstring sym;
+					if(term->op_type == OpType_Addition)         sym = cstr("+");
+					else if(term->op_type == OpType_Subtraction) sym = cstr("-");
+					vec2 symsize = CalcTextSize(sym);
+					
+					//this can maybe be a switch
+					//both children exist so proceed normally
+					if(term->child_count == 2){
 						DrawContext dcFirst  = draw_term(expr, term->first_child);
 						DrawContext dcSecond = draw_term(expr, term->last_child);
-						cstring sym = cstr("+");
-						vec2 symsize = CalcTextSize(sym);
 						forI(dcSecond.vcount){
 							(dcSecond.vstart + i)->pos.x += dcFirst.bbx.x + symsize.x;
 						}
 						drawContext.bbx = vec2(dcFirst.bbx.x+dcSecond.bbx.x+symsize.x, Max(dcFirst.bbx.y, Max(dcSecond.bbx.y, symsize.y)));
-						DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
-						CustomItem_DCMakeText(drawCmd, sym, vec2(dcFirst.bbx.x, 0/*TODO(sushi): center + operator*/), Color_White, vec2::ONE * style.fontHeight / (f32)style.font->max_height);
-
+						drawContext.vcount = dcFirst.vcount + dcSecond.vcount + 4;
+						drawContext.icount = dcFirst.icount + dcSecond.icount + 6;
+						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
+						CustomItem_DCMakeText(drawCmd, sym, vec2(dcFirst.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 					}
+					//operator has a first child but it isnt followed by anything
+					else if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						drawContext.bbx = vec2(ret.bbx.x+symsize.x, Max(symsize.y, ret.bbx.y));
+						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+						}
+						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+							forI(ret.vcount){
+								(ret.vstart + i)->pos.x += symsize.x;
+							}
+							CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+						}
+						drawContext.vcount = ret.vcount + 4;
+						drawContext.icount = ret.icount + 6;
+					}
+					else if(!term->child_count){
+						drawContext.bbx = symsize;
+						drawContext.vcount = 4;
+						drawContext.icount = 6;
+						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+					}
+					else Assert(!"binop has more than 2 children");
 					return drawContext;
 				}break;
-				case OpType_Subtraction:{
 				
-				}break;
 				case OpType_ExpressionEquals:{
 				
 				}break;
@@ -504,6 +549,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
+
 }
 
 
@@ -866,10 +912,22 @@ void update_canvas(){
 				
 				Expression* expr = ElementToExpression(el);
 				vec2 cursor_start; f32 cursor_y;
+				//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
+				//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
+				drawinfo.item = UI::BeginCustomItem();
+				drawinfo.drawCmd = UIDrawCmd();
+				drawinfo.initialized = true;
 				static b32 tog = 0;
 				if(DeshInput->KeyPressed(Key::UP)) ToggleBool(tog);
 				if(tog) draw_term_old(expr, &expr->term, cursor_start, cursor_y);
 				else draw_term(expr, &expr->term);
+				drawinfo.initialized = false;
+				UI::EndCustomItem();
+				if(expr->raw.str){
+					UI::SetNextItemActive();
+					UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
+					UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
+				}
 				if(selected_element == el){
 					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
 				}
