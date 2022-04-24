@@ -912,7 +912,7 @@ void update_canvas(){
 				drawinfo.drawCmd = UIDrawCmd();
 				drawinfo.initialized = true;
 				static b32 tog = 0;
-				if(DeshInput->KeyPressed(Key::UP)) ToggleBool(tog);
+				if(key_pressed(Key_UP)) ToggleBool(tog);
 				if(tog) draw_term_old(expr, &expr->term, cursor_start, cursor_y);
 				else draw_term(expr, &expr->term);
 				drawinfo.initialized = false;
