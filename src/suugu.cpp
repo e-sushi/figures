@@ -135,16 +135,16 @@ void graph_testing(){
 		
 		static vec2 mp;
 		static vec2 gcp;
-		if(UI::IsLastItemHovered() && DeshInput->LMousePressed()){
+		if(UI::IsLastItemHovered() && input_lmouse_pressed()){
 			UI::SetPreventInputs();
-			mp = DeshInput->mousePos;
+			mp = input_mouse_position();
 			gcp = g.cameraPosition;
 		}
-		if(mp!=vec2::ONE*FLT_MAX && DeshInput->LMouseDown()){
-			g.cameraPosition = gcp - (DeshInput->mousePos - mp) / (vec2g(g.dimensions_per_unit_length.x, g.dimensions_per_unit_length.x*g.aspect_ratio));
+		if(mp!=vec2::ONE*FLT_MAX && input_lmouse_down()){
+			g.cameraPosition = gcp - (input_mouse_position() - mp) / (vec2g(g.dimensions_per_unit_length.x, g.dimensions_per_unit_length.x*g.aspect_ratio));
 			//Log("test",g.cameraPosition.x," ",g.cameraPosition.y);
 		}
-		if(DeshInput->LMouseReleased()){
+		if(input_lmouse_released()){
 			UI::SetAllowInputs();
 			mp=vec2::ONE*FLT_MAX;
 		}
@@ -157,7 +157,7 @@ void graph_testing(){
 
 void update_debug(){
 	persist b32 show_metrics = false;
-	if(DeshInput->KeyPressed(Key::M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
+	if(key_pressed(Key_M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
 	if(show_metrics) UI::ShowMetricsWindow();
 	
 	//graph_testing();
@@ -173,8 +173,8 @@ void update_debug(){
 		UIItem* item = BeginCustomItem();{a
 				UIDrawCmd dc;
 			persist u64 numlines = 1;
-			if(DeshInput->KeyDown(Key::UP)) numlines += 1;
-			if(DeshInput->KeyDown(Key::DOWN)) numlines = Max((numlines - 1), u64(0));
+			if(key_down(Key_UP)) numlines += 1;
+			if(key_down(Key_DOWN)) numlines = Max((numlines - 1), u64(0));
 			
 			forI(numlines){
 				CustomItem_DCMakeLine(dc,
@@ -206,7 +206,6 @@ int main(){
 	memory_init(Gigabytes(1), Gigabytes(1));
 	logger_init();
 	console_init();
-	DeshTime->Init();
 	DeshWindow->Init("suugu", 1280, 720);
 	Render::Init();
 	DeshiImGui::Init();
@@ -222,12 +221,9 @@ int main(){
 
 	
 	//start main loop
-	TIMER_START(t_f);
-	TIMER_START(fun);
+	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
-		DeshTime->Update();
-		DeshInput->Update();
 		DeshiImGui::NewFrame();
 		update_canvas();
 		//update_debug();
@@ -236,7 +232,7 @@ int main(){
 		Render::Update();
 		logger_update();
 		memory_clear_temp();
-		DeshTime->frameTime = TIMER_END(t_f); TIMER_RESET(t_f);
+		DeshTime->frameTime = reset_stopwatch(&frame_stopwatch);
 	}
 	
 	//cleanup deshi
