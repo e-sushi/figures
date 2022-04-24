@@ -218,11 +218,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 
 	switch(term->type){
 		case TermType_Expression:{
-			DPTracyDynMessage(toStr("initialized(expression1): ", drawinfo.initialized));
 			Expression* expr = ExpressionFromTerm(term);
 			vec2 mmbbx = vec2::ZERO;
 			if(term->child_count){
-				
 				for_node(term->first_child){
 					drawContext = draw_term(expr, it);
 					forI(drawContext.vcount){
@@ -230,7 +228,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					}
 					mmbbx.x += drawContext.bbx.x;
 					mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
-					DPTracyDynMessage("exp child end");
 				}
 			}
 			else{
@@ -253,31 +250,37 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			DPTracyDynMessage(toStr("initialized(operator): ", drawinfo.initialized));
 			switch(term->op_type){
 				case OpType_Parentheses:{
-					cstring sym = cstr("(");
-					f32   ratio = 1; //ratio of parenthesis to drawn child nodes over y
-					if(term->first_child){
-						drawContext.vstart = drawCmd.vertices; 
-						drawContext.istart = drawCmd.indices;
-						DrawContext drawContextFirstReturn = draw_term(expr, term->first_child);
-						vec2 maxbbx = drawContextFirstReturn.bbx; //we do this to dynamically scale the ( over y to the max y of the children
-						for_node(term->first_child->next){
-							DrawContext drawContextRet = draw_term(expr, it);
-							drawContext.vcount += drawContextRet.vcount;
-							drawContext.icount += drawContextRet.icount;
-							maxbbx = Max(drawContext.bbx, maxbbx);
+					cstring  syml = cstr("(");
+					cstring  symr = cstr(")");
+					f32    ratio = 1; //ratio of parenthesis to drawn child nodes over y
+					vec2 symsize = CalcTextSize(syml); // i sure hope theres no font with different sizes for these
+					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						ratio = Max(1, ret.bbx.y / symsize.y);
+						forI(ret.vcount){
+							(ret.vstart + i)->pos.x += symsize.x;
 						}
-						vec2 symsize = CalcTextSize(sym);
-						ratio = (maxbbx.y ? maxbbx.y / symsize.y : 1);
-						for(Vertex2* v = drawContextFirstReturn.vstart; v != 0; v++){ //offset all child node vertices to proper position (at this point drawContext only contains info about returned drawContexts)
-							v->pos.x += symsize.x;
-						}
-						drawContext.bbx.x = drawContext.bbx.x + symsize.x;
-						drawContext.bbx.y = drawContext.bbx.y;
+						drawContext.bbx.x = drawContext.bbx.x + symsize.x + symsize.x;
+						drawContext.bbx.y = Max(symsize.y, drawContext.bbx.y);
+						drawContext.vcount = ret.vcount+8;
+						drawContext.icount = ret.icount+12;
+						check_drawcmd(8,12);
+						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
 					}
-					drawContext.vcount += 4;
-					drawContext.icount += 6;
-					check_drawcmd(4,6);
-					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio) * textScale);
+					else if(!term->child_count){
+						drawContext.bbx.x = symsize.x;
+						drawContext.bbx.y = symsize.y;
+						drawContext.vcount = 8;
+						drawContext.icount = 12;
+						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
+					}
+					else{
+						Log("", "more than 1 child");
+					}
 					return drawContext;
 				}break;
 		
@@ -290,7 +293,29 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 
 				case OpType_Negation:{
-					
+					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					cstring sym = cstr("-");
+					vec2 symsize = CalcTextSize(sym);
+					if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						forI(ret.vcount){
+							(ret.vstart + i)->pos.x += symsize.x;
+						}
+						drawContext.bbx.x = ret.bbx.x + symsize.x;
+						drawContext.bbx.y = Max(ret.bbx.y, symsize.y);
+						drawContext.vcount += ret.vcount + 4;
+						check_drawcmd(4,6);
+						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+					}
+					else if(!term->child_count){
+						drawContext.bbx = symsize;
+						drawContext.vcount = 4;
+						check_drawcmd(4,6);
+						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+					}
+					else Assert(!"unary op has more than 1 child");
+					return drawContext;
 				}break;
 
 				case OpType_ImplicitMultiplication:{
@@ -302,6 +327,25 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_Division:{
+					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					if(term->child_count == 2){
+						DrawContext retl = draw_term(expr, term->first_child);
+						DrawContext retr = draw_term(expr, term->last_child);
+						vec2 refbbx = Max(retl.bbx, retr.bbx);
+						for(Vertex2* v = retl.vstart; v != retr.vstart; v++){
+							v->pos.x += (refbbx.x - retl.bbx.x) / 2; 
+							v->pos.y -= refbbx.y / 2 + 5; 
+						}
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x += (refbbx.x - retr.bbx.x) / 2;
+							(retr.vstart + i)->pos.y += refbbx.y / 2 + 5;
+						}
+						drawContext.vcount = retl.vcount + retr.vcount + 4;
+						//drawContext.bbx = vec2(refbbx.x, );
+						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
+						return drawContext;
+					}
 
 				}break;
 				
@@ -377,7 +421,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			check_drawcmd(4,6);
 			drawContext.vcount = term->raw.count * 4;
 			Vertex2* v = (drawContext.vstart + (drawContext.vcount - 1) );
-			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, Color_White, vec2::ONE * style.fontHeight / (f32)style.font->max_height) ;
+			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, Color_White, textScale) ;
 			return drawContext;
 		}break;
 		
@@ -908,6 +952,7 @@ void update_canvas(){
 				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
 				UI::SetNextWindowPos(ToScreen(el->x, el->y));
 				UI::PushFont(math_font);
+				//debug UI::SetNextWindowSize(300,300);
 				UI::Begin(stringf(deshi_temp_allocator, "expression_0x%p",el).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 				
 				Expression* expr = ElementToExpression(el);
@@ -923,11 +968,11 @@ void update_canvas(){
 				else draw_term(expr, &expr->term);
 				drawinfo.initialized = false;
 				UI::EndCustomItem();
-				if(expr->raw.str){
-					UI::SetNextItemActive();
-					UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
-					UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
-				}
+				//if(expr->raw.str){
+				//	UI::SetNextItemActive();
+				//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
+				//	UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
+				//}
 				if(selected_element == el){
 					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
 				}
