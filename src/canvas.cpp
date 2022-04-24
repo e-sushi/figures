@@ -164,24 +164,42 @@ struct DrawContext{
 	u32 vcount, icount;
 };
 
-//////////////////Does not apply yet///////////////////NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
-//////////////////Does not apply yet///////////////////			   this means the memory is organized backwards and when we readjust we just interate from the start of
-//////////////////Does not apply yet///////////////////			   the drawCmd's vertices to the overall count
-//////////////////Does not apply yet///////////////////NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
-//////////////////Does not apply yet///////////////////             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
-void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y, UIDrawCmd& drawCmd = UIDrawCmd()){
-	if(term == 0) return;
+struct{ //information for the current instance of draw_term, this will need to be its own thing if we ever do multithreading here somehow
+	UIItem*      item;
+	UIDrawCmd drawCmd;
+	vec2 cursor_start;
+	f32      cursor_y;
+	b32 initialized = false;
+}drawinfo;
 
-#if 0
+//NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
+//			   this means the memory is organized backwards and when we readjust we just interate from the start of
+//			   the drawCmd's vertices to the overall count
+//NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
+//             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
+DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	using namespace UI;
-	UIStyle style = GetStyle();
-	UIItem* item = BeginCustomItem();
-	item->position = GetWinCursor();
+	DPTracyDynMessage(toStr("initialized: ", drawinfo.initialized));
+	if(term == 0) return DrawContext();
+	if(!drawinfo.initialized) return DrawContext();
+	//initializing internally has some issues so for now drawinfo must be initialized before calling this function
+	//if(!drawinfo.initialized){
+	//	drawinfo.item = BeginCustomItem();
+	//	drawinfo.drawCmd = UIDrawCmd();
+	//	drawinfo.initialized = true;
+	//	drawinfo.item->position = GetWinCursor();
+	//}
+
+	UIItem* item       = drawinfo.item; //:)
+	UIDrawCmd& drawCmd = drawinfo.drawCmd;
+	UIStyle style      = GetStyle();
 	DrawContext drawContext;
+
+	const vec2 textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
 
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
-	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 verticies, 6 indices)
+	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 vertices, 6 indices)
 	//then feel free to remove the lambda wrapping the if statement and just have it do this everytime the function is called instead with arbitrary tolerances
 	//i BELIEVE that would still be safe to do, but i may be wrong
 	auto check_drawcmd = [&](u32 vcount, u32 icount){
@@ -194,10 +212,19 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 
 	switch(term->type){
 		case TermType_Expression:{
+			DPTracyDynMessage(toStr("initialized(expression1): ", drawinfo.initialized));
 			Expression* expr = ExpressionFromTerm(term);
+			vec2 mmbbx = vec2::ZERO;
 			if(term->child_count){
+				
 				for_node(term->first_child){
-					drawContext = draw_term(expr, it, cursor_start, cursor_y, drawCmd);
+					drawContext = draw_term(expr, it);
+					forI(drawContext.vcount){
+						(drawContext.vstart + i)->pos.x += mmbbx.x;
+					}
+					mmbbx.x += drawContext.bbx.x;
+					mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
+					DPTracyDynMessage("exp child end");
 				}
 			}
 			else{
@@ -206,27 +233,37 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
 				
 			}
-
+			//expression is the topmost node so drawing will always be finished when it finishes (i hope)
+			item->size = mmbbx;
+			CustomItem_AdvanceCursor(item);
+			CustomItem_AddDrawCmd(item, drawCmd);
+			//DrawDebugRect(GetWindow()->position + item->position, item->size);
+			//EndCustomItem();
+			//drawinfo.initialized = false;			
+			return DrawContext();
 		}break;
 		
 		case TermType_Operator:{
+			DPTracyDynMessage(toStr("initialized(operator): ", drawinfo.initialized));
 			switch(term->op_type){
 				case OpType_Parentheses:{
+					cstring sym = cstr("(");
+					f32   ratio = 1; //ratio of parenthesis to drawn child nodes over y
 					if(term->first_child){
-						drawContext.vstart = drawCmd.vertices + 1; 
-						drawContext.istart = drawCmd.indices + 1;
-						vec2 maxbbx = vec2::ZERO; //we do this to dynamically scale the ( over y to the max y of the children
-						for_node(term->first_child){
-							DrawContext drawContextRet = draw_term(expr, term->first_child, cursor_start, cursor_y, drawCmd);
+						drawContext.vstart = drawCmd.vertices; 
+						drawContext.istart = drawCmd.indices;
+						DrawContext drawContextFirstReturn = draw_term(expr, term->first_child);
+						vec2 maxbbx = drawContextFirstReturn.bbx; //we do this to dynamically scale the ( over y to the max y of the children
+						for_node(term->first_child->next){
+							DrawContext drawContextRet = draw_term(expr, it);
 							drawContext.vcount += drawContextRet.vcount;
 							drawContext.icount += drawContextRet.icount;
 							maxbbx = Max(drawContext.bbx, maxbbx);
 						}
-						cstring  sym = cstr("(");
 						vec2 symsize = CalcTextSize(sym);
-						f32    ratio = (maxbbx.y ? maxbbx.y / symsize.y : 1);
-						forI(drawContext.vcount){ //offset all child node vertices to proper position (at this point drawContext only contains info about returned drawContexts)
-							drawCmd.vertices[i].x += symsize.x;
+						ratio = (maxbbx.y ? maxbbx.y / symsize.y : 1);
+						for(Vertex2* v = drawContextFirstReturn.vstart; v != 0; v++){ //offset all child node vertices to proper position (at this point drawContext only contains info about returned drawContexts)
+							v->pos.x += symsize.x;
 						}
 						drawContext.bbx.x = drawContext.bbx.x + symsize.x;
 						drawContext.bbx.y = drawContext.bbx.y;
@@ -234,34 +271,87 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 					drawContext.vcount += 4;
 					drawContext.icount += 6;
 					check_drawcmd(4,6);
-					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio));
+					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, vec2(1, ratio) * textScale);
 					return drawContext;
 				}break;
+		
 				case OpType_Exponential:{
 					drawContext.vstart = drawCmd.vertices + 1; 
 					drawContext.istart = drawCmd.indices + 1;
+					//DrawContext drawContextRet = draw_term(expr, )
+					//drawContext.bbx = 
+					
 				}break;
+
 				case OpType_Negation:{
 					
 				}break;
+
 				case OpType_ImplicitMultiplication:{
 					
 				}break;
+
 				case OpType_ExplicitMultiplication:{
 					
 				}break;
+				
 				case OpType_Division:{
-					
+
 				}break;
+				
 				case OpType_Modulo:{
 					
 				}break;
-				case OpType_Addition:{
 				
-				}break;
+				case OpType_Addition:
 				case OpType_Subtraction:{
-				
+					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					cstring sym;
+					if(term->op_type == OpType_Addition)         sym = cstr("+");
+					else if(term->op_type == OpType_Subtraction) sym = cstr("-");
+					vec2 symsize = CalcTextSize(sym);
+					
+					//this can maybe be a switch
+					//both children exist so proceed normally
+					if(term->child_count == 2){
+						DrawContext dcFirst  = draw_term(expr, term->first_child);
+						DrawContext dcSecond = draw_term(expr, term->last_child);
+						forI(dcSecond.vcount){
+							(dcSecond.vstart + i)->pos.x += dcFirst.bbx.x + symsize.x;
+						}
+						drawContext.bbx = vec2(dcFirst.bbx.x+dcSecond.bbx.x+symsize.x, Max(dcFirst.bbx.y, Max(dcSecond.bbx.y, symsize.y)));
+						drawContext.vcount = dcFirst.vcount + dcSecond.vcount + 4;
+						drawContext.icount = dcFirst.icount + dcSecond.icount + 6;
+						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
+						CustomItem_DCMakeText(drawCmd, sym, vec2(dcFirst.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+					}
+					//operator has a first child but it isnt followed by anything
+					else if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						drawContext.bbx = vec2(ret.bbx.x+symsize.x, Max(symsize.y, ret.bbx.y));
+						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+						}
+						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+							forI(ret.vcount){
+								(ret.vstart + i)->pos.x += symsize.x;
+							}
+							CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+						}
+						drawContext.vcount = ret.vcount + 4;
+						drawContext.icount = ret.icount + 6;
+					}
+					else if(!term->child_count){
+						drawContext.bbx = symsize;
+						drawContext.vcount = 4;
+						drawContext.icount = 6;
+						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+					}
+					else Assert(!"binop has more than 2 children");
+					return drawContext;
 				}break;
+				
 				case OpType_ExpressionEquals:{
 				
 				}break;
@@ -275,7 +365,14 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 		
 		case TermType_Literal:
 		case TermType_Variable:{
-			
+			drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+			drawContext.istart = drawCmd.indices + u32(drawCmd.counts.y);
+			drawContext.bbx = CalcTextSize(term->raw);
+			check_drawcmd(4,6);
+			drawContext.vcount = term->raw.count * 4;
+			Vertex2* v = (drawContext.vstart + (drawContext.vcount - 1) );
+			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, Color_White, vec2::ONE * style.fontHeight / (f32)style.font->max_height) ;
+			return drawContext;
 		}break;
 		
 		case TermType_FunctionCall:{
@@ -289,16 +386,20 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 		default: Assert(!"term type drawing not setup"); break;
 	}
 
-	EndCustomItem();
-#endif
+	
+	//Assert(0, "all control paths should return something");
+	return DrawContext();
+}
 
+void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
+	if(term == 0) return;
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			if(term->child_count){
 				for_node(term->first_child){
 					UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
-					draw_term(expr, it, cursor_start, cursor_y);
+					draw_term_old(expr, it, cursor_start, cursor_y);
 				}
 			}else{
 				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
@@ -331,10 +432,10 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 					UI::Text("(", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->first_child){
-						draw_term(expr, term->first_child, cursor_start, cursor_y);
+						draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 						for_node(term->first_child->next){
 							UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
-							draw_term(expr, it, cursor_start, cursor_y);
+							draw_term_old(expr, it, cursor_start, cursor_y);
 						}
 					}
 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
@@ -344,60 +445,60 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 				}break;
 				
 				case OpType_Exponential:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("^", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Negation:{
 					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					draw_term(expr, term->first_child, cursor_start, cursor_y);
+					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_ImplicitMultiplication:{
-					draw_term(expr, term->first_child, cursor_start, cursor_y);
-					draw_term(expr, term->last_child, cursor_start, cursor_y);
+					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+					draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_ExplicitMultiplication:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Division:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("/", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Modulo:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("%", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Addition:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Subtraction:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_ExpressionEquals:{
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term(expr, term->first_child, cursor_start, cursor_y);
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term(expr, term->last_child, cursor_start, cursor_y);
-					if(term->last_child) for_node(term->last_child->next) draw_term(expr, it, cursor_start, cursor_y);
+					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+					if(term->last_child) for_node(term->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
 				}break;
 				
 				default: Assert(!"operator type drawing not setup"); break;
@@ -428,7 +529,7 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
-			for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
 		}break;
 		
 		case TermType_Logarithm:{
@@ -437,14 +538,12 @@ void /*DrawContext*/ draw_term(Expression* expr, Term* term, vec2& cursor_start,
 				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
-			for_node(term->first_child) draw_term(expr, it, cursor_start, cursor_y);
+			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
 		}break;
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
 
-	//Assert(0, "all control paths should return something");
-	//return DrawContext();
 }
 
 
@@ -807,7 +906,22 @@ void update_canvas(){
 				
 				Expression* expr = ElementToExpression(el);
 				vec2 cursor_start; f32 cursor_y;
-				draw_term(expr, &expr->term, cursor_start, cursor_y);
+				//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
+				//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
+				drawinfo.item = UI::BeginCustomItem();
+				drawinfo.drawCmd = UIDrawCmd();
+				drawinfo.initialized = true;
+				static b32 tog = 0;
+				if(DeshInput->KeyPressed(Key::UP)) ToggleBool(tog);
+				if(tog) draw_term_old(expr, &expr->term, cursor_start, cursor_y);
+				else draw_term(expr, &expr->term);
+				drawinfo.initialized = false;
+				UI::EndCustomItem();
+				if(expr->raw.str){
+					UI::SetNextItemActive();
+					UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
+					UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
+				}
 				if(selected_element == el){
 					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
 				}

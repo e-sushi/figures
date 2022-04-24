@@ -218,6 +218,7 @@ int main(){
 	
 	//init suugu
 	init_canvas();
+
 	
 	//start main loop
 	Stopwatch frame_stopwatch = start_stopwatch();
