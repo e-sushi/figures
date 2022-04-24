@@ -329,14 +329,13 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						vec2 refbbx = Max(retl.bbx, retr.bbx);
 						for(Vertex2* v = retl.vstart; v != retr.vstart; v++){
 							v->pos.x += (refbbx.x - retl.bbx.x) / 2; 
-							v->pos.y -= refbbx.y / 2 + 5; 
 						}
 						forI(retr.vcount){
 							(retr.vstart + i)->pos.x += (refbbx.x - retr.bbx.x) / 2;
-							(retr.vstart + i)->pos.y += refbbx.y / 2 + 5;
+							(retr.vstart + i)->pos.y += retl.bbx.y + 5;
 						}
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
-						//drawContext.bbx = vec2(refbbx.x, );
+						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+5+retr.bbx.y);
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
 						return drawContext;
 					}
@@ -359,16 +358,17 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					//this can maybe be a switch
 					//both children exist so proceed normally
 					if(term->child_count == 2){
-						DrawContext dcFirst  = draw_term(expr, term->first_child);
-						DrawContext dcSecond = draw_term(expr, term->last_child);
-						forI(dcSecond.vcount){
-							(dcSecond.vstart + i)->pos.x += dcFirst.bbx.x + symsize.x;
+						DrawContext retl = draw_term(expr, term->first_child);
+						DrawContext retr = draw_term(expr, term->last_child);
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x;
+							(retr.vstart + i)->pos.y += (retl.bbx.y - retr.bbx.y) / 2;
 						}
-						drawContext.bbx = vec2(dcFirst.bbx.x+dcSecond.bbx.x+symsize.x, Max(dcFirst.bbx.y, Max(dcSecond.bbx.y, symsize.y)));
-						drawContext.vcount = dcFirst.vcount + dcSecond.vcount + 4;
-						drawContext.icount = dcFirst.icount + dcSecond.icount + 6;
+						drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
+						drawContext.vcount = retl.vcount + retr.vcount + 4;
+						drawContext.icount = retl.icount + retr.icount + 6;
 						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
-						CustomItem_DCMakeText(drawCmd, sym, vec2(dcFirst.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 					}
 					//operator has a first child but it isnt followed by anything
 					else if(term->child_count == 1){
