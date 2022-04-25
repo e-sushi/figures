@@ -949,6 +949,10 @@ void update_canvas(){
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_text
 			//case ElementType_Text:{}break;
+
+			default:{
+				NotImplemented;
+			}break;
 		}
 	}
 	

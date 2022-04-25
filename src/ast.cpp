@@ -22,7 +22,7 @@ local s32 debug_print_indent = -1;
 void debug_print_term(Term* term){
 	debug_print_indent++;
 	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
-	char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
+	const char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
 		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? "  R"
 		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
 		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
