@@ -568,9 +568,4 @@
       <Filter>extra\misc</Filter>
     </Text>
   </ItemGroup>
-  <ItemGroup>
-    <Natvis Include="debugvis.natvis">
-      <Filter>extra\misc</Filter>
-    </Natvis>
-  </ItemGroup>
 </Project>
