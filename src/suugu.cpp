@@ -58,21 +58,19 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 //// deshi includes ////
 #define DESHI_DISABLE_IMGUI
-#include "core/assets.h"
 #include "core/commands.h"
 #include "core/console.h"
 #include "core/graphing.h"
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
-#include "core/imgui.h"
 #include "core/renderer.h"
 #include "core/storage.h"
 #include "core/threading.h"
 #include "core/time.h"
 #include "core/ui.h"
 #include "core/window.h"
-#include "core/io.h"
+#include "core/file.h"
 #include "math/math.h"
 
 //// suugu includes ////
@@ -81,7 +79,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #  include "graphviz/gvc.h"
 #endif
 #include "types.h"
-#include "constants.cpp"
 #include "functions.cpp"
 #include "ast.cpp"
 #include "solver.cpp"
@@ -178,7 +175,7 @@ void update_debug(){
 	//graph_testing();
 	using namespace UI;
 
-	repulsion();
+	//repulsion();
 	//random_draw(200);
 	//random_walk_avoid();
 	//vector_field();
@@ -189,13 +186,11 @@ void update_debug(){
 
 int main(){
 	//init deshi
-	Assets::enforceDirectories();
 	memory_init(Gigabytes(1), Gigabytes(1));
 	logger_init();
 	console_init();
 	DeshWindow->Init("suugu", 1280, 720);
 	Render::Init();
-	DeshiImGui::Init();
 	Storage::Init();
 	UI::Init();
 	cmd_init();
@@ -205,16 +200,13 @@ int main(){
 	
 	//init suugu
 	init_canvas();
-
-	Log("", RoundUpTo(9, 4));
 	
 	//start main loop
 	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
-		DeshiImGui::NewFrame();
-		//update_canvas();
-		update_debug();
+		update_canvas();
+		//update_debug();
 		console_update();
 		UI::Update();
 		Render::Update();

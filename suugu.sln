@@ -25,8 +25,8 @@ Global
 		ReleaseWindowsVulkan|x86 = ReleaseWindowsVulkan|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x64.ActiveCfg = DebugWindowsVulkan|x64
-		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x64.Build.0 = DebugWindowsVulkan|x64
+		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x64.ActiveCfg = DebugWindowsOpenGL|x64
+		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x64.Build.0 = DebugWindowsOpenGL|x64
 		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x86.ActiveCfg = ReleaseWindowsVulkan|x64
 		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.Debug|x86.Build.0 = ReleaseWindowsVulkan|x64
 		{38E73445-DDD3-4D27-8CB4-FFD3373A0E56}.DebugWindowsDirectX|x64.ActiveCfg = DebugWindowsDirectX|x64
