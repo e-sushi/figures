@@ -50,6 +50,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 //// kigu includes ////
 #include "kigu/profiling.h"
 #include "kigu/array.h"
+#include "kigu/array_utils.h"
 #include "kigu/common.h"
 #include "kigu/cstring.h"
 #include "kigu/map.h"
@@ -86,6 +87,10 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "solver.cpp"
 #include "canvas.cpp"
 
+#if BUILD_INTERNAL
+#include "misc_testing.cpp"
+#endif
+
 typedef f64 (*MathFunc)(f64);
 
 f64 SecantMethod(f64 x0, f64 x1, f64 tol, MathFunc func) {
@@ -117,16 +122,26 @@ void graph_testing(){
 		UI::Begin("graphe", vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
 		u32 res = Min(DeshWinSize.x, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
 		g.data={data.data,res};
+		g.dotsize = 3;
+		g.xShowMinorLines = false;
+		g.yShowMinorLines = false;
 		
-		f64 t = DeshTotalTime;
+		f64 t = DeshTotalTime/1000;
 		
-		forI(res){
-			f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
-			f64& x = data[i].x;
-			f64& y = data[i].y;
-			x = alignment;
-			y = exp(-x*x)*sin(20*x-t);
+		static Stopwatch timer = start_stopwatch();
+
+
+		if(peek_stopwatch(timer) > 10){
+			reset_stopwatch(&timer);
+			forI(res){
+				f64 alignment = (g.cameraPosition.x-g.cameraZoom)+f64(i)/res*g.cameraZoom*2;
+				f64& x = data[i].x;
+				f64& y = data[i].y;
+				x = alignment;
+				y = rng()%5000/5000.;
+			}
 		}
+
 		
 		
 		draw_graph(&g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
@@ -162,36 +177,8 @@ void update_debug(){
 	
 	//graph_testing();
 	using namespace UI;
-	Begin("snaptest", UIWindowFlags_SnapToOtherWindows);{
-		Text("this window will snap to other windows");
-	}End();
-	Begin("snaptest2");{
-		Text("this window should be snapped to");
-	}End();
-#if 0
-	Begin("linetest", vec2::ONE*300,vec2::ONE*300);{
-		UIItem* item = BeginCustomItem();{a
-				UIDrawCmd dc;
-			persist u64 numlines = 1;
-			if(key_down(Key_UP)) numlines += 1;
-			if(key_down(Key_DOWN)) numlines = Max((numlines - 1), u64(0));
-			
-			forI(numlines){
-				CustomItem_DCMakeLine(dc,
-									  vec2(10+100*(sin(i)+1)/2, 10+100*(cos(i)+1)/2), 
-									  vec2(100*(sin(DeshTotalTime+i)+1)/2, 100*(cos(DeshTotalTime)+1)/2),
-									  1,
-									  color(0, f32(i)/100*255, 155)
-									  );
-			}
-			CustomItem_AddDrawCmd(item,dc);
-		}EndCustomItem();
-	}End();
-	Begin("renstats");
-	Render::DisplayRenderStats();
-	End();
-#endif	
-	//draw_pixels();
+
+	repulsion();
 	//random_draw(200);
 	//random_walk_avoid();
 	//vector_field();
@@ -219,14 +206,15 @@ int main(){
 	//init suugu
 	init_canvas();
 
+	Log("", RoundUpTo(9, 4));
 	
 	//start main loop
 	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
 		DeshiImGui::NewFrame();
-		update_canvas();
-		//update_debug();
+		//update_canvas();
+		update_debug();
 		console_update();
 		UI::Update();
 		Render::Update();
