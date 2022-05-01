@@ -18,6 +18,7 @@
 *.diagsession
 *.svg
 *.code-workspace
+*.cache
 
 #folders
 .vs/
