@@ -9,6 +9,7 @@ add checks to skip draw calls if they arent on screen
 workspaces
 arbitrary text
 custom float_to_string/str_to_float since we want to have custom precision types
+scale graph numbers with zoom
 
 `Config`
 --------
@@ -64,7 +65,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
-#include "core/renderer.h"
+#include "core/render.h"
 #include "core/storage.h"
 #include "core/threading.h"
 #include "core/time.h"
@@ -85,7 +86,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "canvas.cpp"
 
 #if BUILD_INTERNAL
-#include "misc_testing.cpp"
+#  include "misc_testing.cpp"
 #endif
 
 typedef f64 (*MathFunc)(f64);
@@ -173,8 +174,6 @@ void update_debug(){
 	if(show_metrics) UI::ShowMetricsWindow();
 	
 	//graph_testing();
-	using namespace UI;
-
 	//repulsion();
 	//random_draw(200);
 	//random_walk_avoid();
@@ -186,17 +185,19 @@ void update_debug(){
 
 int main(){
 	//init deshi
+	Stopwatch deshi_watch = start_stopwatch();
 	memory_init(Gigabytes(1), Gigabytes(1));
 	logger_init();
 	console_init();
 	DeshWindow->Init("suugu", 1280, 720);
-	Render::Init();
+	render_init();
 	Storage::Init();
 	UI::Init();
 	cmd_init();
 	DeshWindow->ShowWindow();
-	Render::UseDefaultViewProjMatrix();
+	render_use_default_camera();
 	DeshThreadManager->init();
+	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
 	
 	//init suugu
 	init_canvas();
@@ -206,17 +207,17 @@ int main(){
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
 		update_canvas();
-		//update_debug();
+		update_debug();
 		console_update();
 		UI::Update();
-		Render::Update();
+		render_update();
 		logger_update();
 		memory_clear_temp();
 		DeshTime->frameTime = reset_stopwatch(&frame_stopwatch);
 	}
 	
 	//cleanup deshi
-	Render::Cleanup();
+	render_cleanup();
 	DeshWindow->Cleanup();
 	logger_cleanup();
 	memory_cleanup();
