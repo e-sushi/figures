@@ -617,7 +617,7 @@ void init_canvas(){
 	
 	//load_constants();
 	
-	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
+	math_font = Storage::CreateFontFromFileTTF(str8_lit("STIXTwoMath-Regular.otf"), 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
 }
 

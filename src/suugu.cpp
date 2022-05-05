@@ -87,7 +87,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 #if BUILD_INTERNAL
 #  include "misc_testing.cpp"
-#endif
 
 typedef f64 (*MathFunc)(f64);
 
@@ -182,6 +181,7 @@ void update_debug(){
 	//Storage::StorageBrowserUI();
 	//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
 }
+#endif
 
 int main(){
 	//init deshi
@@ -207,7 +207,9 @@ int main(){
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
 		update_canvas();
+#if BUILD_INTERNAL
 		update_debug();
+		#endif
 		console_update();
 		UI::Update();
 		render_update();
