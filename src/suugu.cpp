@@ -189,7 +189,7 @@ int main(){
 	memory_init(Gigabytes(1), Gigabytes(1));
 	logger_init();
 	console_init();
-	DeshWindow->Init("suugu", 1280, 720);
+	DeshWindow->Init(str8_lit("suugu"), 1280, 720);
 	render_init();
 	Storage::Init();
 	UI::Init();
