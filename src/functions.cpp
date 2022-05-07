@@ -9,16 +9,16 @@ f64 builtin_log_e(f64 a){ return log(a); };
 f64 builtin_log_10(f64 a){ return log10(a); };
 
 Function builtin_functions[] = {
-	{cstr_lit("abs"), (void*)builtin_abs, 1},
-	{cstr_lit("sin"), (void*)builtin_sin, 1},
-	{cstr_lit("cos"), (void*)builtin_cos, 1},
-	{cstr_lit("tan"), (void*)builtin_tan, 1},
-	{cstr_lit("asin"), (void*)builtin_asin, 1},
-	{cstr_lit("acos"), (void*)builtin_acos, 1},
-	{cstr_lit("atan"), (void*)builtin_atan, 1},
-	{cstr_lit("sin^-1"), (void*)builtin_asin, 1},
-	{cstr_lit("cos^-1"), (void*)builtin_acos, 1},
-	{cstr_lit("tan^-1"), (void*)builtin_atan, 1},
-	{cstr_lit("ln"),  (void*)builtin_log_e,  1},
-	{cstr_lit("log"), (void*)builtin_log_10, 1},
+	{str8_lit("abs"), (void*)builtin_abs, 1},
+	{str8_lit("sin"), (void*)builtin_sin, 1},
+	{str8_lit("cos"), (void*)builtin_cos, 1},
+	{str8_lit("tan"), (void*)builtin_tan, 1},
+	{str8_lit("asin"), (void*)builtin_asin, 1},
+	{str8_lit("acos"), (void*)builtin_acos, 1},
+	{str8_lit("atan"), (void*)builtin_atan, 1},
+	{str8_lit("sin^-1"), (void*)builtin_asin, 1},
+	{str8_lit("cos^-1"), (void*)builtin_acos, 1},
+	{str8_lit("tan^-1"), (void*)builtin_atan, 1},
+	{str8_lit("ln"),  (void*)builtin_log_e,  1},
+	{str8_lit("log"), (void*)builtin_log_10, 1},
 };

@@ -65,6 +65,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
+#include "core/platform.h"
 #include "core/render.h"
 #include "core/storage.h"
 #include "core/threading.h"
@@ -111,12 +112,12 @@ void graph_testing(){
 	data.resize(DeshWinSize.x);
 	if(!data.count)return;
 	if(!init){
-		g.xAxisLabel = cstr("x");
-		g.yAxisLabel = cstr("y");
+		g.xAxisLabel = str8_lit("x");
+		g.yAxisLabel = str8_lit("y");
 		init=1;
 	}
 	else{
-		UI::Begin("graphe", vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
+		UI::Begin(str8_lit("graphe"), vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
 		u32 res = Min(DeshWinSize.x, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
 		g.data={data.data,res};
 		g.dotsize = 3;
@@ -187,6 +188,7 @@ int main(){
 	//init deshi
 	Stopwatch deshi_watch = start_stopwatch();
 	memory_init(Gigabytes(1), Gigabytes(1));
+	platform_init();
 	logger_init();
 	console_init();
 	DeshWindow->Init(str8_lit("suugu"), 1280, 720);
@@ -206,6 +208,7 @@ int main(){
 	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
+		platform_update();
 		update_canvas();
 #if BUILD_INTERNAL
 		update_debug();

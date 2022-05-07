@@ -234,7 +234,7 @@ b32 parse(Expression* expr){
 					if(func == 0){
 						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
 							//NOTE compare until the length of the larger string
-							if(strncmp(it->text.str, token_start, (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
+							if(strncmp((const char*)it->text.str, token_start, (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
 								stream = open_paren;
 								stream++;
 								
