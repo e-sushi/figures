@@ -257,7 +257,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							(ret.vstart + i)->pos.x += symsize.x;
 						}
 						drawContext.bbx.x = drawContext.bbx.x + symsize.x + symsize.x;
-						drawContext.bbx.y = Max(symsize.y, drawContext.bbx.y);
+						drawContext.bbx.y = Max(symsize.y, ret.bbx.y);
 						drawContext.vcount = ret.vcount+8;
 						drawContext.icount = ret.icount+12;
 						check_drawcmd(8,12);

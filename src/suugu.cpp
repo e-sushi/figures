@@ -174,11 +174,11 @@ void update_debug(){
 	
 	//graph_testing();
 	using namespace UI;
-
+	//spring();
 	//repulsion();
 	//random_draw(200);
 	//random_walk_avoid();
-	//vector_field();
+	vector_field();
 	//UI::DemoWindow();
 	//Storage::StorageBrowserUI();
 	//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
@@ -200,13 +200,14 @@ int main(){
 	
 	//init suugu
 	init_canvas();
-	
+
 	//start main loop
 	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
 		DeshWindow->Update();
-		update_canvas();
-		//update_debug();
+		//update_canvas();
+		update_debug();
+		
 		console_update();
 		UI::Update();
 		Render::Update();
