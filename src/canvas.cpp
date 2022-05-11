@@ -244,9 +244,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			DPTracyDynMessage(toStr("initialized(operator): ", drawinfo.initialized));
 			switch(term->op_type){
 				case OpType_Parentheses:{
-					cstring  syml = cstr("(");
-					cstring  symr = cstr(")");
-					f32    ratio = 1; //ratio of parenthesis to drawn child nodes over y
+					str8 syml = str8_lit("(");
+					str8 symr = str8_lit(")");
+					f32  ratio = 1; //ratio of parenthesis to drawn child nodes over y
 					vec2 symsize = CalcTextSize(syml); // i sure hope theres no font with different sizes for these
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
@@ -289,7 +289,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				case OpType_Negation:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
-					cstring sym = cstr("-");
+					str8 sym = str8_lit("-");
 					vec2 symsize = CalcTextSize(sym);
 					if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
@@ -350,9 +350,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				case OpType_Subtraction:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
-					cstring sym;
-					if(term->op_type == OpType_Addition)         sym = cstr("+");
-					else if(term->op_type == OpType_Subtraction) sym = cstr("-");
+					str8 sym;
+					if(term->op_type == OpType_Addition)         sym = str8_lit("+");
+					else if(term->op_type == OpType_Subtraction) sym = str8_lit("−");
 					vec2 symsize = CalcTextSize(sym);
 					
 					//this can maybe be a switch
@@ -411,11 +411,11 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		case TermType_Variable:{
 			drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 			drawContext.istart = drawCmd.indices + u32(drawCmd.counts.y);
-			drawContext.bbx = CalcTextSize(term->raw);
+			drawContext.bbx = CalcTextSize(str8{(u8*)term->raw.str, (s64)term->raw.count});
 			check_drawcmd(4,6);
 			drawContext.vcount = term->raw.count * 4;
 			Vertex2* v = (drawContext.vstart + (drawContext.vcount - 1) );
-			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, Color_White, textScale) ;
+			CustomItem_DCMakeText(drawCmd, str8{(u8*)term->raw.str, (s64)term->raw.count}, vec2::ZERO, Color_White, textScale) ;
 			return drawContext;
 		}break;
 		
@@ -442,14 +442,14 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 			Expression* expr = ExpressionFromTerm(term);
 			if(term->child_count){
 				for_node(term->first_child){
-					UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 					draw_term_old(expr, it, cursor_start, cursor_y);
 				}
 			}else{
-				UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+				UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->cursor_start == 1){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 			if(expr->cursor_start == expr->raw.count){ cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = -UI::GetLastItemSize().y; }
@@ -458,45 +458,49 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 			if(expr->valid){
 				UI::PushColor(UIStyleCol_Text, Color_Grey);
 				if(expr->equals){
-					UI::Text((expr->solution == MAX_F64) ? "ERROR" : to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					if(expr->solution == MAX_F64){
+						UI::Text(str8_lit("ERROR"));
+					}else{
+						UI::TextF(str8_lit("%g"), expr->solution);
+					}
 					UI::SameLine();
 				}else if(expr->solution != MAX_F64){
-					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
-					UI::Text(to_string(expr->solution, true, deshi_temp_allocator).str, UITextFlags_NoWrap);
+					UI::Text(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextF(str8_lit("%g"), expr->solution);
 					UI::SameLine();
 				}
 				UI::PopColor();
 			}
-			UI::Text(" ", UITextFlags_NoWrap);
+			UI::Text(str8_lit(" "), UITextFlags_NoWrap);
 		}break;
 		
 		case TermType_Operator:{
 			switch(term->op_type){
 				case OpType_Parentheses:{
-					UI::Text("(", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->first_child){
 						draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 						for_node(term->first_child->next){
-							UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+							UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 							draw_term_old(expr, it, cursor_start, cursor_y);
 						}
 					}
 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
-						UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+						UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 						if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					}
 				}break;
 				
 				case OpType_Exponential:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("^", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Negation:{
-					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 				}break;
@@ -507,39 +511,39 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 				}break;
 				case OpType_ExplicitMultiplication:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("*", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Division:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("/", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Modulo:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("%", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Addition:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("+", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Subtraction:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("-", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_ExpressionEquals:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text("=", UITextFlags_NoWrap); UI::SameLine();
+					UI::Text(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 					if(term->last_child) for_node(term->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
@@ -548,7 +552,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 				default: Assert(!"operator type drawing not setup"); break;
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 		}break;
@@ -556,30 +560,30 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		case TermType_Literal:
 		case TermType_Variable:{
 			//TODO italics for variables (make this an option)
-			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(")", UITextFlags_NoWrap); UI::SameLine();
+				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 		}break;
 		
 		case TermType_FunctionCall:{
-			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
 		}break;
 		
 		case TermType_Logarithm:{
-			UI::Text(term->raw, UITextFlags_NoWrap); UI::SameLine();
+			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(cstring{term->raw.str, upt(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
@@ -609,22 +613,20 @@ void init_canvas(){
 	defgraph.element.type   = ElementType_Graph;
 	defgraph.graph = (Graph*)memory_alloc(sizeof(Graph));
 	Graph g; memcpy(defgraph.graph, &g, sizeof(Graph));
-	defgraph.graph->xAxisLabel.str   = "x";
-	defgraph.graph->xAxisLabel.count = 1;
-	defgraph.graph->yAxisLabel.str   = "y";
-	defgraph.graph->yAxisLabel.count = 1;
+	defgraph.graph->xAxisLabel = str8_lit("x");
+	defgraph.graph->yAxisLabel = str8_lit("y");
 	elements.add(&defgraph.element);
 	
 	//load_constants();
 	
-	math_font = Storage::CreateFontFromFileTTF("STIXTwoMath-Regular.otf", 100).second;
+	math_font = Storage::CreateFontFromFileTTF(str8_lit("STIXTwoMath-Regular.otf"), 100).second;
 	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
 }
 
 void update_canvas(){
 	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
 	UI::SetNextWindowSize(DeshWindow->dimensions);
-	UI::Begin("canvas", vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	UI::Begin(str8_lit("canvas"), vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 	//// @input
@@ -672,39 +674,39 @@ void update_canvas(){
 	
 #if 1 //NOTE temp ui
 	if(active_tool == CanvasTool_Pencil){
-		UI::Begin("pencil_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::TextF("Stroke Size:   %f", pencil_stroke_size);
-		UI::TextF("Stroke Color:  %x", pencil_stroke_color.rgba);
-		UI::TextF("Stroke Start:  (%g,%g)", pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
-		UI::TextF("Stroke Index:  %d", pencil_stroke_idx);
-		UI::TextF("Stroke Skip:   %d", pencil_draw_skip_amount);
-		if(pencil_stroke_idx > 0) UI::TextF("Stroke Points: %d", pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
+		UI::Begin(str8_lit("pencil_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		UI::TextF(str8_lit("Stroke Size:   %f"), pencil_stroke_size);
+		UI::TextF(str8_lit("Stroke Color:  %x"), pencil_stroke_color.rgba);
+		UI::TextF(str8_lit("Stroke Start:  (%g,%g)"), pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
+		UI::TextF(str8_lit("Stroke Index:  %d"), pencil_stroke_idx);
+		UI::TextF(str8_lit("Stroke Skip:   %d"), pencil_draw_skip_amount);
+		if(pencil_stroke_idx > 0) UI::TextF(str8_lit("Stroke Points: %d"), pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
 		u32 total_stroke_points = 0;
 		forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
-		UI::TextF("Total Points:  %d", total_stroke_points);
+		UI::TextF(str8_lit("Total Points:  %d"), total_stroke_points);
 		UI::End();
 	}
 	if(active_tool == CanvasTool_Expression){
-		UI::Begin("expression_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::TextF("Elements: %d", elements.count);
+		UI::Begin(str8_lit("expression_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		UI::TextF(str8_lit("Elements: %d"), elements.count);
 		if(selected_element){
-			UI::TextF("Selected: %#x", selected_element);
-			UI::TextF("Position: (%g,%g)", selected_element->x,selected_element->y);
-			UI::TextF("Size:     (%g,%g)", selected_element->width,selected_element->height);
-			UI::TextF("Cursor:   %d", (selected_element) ? ((Expression*)selected_element)->cursor_start : 0);
+			UI::TextF(str8_lit("Selected: %#x"), selected_element);
+			UI::TextF(str8_lit("Position: (%g,%g)"), selected_element->x,selected_element->y);
+			UI::TextF(str8_lit("Size:     (%g,%g)"), selected_element->width,selected_element->height);
+			UI::TextF(str8_lit("Cursor:   %d"), (selected_element) ? ((Expression*)selected_element)->cursor_start : 0);
 		}
 		UI::End();
 	}
 	if(activeGraph){
-		UI::Begin("graph_debug", {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::Text("Graph Info");
-		UI::TextF("Element Pos:   (%g,%g)", activeGraph->element.x,activeGraph->element.y);
-		UI::TextF("Element Size:  (%g,%g)", activeGraph->element.width,activeGraph->element.height);
-		UI::TextF("Camera Pos:    (%g,%g)", activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y);
-		UI::TextF("Camera View:   (%g,%g)", activeGraph->graph->cameraZoom);
-		UI::TextF("Camera Zoom:   %g", activeGraph->graph->cameraView.x,activeGraph->graph->cameraView.y);
-		UI::TextF("Dims per Unit: (%g,%g)", activeGraph->graph->dimensions_per_unit_length.x, activeGraph->graph->dimensions_per_unit_length.y);
-		UI::TextF("Aspect Ratio:  %g", activeGraph->graph->aspect_ratio);
+		UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		UI::Text(str8_lit("Graph Info"));
+		UI::TextF(str8_lit("Element Pos:   (%g,%g)"), activeGraph->element.x,activeGraph->element.y);
+		UI::TextF(str8_lit("Element Size:  (%g,%g)"), activeGraph->element.width,activeGraph->element.height);
+		UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y);
+		UI::TextF(str8_lit("Camera View:   (%g,%g)"), activeGraph->graph->cameraZoom);
+		UI::TextF(str8_lit("Camera Zoom:   %g"), activeGraph->graph->cameraView.x,activeGraph->graph->cameraView.y);
+		UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), activeGraph->graph->dimensions_per_unit_length.x, activeGraph->graph->dimensions_per_unit_length.y);
+		UI::TextF(str8_lit("Aspect Ratio:  %g"), activeGraph->graph->aspect_ratio);
 		UI::End();
 	}
 #endif
@@ -944,10 +946,11 @@ void update_canvas(){
 				UI::PushVar(UIStyleVar_FontHeight,       80);
 				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
 				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
-				UI::SetNextWindowPos(ToScreen(el->x, el->y));
 				UI::PushFont(math_font);
-				//debug UI::SetNextWindowSize(300,300);
-				UI::Begin(stringf(deshi_temp_allocator, "expression_0x%p",el).str, vec2::ZERO, vec2(el->x,el->y) * f32(DeshWindow->width) / (4 * el->y), UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
+				UI::SetNextWindowPos(ToScreen(el->x, el->y));
+				UI::SetNextWindowSize(vec2(el->width,el->height) * f32(DeshWindow->width) / (4 * el->y));
+				string s = stringf(deshi_temp_allocator, "expression_0x%p",el);
+				UI::Begin(str8{(u8*)s.str, (s64)s.count}, vec2::ZERO, vec2::ZERO, UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
 				
 				Expression* expr = ElementToExpression(el);
 				vec2 cursor_start; f32 cursor_y;
@@ -1002,7 +1005,7 @@ void update_canvas(){
 	}
 	
 	//// @draw_pencil ////
-	UI::Begin("pencil_layer", vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
 			//array<vec2> pps(it->pencil_points.count);
@@ -1018,14 +1021,14 @@ void update_canvas(){
 	UI::End();
 	
 	//// @draw_canvas_info ////
-	UI::TextF("%.3f FPS", F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
-	UI::TextF("Active Tool:   %s", canvas_tool_strings[active_tool]);
-	UI::TextF("Previous Tool: %s", canvas_tool_strings[previous_tool]);
-	UI::TextF("Selected Element: %d", u64(selected_element));
-	UI::TextF("campos:  (%g, %g)",camera_pos.x,camera_pos.y);
-	UI::TextF("camzoom: %g", camera_zoom);
-	UI::TextF("camarea: (%g, %g)", WorldViewArea().x, WorldViewArea().y);
-	UI::TextF("graph active: %s", (activeGraph) ? "true" : "false");
+	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
+	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[active_tool]);
+	UI::TextF(str8_lit("Previous Tool: %s"), canvas_tool_strings[previous_tool]);
+	UI::TextF(str8_lit("Selected Element: %d"), u64(selected_element));
+	UI::TextF(str8_lit("campos:  (%g, %g)"),camera_pos.x,camera_pos.y);
+	UI::TextF(str8_lit("camzoom: %g"), camera_zoom);
+	UI::TextF(str8_lit("camarea: (%g, %g)"), WorldViewArea().x, WorldViewArea().y);
+	UI::TextF(str8_lit("graph active: %s"), (activeGraph) ? "true" : "false");
 	
 	UI::End();
 	UI::PopVar();

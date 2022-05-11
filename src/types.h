@@ -19,9 +19,9 @@ struct Constant{
 };
 
 struct Function{
-	cstring text;
-	void*   ptr;
-	s32     args;
+	 str8  text;
+	void* ptr;
+	s32   args;
 };
 typedef f64(*Function1Arg)(f64 a);
 
