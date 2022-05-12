@@ -127,8 +127,8 @@ void graph_testing(){
 		f64 t = DeshTotalTime/1000;
 		
 		static Stopwatch timer = start_stopwatch();
-
-
+		
+		
 		if(peek_stopwatch(timer) > 10){
 			reset_stopwatch(&timer);
 			forI(res){
@@ -139,7 +139,7 @@ void graph_testing(){
 				y = rng()%5000/5000.;
 			}
 		}
-
+		
 		
 		
 		draw_graph(&g, UI::GetWindow()->dimensions-UI::GetStyle().windowMargins*2);
@@ -177,7 +177,7 @@ void update_debug(){
 	//repulsion();
 	//random_draw(200);
 	//random_walk_avoid();
-	vector_field();
+	//vector_field();
 	//UI::DemoWindow();
 	//Storage::StorageBrowserUI();
 	//deshi__memory_draw(); //NOTE this is visually one frame behind for memory modified after it is called
@@ -203,7 +203,7 @@ int main(){
 	
 	//init suugu
 	init_canvas();
-
+	
 	//start main loop
 	Stopwatch frame_stopwatch = start_stopwatch();
 	while(!DeshWindow->ShouldClose()){DPZoneScoped;
@@ -212,7 +212,7 @@ int main(){
 		update_canvas();
 #if BUILD_INTERNAL
 		update_debug();
-		#endif
+#endif
 		console_update();
 		UI::Update();
 		render_update();

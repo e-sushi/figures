@@ -189,14 +189,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//	drawinfo.initialized = true;
 	//	drawinfo.item->position = GetWinCursor();
 	//}
-
+	
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
-
+	
 	const vec2 textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
-
+	
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
 	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 vertices, 6 indices)
@@ -209,7 +209,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			drawCmd.indices = (u32*)memtrealloc(drawCmd.vertices, drawCmd.counts.y*2);
 		}
 	};
-
+	
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
@@ -277,7 +277,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					}
 					return drawContext;
 				}break;
-		
+				
 				case OpType_Exponential:{
 					drawContext.vstart = drawCmd.vertices + 1; 
 					drawContext.istart = drawCmd.indices + 1;
@@ -285,7 +285,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					//drawContext.bbx = 
 					
 				}break;
-
+				
 				case OpType_Negation:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
@@ -311,11 +311,11 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					else Assert(!"unary op has more than 1 child");
 					return drawContext;
 				}break;
-
+				
 				case OpType_ImplicitMultiplication:{
 					
 				}break;
-
+				
 				case OpType_ExplicitMultiplication:{
 					
 				}break;
@@ -339,7 +339,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
 						return drawContext;
 					}
-
+					
 				}break;
 				
 				case OpType_Modulo:{
@@ -397,7 +397,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_ExpressionEquals:{
-				
+					
 				}break;
 				
 				default: Assert(!"operator type drawing not setup"); break;
@@ -429,7 +429,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
-
+	
 	
 	//Assert(0, "all control paths should return something");
 	return DrawContext();
@@ -591,7 +591,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
-
+	
 }
 
 
@@ -997,27 +997,31 @@ void update_canvas(){
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_text
 			//case ElementType_Text:{}break;
-
+			
 			default:{
 				NotImplemented;
 			}break;
 		}
 	}
 	
-	//// @draw_pencil ////
+	//// @draw_pencil //// //TODO smooth line drawing
 	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	//UI::PushScale(vec2::ONE * camera_zoom * 2.0);
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
+			
 			//array<vec2> pps(it->pencil_points.count);
 			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
 			
-			//TODO smooth line drawing
+			UI::CircleFilled(ToScreen(it->pencil_points[0]), it->size/2.f, 16, it->color);
 			for(int i = 1; i < it->pencil_points.count; ++i){
+				UI::CircleFilled(ToScreen(it->pencil_points[i]), it->size/2.f, 16, it->color);
 				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
 			}
 		}
 	}
+	//UI::PopScale();
 	UI::End();
 	
 	//// @draw_canvas_info ////
