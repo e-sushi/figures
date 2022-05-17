@@ -31,7 +31,7 @@ void debug_print_term(Term* term){
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
-			Log("ast",expr->raw);
+			Log("ast",str8_builder_peek(&expr->raw));
 			for_node(term->first_child) debug_print_term(it);
 			if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg);
 			Log("ast","---------------------------------");
@@ -82,18 +82,18 @@ b32 parse(Expression* expr){
 	
 	b32 valid = true;
 	Term* inside_this_paren = 0;
-	cstring stream{expr->raw.str, expr->raw.count};
+	str8 stream = str8_builder_peek(&expr->raw);
 	Term* cursor = &expr->term;
-	while(stream && *stream != '\0'){
-		char* token_start = stream.str;
+	while(stream && *stream.str != '\0'){
+		u8* token_start = stream.str;
 #define TOKEN_OFFSET (token_start - expr->raw.str)
 #define TOKEN_LENGTH (stream.str - token_start)
 		
-		switch(*stream){
+		switch(*stream.str){
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_whitespace
 			case ' ': case '\n': case '\r': case '\t': case '\v':{
-				while(isspace(*stream)){ stream++; } //skip to non-whitespace
+				while(isspace(*stream.str)){ str8_advance(&stream); } //skip to non-whitespace
 			}continue; //skip token creation
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,17 +101,17 @@ b32 parse(Expression* expr){
 			case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.':{
 				f64 value = MAX_F64;
 				
-				while(isdigit(*stream)){ stream++; } //skip to non-digit
-				if(*stream == '.'){
-					stream++;
-					while(isdigit(*stream)){ stream++; } //skip to non-digit
-					value = stod(cstring{token_start, upt(TOKEN_LENGTH)});
-				}else if(*stream == 'x' || *stream == 'X'){
-					stream++;
-					while(isxdigit(*stream)){ stream++; } //skip to non-hexdigit
-					value = f64(b16tou64(cstring{token_start, upt(TOKEN_LENGTH)}));
+				while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
+				if(*stream.str == '.'){
+					str8_advance(&stream);
+					while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
+					value = atof((const char*)token_start);
+				}else if(*stream.str == 'x' || *stream.str == 'X'){
+					str8_advance(&stream);
+					while(isxdigit(*stream.str)){ str8_advance(&stream); } //skip to non-hexdigit
+					value = (f64)strtoll((const char*)token_start, 0, 16);
 				}else{
-					value = f64(b10tou64(cstring{token_start, upt(TOKEN_LENGTH)}));
+					value = (f64)strtoll((const char*)token_start, 0, 10);
 				}
 				
 				expr->terms.add(Term{});
@@ -204,28 +204,28 @@ b32 parse(Expression* expr){
 			case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
 			case '_':{ //TODO hotstrings/constants
 				Term* func = 0;
-				cstring open_paren = stream;
-				while(open_paren && *open_paren != '(') open_paren++;
-				if(open_paren && *open_paren == '('){
+				str8 open_paren = stream;
+				while(open_paren && *open_paren.str != '(') str8_advance(&open_paren);
+				if(open_paren && *open_paren.str == '('){
 					//-///////////////////////////////////////////////////////////////////////////////////////////
 					//// @parse_letters_logarithm
-					if(strncmp("log_", token_start, 4) == 0){
+					if(strncmp("log_", (const char*)token_start, 4) == 0){
 						b32 decimal_already = false;
-						char* base_cursor = token_start+4;
+						u8* base_cursor = token_start+4;
 						while(isdigit(*base_cursor) || (*base_cursor == '.' && !decimal_already)){
 							if(*base_cursor == '.') decimal_already = true;
 							base_cursor++;
 						}
 						if(*base_cursor == '('){
 							stream = open_paren;
-							stream++;
+							str8_advance(&stream);
 							
 							expr->terms.add(Term{});
 							func = &expr->terms[expr->terms.count-1];
 							func->type      = TermType_Logarithm;
 							func->raw.str   = token_start;
 							func->raw.count = TOKEN_LENGTH - 1;
-							func->log_base  = stod(cstring{token_start+4, upt(base_cursor-(token_start+4))});
+							func->log_base  = atof((const char*)token_start+4);
 						}
 					}
 					
@@ -234,9 +234,10 @@ b32 parse(Expression* expr){
 					if(func == 0){
 						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
 							//NOTE compare until the length of the larger string
-							if(strncmp((const char*)it->text.str, token_start, (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
+							if(strncmp((const char*)it->text.str, (const char*)token_start,
+									   (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
 								stream = open_paren;
-								stream++;
+								str8_advance(&stream);
 								
 								expr->terms.add(Term{});
 								func = &expr->terms[expr->terms.count-1];
@@ -334,7 +335,8 @@ b32 parse(Expression* expr){
 				}else{
 					//-////////////////////////////////////////////////////////////////////////////////////////////
 					//// @parse_letters_term
-					stream++;
+					str8_advance(&stream);
+					
 					forI(TOKEN_LENGTH){
 						expr->terms.add(Term{});
 						Term* term = &expr->terms[expr->terms.count-1];
@@ -394,7 +396,7 @@ b32 parse(Expression* expr){
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_operator
 			case '(':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -477,7 +479,7 @@ b32 parse(Expression* expr){
 				cursor = term;
 			}break;
 			case ')':{
-				stream++;
+				str8_advance(&stream);
 				
 				//find last parenthesis op and make it the cursor
 				for(s32 i = expr->terms.count-1; i >= 0; --i){
@@ -504,7 +506,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			case '^':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -545,7 +547,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			case '*':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -585,7 +587,7 @@ b32 parse(Expression* expr){
 				cursor = term;
 			}break;
 			case '/':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -625,7 +627,7 @@ b32 parse(Expression* expr){
 				cursor = term;
 			}break;
 			case '%':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -666,7 +668,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			case '+':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -706,7 +708,7 @@ b32 parse(Expression* expr){
 				cursor = term;
 			}break;
 			case '-':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -763,7 +765,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			case '=':{
-				stream++;
+				str8_advance(&stream);
 				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
@@ -808,9 +810,9 @@ b32 parse(Expression* expr){
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
 			//// @parse_error
 			default:{
-				LogE("lexer", "Unhandled token '",*stream,"' at (",TOKEN_OFFSET,").");
+				LogE("lexer", "Unhandled token '",*stream.str,"' at (",TOKEN_OFFSET,").");
 				valid = false;
-				stream++;
+				str8_advance(&stream);
 			}break;
 		}
 #undef TOKEN_OFFSET

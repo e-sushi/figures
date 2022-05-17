@@ -222,7 +222,7 @@ enum OpType_{
 struct Term{
 	TermType  type;
 	TermFlags flags;
-	cstring raw;
+	str8 raw;
 	union{
 		OpType op_type;
 		f64 lit_value;
@@ -366,7 +366,7 @@ struct Expression{
 	f64 solution;
 	
 	array<Term> terms; //NOTE temporary until expression arena
-	string raw; //TODO support unicode
+	str8_builder raw;
 	u32 cursor_start;
 	//u32 cursor_end;
 };

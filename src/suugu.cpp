@@ -136,7 +136,7 @@ void graph_testing(){
 				f64& x = data[i].x;
 				f64& y = data[i].y;
 				x = alignment;
-				y = rng()%5000/5000.;
+				y = rng()%5000/5000.f;
 			}
 		}
 
@@ -164,7 +164,6 @@ void graph_testing(){
 		
 		g.cameraZoom -= 0.2*g.cameraZoom*DeshInput->scrollY;
 		UI::End();
-		
 	}
 }
 

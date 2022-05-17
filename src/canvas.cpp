@@ -54,7 +54,7 @@ enum CanvasBind_{ //TODO ideally support multiple keybinds per action
 	CanvasBind_SetTool_Previous   = Mouse_4     | InputMod_None,
 	
 	//[GLOBAL] Camera 
-	CanvasBind_Camera_Pan     = Mouse_MIDDLE | InputMod_None,
+	CanvasBind_Camera_Pan = Mouse_MIDDLE | InputMod_None,
 	
 	//[LOCAL]  Navigation 
 	CanvasBind_Navigation_Pan       = Mouse_LEFT  | InputMod_Any,
@@ -189,14 +189,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//	drawinfo.initialized = true;
 	//	drawinfo.item->position = GetWinCursor();
 	//}
-
+	
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
-
+	
 	const vec2 textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
-
+	
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
 	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 vertices, 6 indices)
@@ -209,7 +209,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			drawCmd.indices = (u32*)memtrealloc(drawCmd.vertices, drawCmd.counts.y*2);
 		}
 	};
-
+	
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
@@ -277,7 +277,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					}
 					return drawContext;
 				}break;
-		
+				
 				case OpType_Exponential:{
 					drawContext.vstart = drawCmd.vertices + 1; 
 					drawContext.istart = drawCmd.indices + 1;
@@ -285,7 +285,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					//drawContext.bbx = 
 					
 				}break;
-
+				
 				case OpType_Negation:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
@@ -311,11 +311,11 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					else Assert(!"unary op has more than 1 child");
 					return drawContext;
 				}break;
-
+				
 				case OpType_ImplicitMultiplication:{
 					
 				}break;
-
+				
 				case OpType_ExplicitMultiplication:{
 					
 				}break;
@@ -339,7 +339,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
 						return drawContext;
 					}
-
+					
 				}break;
 				
 				case OpType_Modulo:{
@@ -397,7 +397,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_ExpressionEquals:{
-				
+					
 				}break;
 				
 				default: Assert(!"operator type drawing not setup"); break;
@@ -429,7 +429,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
-
+	
 	
 	//Assert(0, "all control paths should return something");
 	return DrawContext();
@@ -591,7 +591,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		
 		default: Assert(!"term type drawing not setup"); break;
 	}
-
+	
 }
 
 
@@ -783,8 +783,8 @@ void update_canvas(){
 				expr->element.type    = ElementType_Expression;
 				expr->term.type       = TermType_Expression;
 				expr->terms.allocator = deshi_allocator;
-				expr->raw             = string(" ", deshi_allocator);
 				expr->cursor_start    = 1;
+				str8_builder_init(&expr->raw, str8_lit(" "), deshi_allocator);
 				
 				elements.add(&expr->element);
 				selected_element = &expr->element;
@@ -838,41 +838,39 @@ void update_canvas(){
 				
 				//character based input (letters, numbers, symbols)
 				//// @input_expression_insertion ////
-				forI(DeshInput->charCount){
-					if(DeshInput->charIn[i] != ' '){
-						ast_changed = true;
-						expr->raw.insert(DeshInput->charIn[i], expr->cursor_start);
-						expr->cursor_start += 1;
-					}
+				if(DeshInput->charCount){
+					ast_changed = true;
+					str8_builder_insert_byteoffset(&expr->raw, expr->cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
+					expr->cursor_start += DeshInput->charCount;
 				}
 				
 				//// @input_expression_deletion ////
 				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
 					ast_changed = true;
-					expr->raw.erase(expr->cursor_start-1);
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
 					expr->cursor_start -= 1;
 				}
 				if(expr->cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
 					ast_changed = true;
-					expr->raw.erase(expr->cursor_start);
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
 				}
 				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
 					ast_changed = true;
 					if(*(expr->raw.str+expr->cursor_start-1) == ')'){
 						while(expr->cursor_start > 1 && *(expr->raw.str+expr->cursor_start-1) != '('){
-							expr->raw.erase(expr->cursor_start-1);
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
 							expr->cursor_start -= 1;
 						}
 						if(*(expr->raw.str+expr->cursor_start-1) == '('){
-							expr->raw.erase(expr->cursor_start-1);
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
 							expr->cursor_start -= 1;
 						}
 					}else if(ispunct(*(expr->raw.str+expr->cursor_start-1)) && *(expr->raw.str+expr->cursor_start-1) != '.'){
-						expr->raw.erase(expr->cursor_start-1);
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
 						expr->cursor_start -= 1;
 					}else{
 						while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
-							expr->raw.erase(expr->cursor_start-1);
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
 							expr->cursor_start -= 1;
 						}
 					}
@@ -881,14 +879,14 @@ void update_canvas(){
 					ast_changed = true;
 					if(*(expr->raw.str+expr->cursor_start) == '('){
 						while(expr->cursor_start < expr->raw.count && *(expr->raw.str+expr->cursor_start) != ')'){
-							expr->raw.erase(expr->cursor_start);
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
 						}
-						if(*(expr->raw.str+expr->cursor_start) == ')') expr->raw.erase(expr->cursor_start);
+						if(*(expr->raw.str+expr->cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
 					}else if(ispunct(*(expr->raw.str+expr->cursor_start)) && *(expr->raw.str+expr->cursor_start) != '.'){
-						expr->raw.erase(expr->cursor_start);
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
 					}else{
 						while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
-							expr->raw.erase(expr->cursor_start);
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
 						}
 					}
 				}
@@ -997,7 +995,7 @@ void update_canvas(){
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_text
 			//case ElementType_Text:{}break;
-
+			
 			default:{
 				NotImplemented;
 			}break;
