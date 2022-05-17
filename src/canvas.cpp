@@ -257,7 +257,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							(ret.vstart + i)->pos.x += symsize.x;
 						}
 						drawContext.bbx.x = drawContext.bbx.x + symsize.x + symsize.x;
-						drawContext.bbx.y = Max(symsize.y, drawContext.bbx.y);
+						drawContext.bbx.y = Max(symsize.y, ret.bbx.y);
 						drawContext.vcount = ret.vcount+8;
 						drawContext.icount = ret.icount+12;
 						check_drawcmd(8,12);
@@ -1002,20 +1002,24 @@ void update_canvas(){
 		}
 	}
 	
-	//// @draw_pencil ////
+	//// @draw_pencil //// //TODO smooth line drawing
 	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	//UI::PushScale(vec2::ONE * camera_zoom * 2.0);
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
+			
 			//array<vec2> pps(it->pencil_points.count);
 			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
 			
-			//TODO smooth line drawing
+			UI::CircleFilled(ToScreen(it->pencil_points[0]), it->size/2.f, 16, it->color);
 			for(int i = 1; i < it->pencil_points.count; ++i){
+				UI::CircleFilled(ToScreen(it->pencil_points[i]), it->size/2.f, 16, it->color);
 				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
 			}
 		}
 	}
+	//UI::PopScale();
 	UI::End();
 	
 	//// @draw_canvas_info ////
