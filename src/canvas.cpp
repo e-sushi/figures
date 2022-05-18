@@ -173,10 +173,11 @@ struct{ //information for the current instance of draw_term, this will need to b
 }drawinfo;
 
 struct{
-	f32 additive_padding = 5;       //padding between + or - and it's operands
-	f32 multiplication_padding = 0; //padding between * and it's operands
-	f32 division_padding = 0;       //padding between division's line and it's operands
-	//TODO f32 division_scale = 0.8;       //how much to scale division's operands by 
+	f32 additive_padding = 5;        //padding between + or - and it's operands
+	f32 multiplication_padding = 0;  //padding between * and it's operands
+	f32 division_padding = 0;        //padding between division's line and it's operands
+	//TODO f32 division_scale = 0.8; //how much to scale division's operands by 
+	f32 division_line_overreach = 3; //how many pixels of over reach the division line has in both directions
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -336,6 +337,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						DrawContext retl = draw_term(expr, term->first_child);
 						DrawContext retr = draw_term(expr, term->last_child);
 						vec2 refbbx = Max(retl.bbx, retr.bbx);
+						refbbx.x += drawcfg.division_line_overreach*2;
 						for(Vertex2* v = retl.vstart; v != retr.vstart; v++){
 							v->pos.x += (refbbx.x - retl.bbx.x) / 2; 
 						}
@@ -346,25 +348,34 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
-						return drawContext;
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						
+						drawContext.bbx = vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
-							
+							forI(ret.vcount){
+								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
+							}
+							CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
-								//(ret.vstart + i)->pos.x += symsize.x;
+								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
+								(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
 							}
+							CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
 							//CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
 						}
 						drawContext.vcount = ret.vcount + 4;
 						drawContext.icount = ret.icount + 6;
 					}
-					
-					
+					else if(!term->child_count){
+						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
+						drawContext.vcount = 4;
+						drawContext.icount = 6;
+						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
+					}
+					return drawContext;
 				}break;
 				
 				case OpType_Modulo:{
