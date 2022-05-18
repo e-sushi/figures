@@ -144,7 +144,7 @@ enum TermFlags_{
 //NOTE in order of precedence, so the higher value it is (lower sequentially), the lower the precedence
 //NOTE these are operation-based operators, not token-based operators
 //TODO try to find a way to store the number of arguments
-enum OpType_{
+enum OpType : u32{//temp c++ enum thing for debugging
 	OpType_NULL = 0,
 	
 	OpPrecedence_1  = (1 << 8),
@@ -210,13 +210,43 @@ enum OpType_{
 	
 	OpPrecedence_14 = (1 << 21),
 	OpType_ExpressionEquals, //NOTE this should be one of the lowest precedence operators
-}; typedef Type OpType;
+}; //typedef Type OpType;
 #define OPPRECEDENCE_MASK 0xFFFFFF00
 //NOTE these are inverted b/c the precedence flags get larger as they decrease in precedence
 #define OpIsGreater(op1,op2)      (((op1)->op_type & OPPRECEDENCE_MASK) <  ((op2)->op_type & OPPRECEDENCE_MASK))
 #define OpIsGreaterEqual(op1,op2) (((op1)->op_type & OPPRECEDENCE_MASK) <= ((op2)->op_type & OPPRECEDENCE_MASK))
 #define OpIsLesser(op1,op2)       (((op1)->op_type & OPPRECEDENCE_MASK) >  ((op2)->op_type & OPPRECEDENCE_MASK))
 #define OpIsLesserEqual(op1,op2)  (((op1)->op_type & OPPRECEDENCE_MASK) >= ((op2)->op_type & OPPRECEDENCE_MASK))
+
+static str8 OpTypeStrs(u32 type){
+	switch(type){
+		case OpType_NULL:                   return str8l("OpType_NULL");
+		case OpPrecedence_1:                return str8l("OpPrecedence_1");
+		case OpType_Parentheses:            return str8l("OpType_Parentheses");
+		case OpPrecedence_2:                return str8l("OpPrecedence_2");
+		case OpType_Exponential:            return str8l("OpType_Exponential");
+		case OpPrecedence_3:                return str8l("OpPrecedence_3");
+		case OpType_Negation:               return str8l("OpType_Negation");
+		case OpPrecedence_4:                return str8l("OpPrecedence_4");
+		case OpType_ImplicitMultiplication: return str8l("OpType_ImplicitMultiplication");
+		case OpType_ExplicitMultiplication: return str8l("OpType_ExplicitMultiplication");
+		case OpType_Division:               return str8l("OpType_Division");
+		case OpType_Modulo:                 return str8l("OpType_Modulo");
+		case OpPrecedence_5:                return str8l("OpPrecedence_5");
+		case OpType_Addition:               return str8l("OpType_Addition");
+		case OpType_Subtraction:            return str8l("OpType_Subtraction");
+		case OpPrecedence_6:                return str8l("OpPrecedence_6");
+		case OpPrecedence_7:                return str8l("OpPrecedence_7");
+		case OpPrecedence_8:                return str8l("OpPrecedence_8");
+		case OpPrecedence_9:                return str8l("OpPrecedence_9");
+		case OpPrecedence_10:               return str8l("OpPrecedence_10");
+		case OpPrecedence_11:               return str8l("OpPrecedence_11");
+		case OpPrecedence_12:               return str8l("OpPrecedence_12");
+		case OpPrecedence_13:               return str8l("OpPrecedence_13");
+		case OpPrecedence_14:               return str8l("OpPrecedence_14");
+	}
+}
+
 
 //term: generic base thing (literal, operator, variable, function call, etc)
 struct Term{

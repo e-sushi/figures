@@ -178,6 +178,7 @@ struct{
 	f32 division_padding = 0;        //padding between division's line and it's operands
 	//TODO f32 division_scale = 0.8; //how much to scale division's operands by 
 	f32 division_line_overreach = 3; //how many pixels of over reach the division line has in both directions
+	f32 division_line_thickness = 3; //how thick the division line is 
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -197,8 +198,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//	drawinfo.initialized = true;
 	//	drawinfo.item->position = GetWinCursor();
 	//}
-	drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
-	drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
+	//drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
+	//drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
@@ -266,24 +267,25 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						forI(ret.vcount){
 							(ret.vstart + i)->pos.x += symsize.x;
 						}
-						drawContext.bbx.x = drawContext.bbx.x + symsize.x + symsize.x;
+						drawContext.bbx.x = ret.bbx.x + 2*symsize.x;
 						drawContext.bbx.y = Max(symsize.y, ret.bbx.y);
 						drawContext.vcount = ret.vcount+8;
 						drawContext.icount = ret.icount+12;
 						check_drawcmd(8,12);
-						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
-						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, syml, vec2(0, 0), Color_White, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), Color_White, vec2(1, ratio) * textScale);
 					}
 					else if(!term->child_count){
-						drawContext.bbx.x = symsize.x;
+						drawContext.bbx.x = symsize.x*2;
 						drawContext.bbx.y = symsize.y;
 						drawContext.vcount = 8;
 						drawContext.icount = 12;
+						check_drawcmd(8,12);
 						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
 						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), Color_White, vec2(1, ratio) * textScale);
 					}
 					else{
-						Log("", "more than 1 child");
+						Log("", "Parenthesis has more than 1 child");
 					}
 					return drawContext;
 				}break;
@@ -326,9 +328,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					
 				}break;
 				
-				case OpType_ExplicitMultiplication:{
-					
-				}break;
 				
 				case OpType_Division:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
@@ -347,7 +346,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						}
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
-						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
+						check_drawcmd(4,6);
+						CustomItem_DCMakeLine(drawCmd, vec2(0, retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2)),  vec2(drawContext.bbx.x, retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2)), drawcfg.division_line_thickness, Color_White);
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
@@ -356,14 +356,16 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 							}
-							CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
+							check_drawcmd(4,6);
+							CustomItem_DCMakeLine(drawCmd, vec2(0, (drawContext.bbx.y-drawcfg.division_line_thickness)/2),vec2(drawContext.bbx.x, (drawContext.bbx.y-drawcfg.division_line_thickness)/2), drawcfg.division_line_thickness, Color_White);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 								(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
 							}
-							CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
+							check_drawcmd(4,6);
+							CustomItem_DCMakeLine(drawCmd, vec2(0, (drawContext.bbx.y-drawcfg.division_line_thickness)/2),vec2(drawContext.bbx.x, (drawContext.bbx.y-drawcfg.division_line_thickness)/2), drawcfg.division_line_thickness, Color_White);
 							//CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
 						}
 						drawContext.vcount = ret.vcount + 4;
@@ -373,6 +375,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
 						drawContext.vcount = 4;
 						drawContext.icount = 6;
+						check_drawcmd(4,6);
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, Color_White);
 					}
 					return drawContext;
@@ -383,12 +386,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_Addition:
-				case OpType_Subtraction:{
+				case OpType_Subtraction:
+				case OpType_ExplicitMultiplication:{
 					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 					str8 sym;
 					if(term->op_type == OpType_Addition)         sym = str8_lit("+");
 					else if(term->op_type == OpType_Subtraction) sym = str8_lit("−");
+					else if(term->op_type == OpType_ExplicitMultiplication) sym = str8l("∙");
 					vec2 symsize = CalcTextSize(sym);
 					
 					//this can maybe be a switch
@@ -408,6 +413,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.icount = retl.icount + retr.icount + 6;
 						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
+						check_drawcmd(4,6);
 						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 					}
 					//operator has a first child but it isnt followed by anything
@@ -415,12 +421,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						DrawContext ret = draw_term(expr, term->first_child);
 						drawContext.bbx = vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							check_drawcmd(4,6);
 							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
 							}
+							check_drawcmd(4,6);
 							CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
 						}
 						drawContext.vcount = ret.vcount + 4;
@@ -430,6 +438,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx = symsize;
 						drawContext.vcount = 4;
 						drawContext.icount = 6;
+						check_drawcmd(4,6);
 						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
 					}
 					else Assert(!"binop has more than 2 children");
@@ -455,7 +464,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			check_drawcmd(4,6);
 			drawContext.vcount = term->raw.count * 4;
 			Vertex2* v = (drawContext.vstart + (drawContext.vcount - 1) );
-			CustomItem_DCMakeText(drawCmd, str8{(u8*)term->raw.str, (s64)term->raw.count}, vec2::ZERO, Color_White, textScale) ;
+			CustomItem_DCMakeText(drawCmd, str8{(u8*)term->raw.str, (s64)term->raw.count}, vec2::ZERO, Color_White, textScale);
 			return drawContext;
 		}break;
 		
@@ -549,6 +558,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
+
 				case OpType_ExplicitMultiplication:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
