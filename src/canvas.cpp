@@ -172,6 +172,13 @@ struct{ //information for the current instance of draw_term, this will need to b
 	b32 initialized = false;
 }drawinfo;
 
+struct{
+	f32 additive_padding = 5;       //padding between + or - and it's operands
+	f32 multiplication_padding = 0; //padding between * and it's operands
+	f32 division_padding = 0;       //padding between division's line and it's operands
+	//TODO f32 division_scale = 0.8;       //how much to scale division's operands by 
+}drawcfg;
+
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
 //			   this means the memory is organized backwards and when we readjust we just interate from the start of
 //			   the drawCmd's vertices to the overall count
@@ -189,7 +196,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//	drawinfo.initialized = true;
 	//	drawinfo.item->position = GetWinCursor();
 	//}
-	
+	drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
+	drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
+
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
@@ -234,7 +243,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			item->size = mmbbx;
 			CustomItem_AdvanceCursor(item);
 			CustomItem_AddDrawCmd(item, drawCmd);
-			//DrawDebugRect(GetWindow()->position + item->position, item->size);
+			
 			//EndCustomItem();
 			//drawinfo.initialized = false;			
 			return DrawContext();
@@ -332,13 +341,29 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						}
 						forI(retr.vcount){
 							(retr.vstart + i)->pos.x += (refbbx.x - retr.bbx.x) / 2;
-							(retr.vstart + i)->pos.y += retl.bbx.y + 5;
+							(retr.vstart + i)->pos.y += retl.bbx.y + drawcfg.division_padding;
 						}
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
-						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+5+retr.bbx.y);
+						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y / 2),  vec2(drawContext.bbx.x, drawContext.bbx.y / 2), 1, Color_White);
 						return drawContext;
 					}
+					else if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						
+						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							
+						}
+						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+							forI(ret.vcount){
+								//(ret.vstart + i)->pos.x += symsize.x;
+							}
+							//CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
+						}
+						drawContext.vcount = ret.vcount + 4;
+						drawContext.icount = ret.icount + 6;
+					}
+					
 					
 				}break;
 				
@@ -360,26 +385,30 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					if(term->child_count == 2){
 						DrawContext retl = draw_term(expr, term->first_child);
 						DrawContext retr = draw_term(expr, term->last_child);
-						forI(retr.vcount){
-							(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x;
-							(retr.vstart + i)->pos.y += (retl.bbx.y - retr.bbx.y) / 2;
+						vec2 refbbx = Max(retl.bbx,retr.bbx);
+						forI(retl.vcount){
+							(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
 						}
-						drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x + drawcfg.additive_padding*2;
+							(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
+						}
+						drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.icount = retl.icount + retr.icount + 6;
 						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
-						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 					}
 					//operator has a first child but it isnt followed by anything
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						drawContext.bbx = vec2(ret.bbx.x+symsize.x, Max(symsize.y, ret.bbx.y));
+						drawContext.bbx = vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
-							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
+							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), Color_White, textScale);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
-								(ret.vstart + i)->pos.x += symsize.x;
+								(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
 							}
 							CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, Color_White, textScale);
 						}

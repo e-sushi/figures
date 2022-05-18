@@ -42,6 +42,8 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 [03/07/22](04/12/22) the program freezes if ALT is pressed and doesnt resume until the window is moved or ALT is pressed again (maybe a win32 issue?)
 [03/15/22](04/12/22) element hitboxes are incorrect
 [03/19/22](03/19/22) minimizing the window with screen based equation sampling causes deshi to freeze in BuildCommands() (vulkan) when you reopen the window
+[05/18/22](05/18/22) sometimes using + or - messes up the AST and causes it to return a very large number. it fixes after adding another literal
+[05/18/22](05/18/22) default expression size should be the size of a character or something
 */
 
 #ifdef TRACY_ENABLE
