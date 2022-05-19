@@ -1023,7 +1023,7 @@ void update_canvas(){
 	UI::End();
 	
 	//// @draw_canvas_info ////
-	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->frameTime / 1000)));
+	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->deltaTime / 1000)));
 	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[active_tool]);
 	UI::TextF(str8_lit("Previous Tool: %s"), canvas_tool_strings[previous_tool]);
 	UI::TextF(str8_lit("Selected Element: %d"), u64(selected_element));

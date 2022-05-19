@@ -76,10 +76,10 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "math/math.h"
 
 //// suugu includes ////
-#define SUUGU_IMPLEMENTATION
 #ifdef SUUGU_USE_GRAPHVIZ
 #  include "graphviz/gvc.h"
 #endif
+#define SUUGU_IMPLEMENTATION
 #include "types.h"
 #include "functions.cpp"
 #include "ast.cpp"
@@ -109,7 +109,7 @@ void graph_testing(){
 	persist Graph g;
 	persist array<vec2g> data;
 	//TODO only actually resize when OSWindow size changes
-	data.resize(DeshWinSize.x);
+	data.resize(DeshWindow->width);
 	if(!data.count)return;
 	if(!init){
 		g.xAxisLabel = str8_lit("x");
@@ -118,7 +118,7 @@ void graph_testing(){
 	}
 	else{
 		UI::Begin(str8_lit("graphe"), vec2::ONE, vec2(600,500), UIWindowFlags_NoScroll);
-		u32 res = Min(DeshWinSize.x, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
+		u32 res = Min(DeshWindow->width, UI::GetWindow()->width - UI::GetStyle().windowMargins.x*2);
 		g.data={data.data,res};
 		g.dotsize = 3;
 		g.xShowMinorLines = false;
@@ -189,13 +189,13 @@ int main(){
 	memory_init(Gigabytes(1), Gigabytes(1));
 	platform_init();
 	logger_init();
+	window_create(str8l("suugu"));
 	console_init();
-	DeshWindow->Init(str8_lit("suugu"), 1280, 720);
 	render_init();
 	Storage::Init();
 	UI::Init();
 	cmd_init();
-	DeshWindow->ShowWindow();
+	window_show(DeshWindow);
 	render_use_default_camera();
 	DeshThreadManager->init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
@@ -204,10 +204,7 @@ int main(){
 	init_canvas();
 	
 	//start main loop
-	Stopwatch frame_stopwatch = start_stopwatch();
-	while(!DeshWindow->ShouldClose()){DPZoneScoped;
-		DeshWindow->Update();
-		platform_update();
+	while(platform_update()){DPZoneScoped;
 		update_canvas();
 #if BUILD_INTERNAL
 		update_debug();
@@ -217,12 +214,10 @@ int main(){
 		render_update();
 		logger_update();
 		memory_clear_temp();
-		DeshTime->frameTime = reset_stopwatch(&frame_stopwatch);
 	}
 	
 	//cleanup deshi
 	render_cleanup();
-	DeshWindow->Cleanup();
 	logger_cleanup();
 	memory_cleanup();
 }
