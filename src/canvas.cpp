@@ -330,11 +330,28 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_ImplicitMultiplication:{
-					
+					if(term->child_count == 2){
+						DrawContext retl = draw_term(expr, term->first_child);
+						DrawContext retr = draw_term(expr, term->last_child);
+						vec2 refbbx = Max(retl.bbx,retr.bbx);
+						forI(retl.vcount){
+							(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
+						}
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x += retl.bbx.x + drawcfg.multiplication_implicit_padding;
+							(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
+						}
+						drawContext.vcount = retl.vcount + retr.vcount;
+						drawContext.bbx.x = retl.bbx.x+retr.bbx.x+drawcfg.multiplication_implicit_padding;
+						drawContext.bbx.y = Max(retl.bbx.y, retr.bbx.y);
+					}
+					else{
+						Assert(!"please tell me if this happens");
+					}
+					return drawContext;
 				}break;
 				
 				case OpType_ExplicitMultiplication:{
-					//TODO(sushi) figure out why the dot looks like it's not centered properly
 					f32 radius = 4;
 					if(term->child_count == 2){
 						DrawContext retl = draw_term(expr, term->first_child);
