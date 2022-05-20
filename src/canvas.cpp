@@ -173,12 +173,13 @@ struct{ //information for the current instance of draw_term, this will need to b
 }drawinfo;
 
 struct{
-	f32 additive_padding = 5;        //padding between + or - and it's operands
-	f32 multiplication_padding = 0;  //padding between * and it's operands
-	f32 division_padding = 0;        //padding between division's line and it's operands
-	//TODO f32 division_scale = 0.8; //how much to scale division's operands by 
-	f32 division_line_overreach = 3; //how many pixels of over reach the division line has in both directions
-	f32 division_line_thickness = 3; //how thick the division line is 
+	f32 additive_padding = 5;                 //padding between + or - and it's operands
+	f32 multiplication_explicit_padding = 3;  //padding between * and it's operands
+	f32 multiplication_implicit_padding = 3;  //padding between implicit multiplication operands
+	f32 division_padding = 0;                 //padding between division's line and it's operands
+	//TODO f32 division_scale = 0.8;          //how much to scale division's operands by 
+	f32 division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
+	f32 division_line_thickness = 3;          //how thick the division line is 
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -200,11 +201,15 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//}
 	//drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 	//drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
+	//drawcfg.multiplication_explicit_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
+
+	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
+	drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 	
 	const vec2 textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
 	
@@ -218,6 +223,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			CustomItem_AddDrawCmd(item, drawCmd);
 			drawCmd.vertices = (Vertex2*)memtrealloc(drawCmd.vertices, drawCmd.counts.x*2);
 			drawCmd.indices = (u32*)memtrealloc(drawCmd.vertices, drawCmd.counts.y*2);
+			drawContext.vstart = drawCmd.vertices;
+			drawContext.istart = drawCmd.indices;
 		}
 	};
 	
@@ -299,8 +306,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_Negation:{
-					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 					str8 sym = str8_lit("-");
 					vec2 symsize = CalcTextSize(sym);
 					if(term->child_count == 1){
@@ -328,10 +333,52 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					
 				}break;
 				
+				case OpType_ExplicitMultiplication:{
+					//TODO(sushi) figure out why the dot looks like it's not centered properly
+					f32 radius = 4;
+					if(term->child_count == 2){
+						DrawContext retl = draw_term(expr, term->first_child);
+						DrawContext retr = draw_term(expr, term->last_child);
+						vec2 refbbx = Max(retl.bbx,retr.bbx);
+						forI(retl.vcount){
+							(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
+						}
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x += retl.bbx.x + 2*radius + drawcfg.multiplication_explicit_padding*2;
+							(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
+						}
+						drawContext.vcount = retl.vcount + retr.vcount + render_make_circle_counts(15).x;
+						drawContext.bbx.x = retl.bbx.x + retr.bbx.r + 2*radius + 2*drawcfg.multiplication_explicit_padding;
+						drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y, radius*2));
+						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+						CustomItem_DCMakeFilledCircle(drawCmd, vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, Color_White); 
+					}
+					else if(term->child_count == 1){
+						DrawContext ret = draw_term(expr, term->first_child);
+						drawContext.bbx = vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
+						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+							CustomItem_DCMakeFilledCircle(drawCmd, vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, Color_White);
+						}
+						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+							forI(ret.vcount){
+								(ret.vstart + i)->pos.x += radius*2+drawcfg.additive_padding*2;
+							}
+							check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+							CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, Color_White);
+						}
+						drawContext.vcount = ret.vcount + render_make_circle_counts(15).x;
+					}
+					else if(!term->child_count){
+						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
+						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+						drawContext.vcount = render_make_circle_counts(15).x;
+						CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, Color_White);
+					}
+					return drawContext;
+				}break;
 				
 				case OpType_Division:{
-					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 					if(term->child_count == 2){
 						DrawContext retl = draw_term(expr, term->first_child);
 						DrawContext retr = draw_term(expr, term->last_child);
@@ -386,14 +433,10 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_Addition:
-				case OpType_Subtraction:
-				case OpType_ExplicitMultiplication:{
-					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+				case OpType_Subtraction:{
 					str8 sym;
 					if(term->op_type == OpType_Addition)         sym = str8_lit("+");
 					else if(term->op_type == OpType_Subtraction) sym = str8_lit("−");
-					else if(term->op_type == OpType_ExplicitMultiplication) sym = str8l("∙");
 					vec2 symsize = CalcTextSize(sym);
 					
 					//this can maybe be a switch
@@ -458,8 +501,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		
 		case TermType_Literal:
 		case TermType_Variable:{
-			drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-			drawContext.istart = drawCmd.indices + u32(drawCmd.counts.y);
 			drawContext.bbx = CalcTextSize(str8{(u8*)term->raw.str, (s64)term->raw.count});
 			check_drawcmd(4,6);
 			drawContext.vcount = term->raw.count * 4;
