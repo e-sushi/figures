@@ -337,6 +337,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid term");
 						}
 					}
+					else if(!term->child_count){
+						Assert("!why did this happen");
+					}
 				}break;
 				
 				case OpType_Negation:{
@@ -479,15 +482,13 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					return drawContext;
 				}break;
 				
-				case OpType_Modulo:{
-					
-				}break;
-				
+				case OpType_Modulo:
 				case OpType_Addition:
 				case OpType_Subtraction:{
 					str8 sym;
-					if(term->op_type == OpType_Addition)         sym = str8_lit("+");
-					else if(term->op_type == OpType_Subtraction) sym = str8_lit("−");
+					if(term->op_type == OpType_Addition)         sym = STR8("+");
+					else if(term->op_type == OpType_Subtraction) sym = STR8("−");
+					else if(term->op_type == OpType_Modulo)      sym = STR8("%");
 					vec2 symsize = CalcTextSize(sym);
 					
 					//this can maybe be a switch
