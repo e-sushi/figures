@@ -244,6 +244,7 @@ static str8 OpTypeStrs(u32 type){
 		case OpPrecedence_12:               return str8l("OpPrecedence_12");
 		case OpPrecedence_13:               return str8l("OpPrecedence_13");
 		case OpPrecedence_14:               return str8l("OpPrecedence_14");
+		default:                            return str8l("invalid term type");
 	}
 }
 

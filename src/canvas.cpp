@@ -187,6 +187,7 @@ struct{
 //			   the drawCmd's vertices to the overall count
 //NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
 //             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
+//TODO(sushi) remove the expr arg and make it part of drawinfo
 DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	using namespace UI;
 	DPTracyDynMessage(toStr("initialized: ", drawinfo.initialized));
@@ -280,7 +281,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.icount = ret.icount+12;
 						check_drawcmd(8,12);
 						CustomItem_DCMakeText(drawCmd, syml, vec2(0, 0), Color_White, vec2(1, ratio) * textScale);
-						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), Color_White, vec2(1, ratio) * textScale);
+						if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
+							CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), Color_White, vec2(1, ratio) * textScale);
+						}
+						else{
+							CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), Color_White * 0.3, vec2(1, ratio) * textScale);
+						}
 					}
 					else if(!term->child_count){
 						drawContext.bbx.x = symsize.x*2;
@@ -518,28 +524,43 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		
 		case TermType_Literal:
 		case TermType_Variable:{
-			drawContext.bbx = CalcTextSize(str8{(u8*)term->raw.str, (s64)term->raw.count});
-			check_drawcmd(4,6);
-			drawContext.vcount = term->raw.count * 4;
-			Vertex2* v = (drawContext.vstart + (drawContext.vcount - 1) );
-			CustomItem_DCMakeText(drawCmd, str8{(u8*)term->raw.str, (s64)term->raw.count}, vec2::ZERO, Color_White, textScale);
+			drawContext.bbx = CalcTextSize(term->raw);
+			drawContext.vcount = str8_length(term->raw) * 4;
+			drawContext.icount = str8_length(term->raw) * 6;
+			check_drawcmd(drawContext.vcount,drawContext.icount);
+			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, Color_White, textScale);
 			return drawContext;
 		}break;
 		
 		case TermType_FunctionCall:{
-			
+			//TODO(sushi) support multi arg functions when implemented
+			if(term->first_child){
+				DrawContext ret = draw_term(expr, term->first_child);
+				drawContext.vcount = str8_length(term->raw) * 4 + ret.vcount;
+				drawContext.icount = str8_length(term->raw) * 6 + ret.icount;
+				check_drawcmd(drawContext.vcount, drawContext.icount);
+				vec2 tsize = UI::CalcTextSize(term->raw);
+				forI(ret.vcount){
+					(ret.vstart + i)->pos.x += tsize.x;
+				}
+				CustomItem_DCMakeText(drawCmd, term->raw, vec2(0, 0), Color_White, textScale);
+				drawContext.bbx.x = tsize.x + ret.bbx.x;
+				drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
+			}else{
+				Assert(!"huh?");
+			}
+			return drawContext;
 		}break;
 		
 		case TermType_Logarithm:{
 			
 		}break;
 		
-		default: Assert(!"term type drawing not setup"); break;
+		default: LogE("exrend", "Custom rendering does not support term type:", OpTypeStrs(term->type)); break;//Assert(!"term type drawing not setup"); break;
 	}
 	
 	
-	//Assert(0, "all control paths should return something");
-	return DrawContext();
+	return drawContext;
 }
 
 void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
