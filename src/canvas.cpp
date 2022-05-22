@@ -173,13 +173,15 @@ struct{ //information for the current instance of draw_term, this will need to b
 }drawinfo;
 
 struct{
-	f32 additive_padding = 5;                 //padding between + or - and it's operands
-	f32 multiplication_explicit_padding = 3;  //padding between * and it's operands
-	f32 multiplication_implicit_padding = 3;  //padding between implicit multiplication operands
-	f32 division_padding = 0;                 //padding between division's line and it's operands
-	//TODO f32 division_scale = 0.8;          //how much to scale division's operands by 
-	f32 division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
-	f32 division_line_thickness = 3;          //how thick the division line is 
+	f32  additive_padding = 5;                 //padding between + or - and it's operands
+	f32  multiplication_explicit_padding = 3;  //padding between * and it's operands
+	f32  multiplication_implicit_padding = 3;  //padding between implicit multiplication operands
+	f32  division_padding = 0;                 //padding between division's line and it's operands
+	//TODO f32 division_scale = 0.8;           //how much to scale division's operands by 
+	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
+	f32  division_line_thickness = 3;          //how thick the division line is 
+	vec2 exponential_offset = vec2(-4,-10);    //offset of exponent
+	f32  exponential_scaling = 0.4;            //amount to scale the exponent by
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -208,6 +210,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
+	drawContext.vcount = 0;
 
 	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 	drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
@@ -216,9 +219,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
-	//NOTE(sushi): if it is far beyond 4/21/22 and we still dont draw anything other than box shapes (4 vertices, 6 indices)
-	//then feel free to remove the lambda wrapping the if statement and just have it do this everytime the function is called instead with arbitrary tolerances
-	//i BELIEVE that would still be safe to do, but i may be wrong
 	auto check_drawcmd = [&](u32 vcount, u32 icount){
 		if(drawCmd.counts.x + vcount > UIDRAWCMD_MAX_VERTICES || drawCmd.counts.y + icount > UIDRAWCMD_MAX_INDICES){
 			CustomItem_AddDrawCmd(item, drawCmd);
@@ -260,7 +260,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		}break;
 		
 		case TermType_Operator:{
-			DPTracyDynMessage(toStr("initialized(operator): ", drawinfo.initialized));
 			switch(term->op_type){
 				case OpType_Parentheses:{
 					str8 syml = str8_lit("(");
@@ -304,11 +303,40 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				}break;
 				
 				case OpType_Exponential:{
-					drawContext.vstart = drawCmd.vertices + 1; 
-					drawContext.istart = drawCmd.indices + 1;
-					//DrawContext drawContextRet = draw_term(expr, )
-					//drawContext.bbx = 
-					
+					if(term->child_count == 2){
+						DrawContext retl = draw_term(expr, term->first_child);
+						DrawContext retr = draw_term(expr, term->last_child);
+						retr.bbx *= drawcfg.exponential_scaling;
+						forI(retr.vcount){
+							(retr.vstart + i)->pos.x *= drawcfg.exponential_scaling;
+							(retr.vstart + i)->pos.y *= drawcfg.exponential_scaling;
+							(retr.vstart + i)->pos.x += retl.bbx.x + drawcfg.exponential_offset.x;
+						}
+						forI(retl.vcount){
+							(retl.vstart + i)->pos.y += retr.bbx.y + drawcfg.exponential_offset.y;
+						}
+						drawContext.bbx.x = retl.bbx.x + retr.bbx.x + drawcfg.exponential_offset.x;
+						drawContext.bbx.y = retl.bbx.y + retr.bbx.y + drawcfg.exponential_offset.y;
+						drawContext.vcount = retl.vcount + retr.vcount;
+					}
+					else if(term->child_count == 1){
+						str8 sampchar = STR8("8");
+						vec2 size = UI::CalcTextSize(sampchar);
+						DrawContext ret = draw_term(expr, term->first_child);
+						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+							forI(ret.vcount){
+								(ret.vstart + i)->pos.y += size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
+							}
+							check_drawcmd(4,6);
+							CustomItem_DCMakeFilledRect(drawCmd, vec2(ret.bbx.x+drawcfg.exponential_offset.x, 0), size*drawcfg.exponential_scaling, Color_DarkGrey);
+							drawContext.vcount = ret.vcount + 4;
+							drawContext.bbx.x = ret.bbx.x + size.x * drawcfg.exponential_scaling + drawcfg.exponential_offset.x;
+							drawContext.bbx.y = ret.bbx.y + size.y * drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
+						}
+						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+							Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid term");
+						}
+					}
 				}break;
 				
 				case OpType_Negation:{
@@ -352,7 +380,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx.y = Max(retl.bbx.y, retr.bbx.y);
 					}
 					else{
-						Assert(!"please tell me if this happens");
+						Assert(!"please tell me (sushi) if this happens");
 					}
 					return drawContext;
 				}break;
@@ -543,7 +571,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				forI(ret.vcount){
 					(ret.vstart + i)->pos.x += tsize.x;
 				}
-				CustomItem_DCMakeText(drawCmd, term->raw, vec2(0, 0), Color_White, textScale);
+				CustomItem_DCMakeText(drawCmd, term->raw, vec2(0, (ret.bbx.y-tsize.y)/2), Color_White, textScale);
 				drawContext.bbx.x = tsize.x + ret.bbx.x;
 				drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
 			}else{
@@ -1083,15 +1111,17 @@ void update_canvas(){
 				vec2 cursor_start; f32 cursor_y;
 				//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
 				//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
-				drawinfo.item = UI::BeginCustomItem();
 				drawinfo.drawCmd = UIDrawCmd();
 				drawinfo.initialized = true;
 				static b32 tog = 0;
-				if(key_pressed(Key_UP)) ToggleBool(tog);
 				if(tog) draw_term_old(expr, &expr->term, cursor_start, cursor_y);
-				else draw_term(expr, &expr->term);
+				else{
+					drawinfo.item = UI::BeginCustomItem();
+					draw_term(expr, &expr->term);
+					UI::EndCustomItem();
+				}	
 				drawinfo.initialized = false;
-				UI::EndCustomItem();
+				if(key_pressed(Key_UP)) ToggleBool(tog);
 				//if(expr->raw.str){
 				//	UI::SetNextItemActive();
 				//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
@@ -1100,6 +1130,7 @@ void update_canvas(){
 				if(selected_element == el){
 					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
 				}
+
 				
 				UI::End();
 				UI::PopFont();
