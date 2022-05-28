@@ -390,15 +390,20 @@ struct Expression{
 	Element element;
 	//Workspace* workspace;
 	
+	str8_builder raw;
+	
+	b32 changed;
 	Term term;
+	array<Term> terms; //NOTE temporary until expression arena
 	Term* equals;
+	Term* rightmost;
+	
+	u32 raw_cursor_start;
+	Term* term_cursor_start;
+	b32 right_paren_cursor;
+	
 	b32 valid;
 	f64 solution;
-	
-	array<Term> terms; //NOTE temporary until expression arena
-	str8_builder raw;
-	u32 cursor_start;
-	//u32 cursor_end;
 };
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))

@@ -202,12 +202,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 	//drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 	//drawcfg.multiplication_explicit_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
-
+	
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
 	DrawContext drawContext;
-
+	
 	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 	drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 	
@@ -542,7 +542,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	return DrawContext();
 }
 
+//NOTE(delle) raw cursor is drawn to the left of the character
+//NOTE(delle) term cursor is drawn to the right of the term
 void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
+#define CursorAfterLastItem() (cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(), cursor_y = -UI::GetLastItemSize().y)
+#define CursorBeforeLastItem() (cursor_start = UI::GetLastItemPos(), cursor_y = UI::GetLastItemSize().y)
+	
 	if(term == 0) return;
 	switch(term->type){
 		case TermType_Expression:{
@@ -557,9 +562,9 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
 				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-				if(expr->cursor_start == 1){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+				if(expr->raw_cursor_start == 1) CursorBeforeLastItem();
 			}
-			if(expr->cursor_start == expr->raw.count){ cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(); cursor_y = -UI::GetLastItemSize().y; }
+			if(expr->raw_cursor_start == expr->raw.count) CursorAfterLastItem();
 			
 			//draw solution if its valid
 			if(expr->valid){
@@ -585,7 +590,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 			switch(term->op_type){
 				case OpType_Parentheses:{
 					UI::Text(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->first_child){
 						draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 						for_node(term->first_child->next){
@@ -595,20 +600,20 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 					}
 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
 						UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-						if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+						if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
 					}
 				}break;
 				
 				case OpType_Exponential:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Negation:{
 					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 				}break;
 				
@@ -616,43 +621,43 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
-
+				
 				case OpType_ExplicitMultiplication:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Division:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Modulo:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Addition:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Subtraction:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_ExpressionEquals:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 					UI::Text(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
-					if(expr->raw.str + expr->cursor_start == term->raw.str){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 					if(term->last_child) for_node(term->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
 				}break;
@@ -661,7 +666,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
 				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
 			}
 		}break;
 		
@@ -669,20 +674,20 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		case TermType_Variable:{
 			//TODO italics for variables (make this an option)
 			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
 				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-				if(expr->raw.str + expr->cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 		}break;
 		
 		case TermType_FunctionCall:{
 			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
@@ -690,8 +695,8 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		
 		case TermType_Logarithm:{
 			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-			if((term->raw.str <= expr->raw.str + expr->cursor_start) && (expr->raw.str + expr->cursor_start < term->raw.str + term->raw.count)){
-				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->cursor_start - term->raw.str)}).x;
+			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
+				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
@@ -801,7 +806,7 @@ void update_canvas(){
 			UI::TextF(str8_lit("Selected: %#x"), selected_element);
 			UI::TextF(str8_lit("Position: (%g,%g)"), selected_element->x,selected_element->y);
 			UI::TextF(str8_lit("Size:     (%g,%g)"), selected_element->width,selected_element->height);
-			UI::TextF(str8_lit("Cursor:   %d"), (selected_element) ? ((Expression*)selected_element)->cursor_start : 0);
+			UI::TextF(str8_lit("Cursor:   %d"), (selected_element) ? ((Expression*)selected_element)->raw_cursor_start : 0);
 		}
 		UI::End();
 	}
@@ -884,14 +889,15 @@ void update_canvas(){
 			
 			if(key_pressed(CanvasBind_Expression_Create)){
 				Expression* expr = (Expression*)memory_alloc(sizeof(Expression)); //TODO expression arena
-				expr->element.x       = mouse_pos_world.x;
-				expr->element.y       = mouse_pos_world.y;
-				expr->element.height  = (320*camera_zoom) / (f32)DeshWindow->width;
-				expr->element.width   = expr->element.height / 2.0;
-				expr->element.type    = ElementType_Expression;
-				expr->term.type       = TermType_Expression;
-				expr->terms.allocator = deshi_allocator;
-				expr->cursor_start    = 1;
+				expr->element.x         = mouse_pos_world.x;
+				expr->element.y         = mouse_pos_world.y;
+				expr->element.height    = (320*camera_zoom) / (f32)DeshWindow->width;
+				expr->element.width     = expr->element.height / 2.0;
+				expr->element.type      = ElementType_Expression;
+				expr->term.type         = TermType_Expression;
+				expr->terms.allocator   = deshi_allocator;
+				expr->raw_cursor_start  = 1;
+				expr->term_cursor_start = &expr->term;
 				str8_builder_init(&expr->raw, str8_lit(" "), deshi_allocator);
 				
 				elements.add(&expr->element);
@@ -900,106 +906,131 @@ void update_canvas(){
 			
 			if(selected_element && selected_element->type == ElementType_Expression){
 				Expression* expr = ElementToExpression(selected_element);
-				b32 ast_changed = false;
+				expr->changed = false;
 				
 				//// @input_expression_cursor ////
-				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
-					expr->cursor_start -= 1;
+				
+if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
+					expr->raw_cursor_start -= 1;
 				}
-				if(expr->cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
-					expr->cursor_start += 1;
+				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
+					expr->raw_cursor_start += 1;
 				}
-				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
-					if(*(expr->raw.str+expr->cursor_start-1) == ')'){
-						while(expr->cursor_start > 1 && *(expr->raw.str+expr->cursor_start-1) != '('){
-							expr->cursor_start -= 1;
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
+					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+							expr->raw_cursor_start -= 1;
 						}
-						if(*(expr->raw.str+expr->cursor_start-1) == '(') expr->cursor_start -= 1;
-					}else if(ispunct(*(expr->raw.str+expr->cursor_start-1)) && *(expr->raw.str+expr->cursor_start-1) != '.'){
-						expr->cursor_start -= 1;
+						if(*(expr->raw.str+expr->raw_cursor_start-1) == '(') expr->raw_cursor_start -= 1;
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+						expr->raw_cursor_start -= 1;
 					}else{
-						while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
-							expr->cursor_start -= 1;
+						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+							expr->raw_cursor_start -= 1;
 						}
 					}
 				}
-				if(expr->cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
-					if(*(expr->raw.str+expr->cursor_start) == '('){
-						while(expr->cursor_start < expr->raw.count && *(expr->raw.str+expr->cursor_start) != ')'){
-							expr->cursor_start += 1;
+				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
+					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+							expr->raw_cursor_start += 1;
 						}
-						if(*(expr->raw.str+expr->cursor_start) == ')') expr->cursor_start += 1;
-					}else if(ispunct(*(expr->raw.str+expr->cursor_start)) && *(expr->raw.str+expr->cursor_start) != '.'){
-						expr->cursor_start += 1;
+						if(*(expr->raw.str+expr->raw_cursor_start) == ')') expr->raw_cursor_start += 1;
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+						expr->raw_cursor_start += 1;
 					}else{
-						while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
-							expr->cursor_start += 1;
+						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+							expr->raw_cursor_start += 1;
 						}
 					}
 				}
-				if(key_pressed(CanvasBind_Expression_CursorHome)){
-					expr->cursor_start = 1;
+if(key_pressed(CanvasBind_Expression_CursorHome)){
+					expr->raw_cursor_start = 1;
 				}
 				if(key_pressed(CanvasBind_Expression_CursorEnd)){
-					expr->cursor_start = expr->raw.count;
+					expr->raw_cursor_start = expr->raw.count;
 				}
+
+				
+				/*
+				if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
+					expr->term_cursor_start    = expr->term_cursor_start->left;
+					expr->raw_cursor_start     = expr->term_cursor_start->raw.str - expr->raw.str;
+					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+						expr->raw_cursor_start  += 1;
+						expr->right_paren_cursor = true;
+					}else{
+						expr->right_paren_cursor = false;
+					}
+				}
+				if(key_pressed(CanvasBind_Expression_CursorRight)){
+					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+						expr->raw_cursor_start  += 1;
+						expr->right_paren_cursor = true;
+					}else if(expr->term_cursor_start->right){
+						expr->term_cursor_start  = expr->term_cursor_start->right;
+						expr->raw_cursor_start   = expr->term_cursor_start->raw.str - expr->raw.str;
+						expr->right_paren_cursor = false;
+					}
+				}
+				*/
 				
 				//character based input (letters, numbers, symbols)
 				//// @input_expression_insertion ////
 				if(DeshInput->charCount){
-					ast_changed = true;
-					str8_builder_insert_byteoffset(&expr->raw, expr->cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
-					expr->cursor_start += DeshInput->charCount;
+					expr->changed = true;
+					str8_builder_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
+					expr->raw_cursor_start += DeshInput->charCount;
 				}
 				
 				//// @input_expression_deletion ////
-				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
-					ast_changed = true;
-					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
-					expr->cursor_start -= 1;
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
+					expr->changed = true;
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+					expr->raw_cursor_start -= 1;
 				}
-				if(expr->cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
-					ast_changed = true;
-					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
+				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
+					expr->changed = true;
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 				}
-				if(expr->cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
-					ast_changed = true;
-					if(*(expr->raw.str+expr->cursor_start-1) == ')'){
-						while(expr->cursor_start > 1 && *(expr->raw.str+expr->cursor_start-1) != '('){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
-							expr->cursor_start -= 1;
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
+					expr->changed = true;
+					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
 						}
-						if(*(expr->raw.str+expr->cursor_start-1) == '('){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
-							expr->cursor_start -= 1;
+						if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
 						}
-					}else if(ispunct(*(expr->raw.str+expr->cursor_start-1)) && *(expr->raw.str+expr->cursor_start-1) != '.'){
-						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
-						expr->cursor_start -= 1;
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+						expr->raw_cursor_start -= 1;
 					}else{
-						while(expr->cursor_start > 1 && (isalnum(*(expr->raw.str+expr->cursor_start-1)) || *(expr->raw.str+expr->cursor_start-1) == '.')){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start-1);
-							expr->cursor_start -= 1;
+						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
 						}
 					}
 				}
-				if(expr->cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
-					ast_changed = true;
-					if(*(expr->raw.str+expr->cursor_start) == '('){
-						while(expr->cursor_start < expr->raw.count && *(expr->raw.str+expr->cursor_start) != ')'){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
+				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
+					expr->changed = true;
+					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 						}
-						if(*(expr->raw.str+expr->cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
-					}else if(ispunct(*(expr->raw.str+expr->cursor_start)) && *(expr->raw.str+expr->cursor_start) != '.'){
-						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
+						if(*(expr->raw.str+expr->raw_cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 					}else{
-						while(expr->cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->cursor_start)) || *(expr->raw.str+expr->cursor_start) == '.')){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->cursor_start);
+						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 						}
 					}
 				}
 				
-				if(ast_changed){
+				if(expr->changed){
 					expr->valid = parse(expr);
 					solve(&expr->term);
 					debug_print_term(&expr->term);
@@ -1048,43 +1079,53 @@ void update_canvas(){
 			///////////////////////////////////////////////////////////////////////////////////////////////
 			//// @draw_elements_expression
 			case ElementType_Expression:{
-				UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
-				UI::PushVar(UIStyleVar_FontHeight,       80);
-				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
-				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
+				UIWindow* window = 0;
 				UI::PushFont(math_font);
+				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
+				UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
+				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
+				UI::PushVar(UIStyleVar_FontHeight,       80);
 				UI::SetNextWindowPos(ToScreen(el->x, el->y));
-				UI::SetNextWindowSize(vec2(el->width,el->height) * f32(DeshWindow->width) / (4 * el->y));
 				string s = stringf(deshi_temp_allocator, "expression_0x%p",el);
-				UI::Begin(str8{(u8*)s.str, (s64)s.count}, vec2::ZERO, vec2::ZERO, UIWindowFlags_NoInteract | UIWindowFlags_FitAllElements);
+				UI::Begin(str8{(u8*)s.str, (s64)s.count}, vec2::ZERO, vec2::ZERO, UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
+				window = UI::GetWindow();
 				
 				Expression* expr = ElementToExpression(el);
 				vec2 cursor_start; f32 cursor_y;
-				//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
-				//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
-				drawinfo.item = UI::BeginCustomItem();
-				drawinfo.drawCmd = UIDrawCmd();
-				drawinfo.initialized = true;
-				static b32 tog = 0;
+				static b32 tog = 1;
 				if(key_pressed(Key_UP)) ToggleBool(tog);
-				if(tog) draw_term_old(expr, &expr->term, cursor_start, cursor_y);
-				else draw_term(expr, &expr->term);
-				drawinfo.initialized = false;
-				UI::EndCustomItem();
-				//if(expr->raw.str){
-				//	UI::SetNextItemActive();
-				//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
-				//	UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
-				//}
+				if(tog){
+					draw_term_old(expr, &expr->term, cursor_start, cursor_y);
+				}else{
+					//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
+					//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
+					drawinfo.item        = UI::BeginCustomItem();
+					drawinfo.drawCmd     = UIDrawCmd();
+					drawinfo.initialized = true;
+					draw_term(expr, &expr->term);
+					drawinfo.initialized = false;
+					UI::EndCustomItem();
+					//if(expr->raw.str){
+					//	UI::SetNextItemActive();
+					//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
+					//	UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
+					//}
+				}
 				if(selected_element == el){
-					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime)));
+					UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime / 1000.f)));
 				}
 				
 				UI::End();
-				UI::PopFont();
-				UI::PopScale();
 				UI::PopVar(2);
 				UI::PopColor();
+				
+				//draw AST
+				if(selected_element == el){
+				UI::SetNextWindowPos(window->x, window->y + window->height);
+					debug_draw_term_simple(&expr->term);
+				}
+				UI::PopScale();
+				UI::PopFont();
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////

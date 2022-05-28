@@ -18,23 +18,26 @@
 
 #define PRINT_AST true
 #if PRINT_AST
-local s32 debug_print_indent = -1;
 void debug_print_term(Term* term){
-	debug_print_indent++;
-	string indent(deshi_temp_allocator); forI(debug_print_indent) indent += "  ";
+	persist s32 print_indent = -1;
+	persist Expression* expr = 0;
+	print_indent++;
+	string indent(deshi_temp_allocator); forI(print_indent) indent += "  ";
 	const char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
 		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? "  R"
 		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
 		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
 		: "   ";
+	const char* cursor = (expr && expr->term_cursor_start == term) ? " C " : "   ";
 	
 	switch(term->type){
 		case TermType_Expression:{
-			Expression* expr = ExpressionFromTerm(term);
-			Log("ast",str8_builder_peek(&expr->raw));
+			expr = ExpressionFromTerm(term);
+			Log("ast",str8_builder_peek(&expr->raw), cursor);
 			for_node(term->first_child) debug_print_term(it);
-			if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg);
+			if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg, cursor);
 			Log("ast","---------------------------------");
+			expr = 0;
 		}break;
 		
 		case TermType_Operator:{
@@ -55,23 +58,133 @@ void debug_print_term(Term* term){
 		}break;
 		
 		case TermType_Literal: case TermType_Variable:{
-			Log("ast", indent, term->raw, arg);
+			Log("ast", indent, term->raw, arg, cursor);
 		}break;
 		
 		case TermType_FunctionCall:
 		case TermType_Logarithm:{
-			Log("ast", indent, term->raw, arg);
+			Log("ast", indent, term->raw, arg, cursor);
 			for_node(term->first_child) debug_print_term(it);
 		}break;
 		
-		default:{ Log("ast", indent, "?",  arg); }break;
+		default:{ Log("ast", indent, "?",  arg, cursor); }break;
 	}
 	
-	debug_print_indent--;
+	print_indent--;
 }
 #else
 #  define debug_print_term(term) (void)0
-#endif
+#endif //PRINT_AST
+
+#define DRAW_AST true
+#if DRAW_AST
+void debug_draw_term_simple(Term* term){
+#  define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
+#  define DDA_PrevLayer() layer -= 1;
+#  define DDA_AddToLayer(text) UI::Text(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
+	persist array<f32> layers;
+	persist s32 font_height = 32;
+	persist s32 vertical_padding = 16;
+	persist s32 horizontal_padding = 16;
+	persist s32 layer = -1;
+	persist Expression* expr = 0;
+	
+	switch(term->type){
+		case TermType_Expression:{
+			expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				layer = -1;
+				layers = array<f32>(deshi_temp_allocator);
+				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
+				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
+				UI::Text(str8l(" "));
+				DDA_NextLayer();
+				for_node(term->first_child) debug_draw_term_simple(it);
+				DDA_PrevLayer();
+				UI::End();
+				UI::PopVar();
+			}
+		}break;
+		
+		case TermType_Operator:{
+			switch(term->op_type){
+				case OpType_Parentheses:           { DDA_AddToLayer(str8l("()")); }break;
+				case OpType_Exponential:           { DDA_AddToLayer(str8l("^")); }break;
+				case OpType_Negation:              { DDA_AddToLayer(str8l("-")); }break;
+				case OpType_ImplicitMultiplication:{ DDA_AddToLayer(str8l("*i")); }break;
+				case OpType_ExplicitMultiplication:{ DDA_AddToLayer(str8l("*e")); }break;
+				case OpType_Division:              { DDA_AddToLayer(str8l("/")); }break;
+				case OpType_Modulo:                { DDA_AddToLayer(str8l("%")); }break;
+				case OpType_Addition:              { DDA_AddToLayer(str8l("+")); }break;
+				case OpType_Subtraction:           { DDA_AddToLayer(str8l("−")); }break;
+				case OpType_ExpressionEquals:      { DDA_AddToLayer(str8l("=")); }break;
+				default:                           { DDA_AddToLayer(str8l("?")); }break;
+			}
+			if(expr->term_cursor_start == term){
+				UI::Rect(UI::GetLastItemPos(), UI::GetLastItemSize(), Color_Yellow);
+			}
+			
+			//draw children and lines to them
+			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			if(term->child_count){
+				DDA_NextLayer();
+				for_node(term->first_child){
+					f32 pre_width = layers[layer];
+					debug_draw_term_simple(it);
+					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+				}
+				DDA_PrevLayer();
+			}
+		}break;
+		
+		case TermType_Literal:
+		case TermType_Variable:{
+			DDA_AddToLayer(term->raw);
+		}break;
+		
+		case TermType_FunctionCall:
+		case TermType_Logarithm:{
+			DDA_AddToLayer(term->raw);
+			
+			//draw children and lines to them
+			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			if(term->child_count){
+				DDA_NextLayer();
+				for_node(term->first_child){
+					f32 pre_width = layers[layer];
+					debug_draw_term_simple(it);
+					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+				}
+				DDA_PrevLayer();
+			}
+		}break;
+		
+		default:{ 
+			DDA_AddToLayer(str8l("?"));
+			
+			//draw children and lines to them
+			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			if(term->child_count){
+				DDA_NextLayer();
+				for_node(term->first_child){
+					f32 pre_width = layers[layer];
+					debug_draw_term_simple(it);
+					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+				}
+				DDA_PrevLayer();
+			}
+		}break;
+	}
+#  undef DDA_NextLayer
+#  undef DDA_PrevLayer
+#  undef DDA_AddToLayer
+}
+#else
+#  define debug_draw_term_simple(term) (void)0
+#endif //DRAW_AST
 
 
 //~///////////////////////////////////////////////////////////////////////////////////////////////
