@@ -192,6 +192,7 @@ void debug_draw_term_simple(Term* term){
 b32 parse(Expression* expr){
 	expr->term = Term{TermType_Expression};
 	expr->terms.clear();
+	expr->terms.reserve(sizeof(Term)*expr->raw.count*2); //HACK(sushi) very crude attempt to prevent the term array from reallocating. this should be replaced by Arena later (or Heap when that's finished) 
 	
 	b32 valid = true;
 	Term* inside_this_paren = 0;

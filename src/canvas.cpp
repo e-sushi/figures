@@ -158,7 +158,8 @@ local const char* context_dropdown_option_strings[] = {
 //// @draw_term ////
 ////////////////////
 struct DrawContext{
-	vec2        bbx; // the bounding box formed by child nodes 
+	vec2        bbx; // the bounding box formed by child nodes
+	f32    baseline; // 
 	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
 	u32*     istart;
 	u32 vcount, icount;
@@ -181,7 +182,7 @@ struct{
 	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
 	f32  division_line_thickness = 3;          //how thick the division line is 
 	vec2 exponential_offset = vec2(-4,-10);    //offset of exponent
-	f32  exponential_scaling = 0.4;            //amount to scale the exponent by
+	f32  exponential_scaling = 0.5;            //amount to scale the exponent by
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -338,7 +339,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						}
 					}
 					else if(!term->child_count){
-						Assert("!why did this happen");
+						Assert(!"why did this happen");
 					}
 				}break;
 				

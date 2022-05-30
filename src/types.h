@@ -114,14 +114,14 @@ struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @term
-enum TermType_{
+enum TermType : u32 { //TermType_{
 	TermType_Expression,
 	TermType_Operator,
 	TermType_Literal,
 	TermType_Variable,
 	TermType_FunctionCall,
 	TermType_Logarithm,
-}; typedef Type TermType;
+}; //typedef Type TermType;
 
 enum TermFlags_{
 	TermFlag_NONE = 0,
