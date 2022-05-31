@@ -178,7 +178,7 @@ struct{
 	f32  multiplication_explicit_padding = 3;  //padding between * and it's operands
 	f32  multiplication_implicit_padding = 3;  //padding between implicit multiplication operands
 	f32  division_padding = 0;                 //padding between division's line and it's operands
-	//TODO f32 division_scale = 0.8;           //how much to scale division's operands by 
+	f32  division_scale = 0.8;                 //how much to scale division's operands by 
 	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
 	f32  division_line_thickness = 3;          //how thick the division line is 
 	vec2 exponential_offset = vec2(-4,-10);    //offset of exponent
@@ -211,6 +211,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle style      = GetStyle();
+	f32 fontHeight = style.fontHeight;
 	DrawContext drawContext;
 	drawContext.vcount = 0;
 	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
