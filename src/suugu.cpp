@@ -201,7 +201,6 @@ int main(){
 	render_use_default_camera();
 	DeshThreadManager->init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
-	
 	//init suugu
 	init_canvas();
 	

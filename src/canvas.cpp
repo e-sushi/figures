@@ -158,7 +158,7 @@ local const char* context_dropdown_option_strings[] = {
 ////////////////////
 struct DrawContext{
 	vec2        bbx; // the bounding box formed by child nodes
-	f32    baseline; // 
+	f32     midline; // 
 	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
 	u32*     istart;
 	u32 vcount, icount;
@@ -181,7 +181,7 @@ struct{
 	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
 	f32  division_line_thickness = 3;          //how thick the division line is 
 	vec2 exponential_offset = vec2(-4,-10);    //offset of exponent
-	f32  exponential_scaling = 0.5;            //amount to scale the exponent by
+	f32  exponential_scaling = 0.7;            //amount to scale the exponent by
 }drawcfg;
 
 //NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
@@ -231,6 +231,20 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			drawContext.vstart = drawCmd.vertices;
 			drawContext.istart = drawCmd.indices;
 		}
+	};
+
+	auto debug_rect = [&](vec2 pos, vec2 size){
+		check_drawcmd(8,24);
+		drawContext.vcount += 8;
+		drawContext.icount += 24;
+		CustomItem_DCMakeRect(drawCmd, pos, size, 1, Color_Red);
+	};
+
+	auto debug_line = [&](vec2 start, vec2 end){
+		check_drawcmd(4,6);
+		drawContext.vcount += 4;
+		drawContext.icount += 6;
+		CustomItem_DCMakeLine(drawCmd, start, end, 1, Color_Cyan);
 	};
 	
 	switch(term->type){
@@ -300,7 +314,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			
 			//EndCustomItem();
 			//drawinfo.initialized = false;			
-			return DrawContext();
 		}break;
 		
 		case TermType_Operator:{
@@ -314,7 +327,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
 					if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						ratio = Max(1, ret.bbx.y / symsize.y);
+						ratio = ret.bbx.y / symsize.y;
 						forI(ret.vcount){
 							(ret.vstart + i)->pos.x += symsize.x;
 						}
@@ -330,12 +343,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						else{
 							CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), textColor * 0.3, vec2(1, ratio) * textScale);
 						}
+						drawContext.midline = ret.midline;
 					}
 					else if(!term->child_count){
 						drawContext.bbx.x = symsize.x*2;
 						drawContext.bbx.y = symsize.y;
 						drawContext.vcount = 8;
 						drawContext.icount = 12;
+						drawContext.midline = drawContext.bbx.y/2;
 						check_drawcmd(8,12);
 						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), textColor, vec2(1, ratio) * textScale);
 						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), textColor, vec2(1, ratio) * textScale);
@@ -343,7 +358,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					else{
 						Log("", "Parenthesis has more than 1 child");
 					}
-					return drawContext;
+					
 				}break;
 				
 				case OpType_Exponential:{
@@ -362,10 +377,10 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx.x = retl.bbx.x + retr.bbx.x + drawcfg.exponential_offset.x;
 						drawContext.bbx.y = retl.bbx.y + retr.bbx.y + drawcfg.exponential_offset.y;
 						drawContext.vcount = retl.vcount + retr.vcount;
+						drawContext.midline = retl.bbx.y/2 + retr.bbx.y + drawcfg.exponential_offset.y;
 					}
 					else if(term->child_count == 1){
-						str8 sampchar = STR8("8");
-						vec2 size = UI::CalcTextSize(sampchar);
+						vec2 size = vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
 						DrawContext ret = draw_term(expr, term->first_child);
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							forI(ret.vcount){
@@ -376,10 +391,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							drawContext.vcount = ret.vcount + 4;
 							drawContext.bbx.x = ret.bbx.x + size.x * drawcfg.exponential_scaling + drawcfg.exponential_offset.x;
 							drawContext.bbx.y = ret.bbx.y + size.y * drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
+							drawContext.midline = ret.bbx.y/2 + size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y; 
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid term");
 						}
+
 					}
 					else if(!term->child_count){
 						Assert(!"why did this happen");
@@ -429,7 +446,6 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					else{
 						Assert(!"please tell me (sushi) if this happens");
 					}
-					return drawContext;
 				}break;
 				
 				case OpType_ExplicitMultiplication:{
@@ -473,36 +489,45 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.vcount = render_make_circle_counts(15).x;
 						CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 					}
-					return drawContext;
 				}break;
 				
 				case OpType_Division:{
 					if(term->child_count == 2){
 						DrawContext retl = draw_term(expr, term->first_child);
 						DrawContext retr = draw_term(expr, term->last_child);
+						retl.bbx *= drawcfg.division_scale;
+						retr.bbx *= drawcfg.division_scale; 
 						vec2 refbbx = Max(retl.bbx, retr.bbx);
 						refbbx.x += drawcfg.division_line_overreach*2;
 						for(Vertex2* v = retl.vstart; v != retr.vstart; v++){
+							v->pos.x *= drawcfg.division_scale;
+							v->pos.y *= drawcfg.division_scale;
 							v->pos.x += (refbbx.x - retl.bbx.x) / 2; 
 						}
 						forI(retr.vcount){
+							(retr.vstart + i)->pos.x *= drawcfg.division_scale;
+							(retr.vstart + i)->pos.y *= drawcfg.division_scale;
 							(retr.vstart + i)->pos.x += (refbbx.x - retr.bbx.x) / 2;
 							(retr.vstart + i)->pos.y += retl.bbx.y + drawcfg.division_padding;
 						}
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
 						check_drawcmd(4,6);
-						CustomItem_DCMakeLine(drawCmd, vec2(0, retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2)),  vec2(drawContext.bbx.x, retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2)), drawcfg.division_line_thickness, textColor);
+						f32 liney = retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2);
+						drawContext.midline = liney;
+						CustomItem_DCMakeLine(drawCmd, vec2(0, liney),  vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
 						drawContext.bbx = vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
+						f32 liney = (drawContext.bbx.y-drawcfg.division_line_thickness)/2;
+						drawContext.midline = liney;
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeLine(drawCmd, vec2(0, (drawContext.bbx.y-drawcfg.division_line_thickness)/2),vec2(drawContext.bbx.x, (drawContext.bbx.y-drawcfg.division_line_thickness)/2), drawcfg.division_line_thickness, textColor);
+							CustomItem_DCMakeLine(drawCmd, vec2(0, liney),vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
@@ -510,8 +535,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 								(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeLine(drawCmd, vec2(0, (drawContext.bbx.y-drawcfg.division_line_thickness)/2),vec2(drawContext.bbx.x, (drawContext.bbx.y-drawcfg.division_line_thickness)/2), drawcfg.division_line_thickness, textColor);
-							//CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
+							CustomItem_DCMakeLine(drawCmd, vec2(0, liney),vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 						}
 						drawContext.vcount = ret.vcount + 4;
 						drawContext.icount = ret.icount + 6;
@@ -520,10 +544,10 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
 						drawContext.vcount = 4;
 						drawContext.icount = 6;
+						drawContext.midline = drawContext.bbx.y / 2;
 						check_drawcmd(4,6);
 						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, textColor);
 					}
-					return drawContext;
 				}break;
 				
 				case OpType_Modulo:
@@ -540,20 +564,33 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					if(term->child_count == 2){
 						DrawContext retl = draw_term(expr, term->first_child);
 						DrawContext retr = draw_term(expr, term->last_child);
+						b32 leftdominant = retl.midline > retr.midline;
+						f32 maxmidl = (leftdominant ? retl.midline : retr.midline);
 						vec2 refbbx = Max(retl.bbx,retr.bbx);
-						forI(retl.vcount){
-							(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
-						}
+						f32 loffset = retr.midline - retl.midline;
+						f32 roffset = -loffset;
+						//if the left side isnt the largest we dont need to worry about adjusting the left side at all
+						if(!leftdominant)
+							forI(retl.vcount)
+								(retl.vstart + i)->pos.y += loffset;
+						
 						forI(retr.vcount){
 							(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x + drawcfg.additive_padding*2;
-							(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
+							if(leftdominant) 
+								(retr.vstart + i)->pos.y += roffset;
 						}
-						drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
+						drawContext.bbx.x = retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2;
+						if(leftdominant){
+							drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y+roffset, symsize.y));
+						}else{
+							drawContext.bbx.y = Max(retl.bbx.y+loffset, Max(retr.bbx.y, symsize.y));
+						}
+						//drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
-						drawContext.icount = retl.icount + retr.icount + 6;
-						//DrawDebugRect(GetWindow()->position + item->position, dcFirst.bbx);
+						drawContext.icount = retl.icount + retr.icount + 6; 
+						drawContext.midline = maxmidl;
 						check_drawcmd(4,6);
-						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), textColor, textScale);
+						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x+drawcfg.additive_padding, maxmidl - symsize.y/2), textColor, textScale);
 					}
 					//operator has a first child but it isnt followed by anything
 					else if(term->child_count == 1){
@@ -561,14 +598,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx = vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							check_drawcmd(4,6);
-							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x+drawcfg.additive_padding, (drawContext.bbx.y - symsize.y)/2), textColor, textScale);
+							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x+drawcfg.additive_padding, ret.midline - symsize.y/2), textColor, textScale);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
+							CustomItem_DCMakeText(drawCmd, sym, vec2(0, ret.midline - symsize.y/2), textColor, textScale);
 						}
 						drawContext.vcount = ret.vcount + 4;
 						drawContext.icount = ret.icount + 6;
@@ -577,11 +614,11 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx = symsize;
 						drawContext.vcount = 4;
 						drawContext.icount = 6;
+						drawContext.midline = drawContext.bbx.y / 2;
 						check_drawcmd(4,6);
 						CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
 					}
 					else Assert(!"binop has more than 2 children");
-					return drawContext;
 				}break;
 				
 				case OpType_ExpressionEquals:{
@@ -601,9 +638,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			drawContext.bbx = CalcTextSize(term->raw);
 			drawContext.vcount = term_raw_length * 4;
 			drawContext.icount = term_raw_length * 6;
+			drawContext.midline = drawContext.bbx.y / 2;
 			check_drawcmd(drawContext.vcount,drawContext.icount);
 			CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, textColor, textScale);
-			return drawContext;
 		}break;
 		
 		case TermType_FunctionCall:{
@@ -621,6 +658,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				CustomItem_DCMakeText(drawCmd, term->raw, vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
 				drawContext.bbx.x = tsize.x + ret.bbx.x;
 				drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
+				drawContext.midline = drawContext.bbx.y / 2;
 			}else{
 				Assert(!"huh?");
 			}
@@ -633,8 +671,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		
 		default: LogE("exrend", "Custom rendering does not support term type:", OpTypeStrs(term->type)); break;//Assert(!"term type drawing not setup"); break;
 	}
-	
-	
+	//debug_rect(vec2::ZERO, drawContext.bbx);
+	//debug_line(vec2(0, drawContext.midline), vec2(drawContext.bbx.x, drawContext.midline));
 	return drawContext;
 }
 
@@ -1218,10 +1256,10 @@ void update_canvas(){
 				UI::PopColor();
 				
 				//draw AST
-				if(selected_element == el){
-					UI::SetNextWindowPos(window->x, window->y + window->height);
-					debug_draw_term_simple(&expr->term);
-				}
+				//if(selected_element == el){
+				//	UI::SetNextWindowPos(window->x, window->y + window->height);
+				//	debug_draw_term_simple(&expr->term);
+				//}
 				UI::PopScale();
 				UI::PopFont();
 			}break;
