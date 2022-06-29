@@ -19,7 +19,7 @@ struct Constant{
 };
 
 struct Function{
-	 str8  text;
+	str8  text;
 	void* ptr;
 	s32   args;
 };
@@ -277,27 +277,27 @@ struct Term{
 	Term* last_inside;
 };
 
-global_ void insert_after(Term* target, Term* term){
+global void insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;
 	term->next = target->next;
 	term->prev = target;
 	target->next = term;
 }
 
-global_ void insert_before(Term* target, Term* term){
+global void insert_before(Term* target, Term* term){
 	if(target->prev) target->prev->next = term;
 	term->prev = target->prev;
 	term->next = target;
 	target->prev = term;
 }
 
-global_ void remove_horizontally(Term* term){
+global void remove_horizontally(Term* term){
 	if(term->next) term->next->prev = term->prev;
 	if(term->prev) term->prev->next = term->next;
 	term->next = term->prev = 0;
 }
 
-global_ void insert_last(Term* parent, Term* child){
+global void insert_last(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
 		insert_after(parent->last_child, child);
@@ -309,7 +309,7 @@ global_ void insert_last(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global_ void insert_first(Term* parent, Term* child){
+global void insert_first(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
 		insert_before(parent->first_child, child);
@@ -321,7 +321,7 @@ global_ void insert_first(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global_ void remove_from_parent(Term* term){
+global void remove_from_parent(Term* term){
 	if(term->parent == 0) return;
 	if(term->parent->child_count > 1){
 		if(term == term->parent->first_child) term->parent->first_child = term->next;
@@ -334,21 +334,21 @@ global_ void remove_from_parent(Term* term){
 	term->parent->child_count--;
 }
 
-global_ void change_parent_insert_last(Term* new_parent, Term* term){
+global void change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
 	insert_last(new_parent, term);
 }
 
-global_ void change_parent_insert_first(Term* new_parent, Term* term){
+global void change_parent_insert_first(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
 	remove_from_parent(term);
 	remove_horizontally(term);
 	insert_first(new_parent, term);
 }
 
-global_ void insert_left(Term* target, Term* term){
+global void insert_left(Term* target, Term* term){
 	if(target->left) target->left->right = term;
 	term->right = target;
 	term->left  = target->left;
@@ -361,7 +361,7 @@ global_ void insert_left(Term* target, Term* term){
 	}
 }
 
-global_ void insert_right(Term* target, Term* term){
+global void insert_right(Term* target, Term* term){
 	if(target->right) target->right->left = term;
 	term->left  = target;
 	term->right = target->right;
@@ -374,7 +374,7 @@ global_ void insert_right(Term* target, Term* term){
 	}
 }
 
-global_ void remove_linear(Term* term){
+global void remove_linear(Term* term){
 	if(term->right) term->right->left = term->left;
 	if(term->left)  term->left->right = term->right;
 	if(term->outside){

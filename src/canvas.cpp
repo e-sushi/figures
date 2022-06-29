@@ -166,7 +166,7 @@ struct DrawContext{
 
 struct{ //information for the current instance of draw_term, this will need to be its own thing if we ever do multithreading here somehow
 	UIItem*      item;
-	UIDrawCmd drawCmd;
+	UIDrawCmd drawCmd = UIDrawCmd(1);
 	vec2 cursor_start;
 	f32      cursor_y;
 	b32 initialized = false;
@@ -210,12 +210,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	
 	UIItem* item       = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
-	UIStyle style      = GetStyle();
+	UIStyle_old style  = GetStyle();
 	f32 fontHeight = style.fontHeight;
 	DrawContext drawContext;
 	drawContext.vcount = 0;
-	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-	drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+	drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.vertices);
+	drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.indices);
 	
 	const color textColor = style.colors[UIStyleCol_Text];
 	const vec2  textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
@@ -224,22 +224,22 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
 	//if it will we just add the drawcmd to the item and make a new one
 	auto check_drawcmd = [&](u32 vcount, u32 icount){
-		if(drawCmd.counts.x + vcount > UIDRAWCMD_MAX_VERTICES || drawCmd.counts.y + icount > UIDRAWCMD_MAX_INDICES){
+		if(drawCmd.counts.vertices + vcount > UIDRAWCMD_MAX_VERTICES || drawCmd.counts.indices + icount > UIDRAWCMD_MAX_INDICES){
 			CustomItem_AddDrawCmd(item, drawCmd);
-			drawCmd.vertices = (Vertex2*)memtrealloc(drawCmd.vertices, drawCmd.counts.x*2);
-			drawCmd.indices  = (u32*)memtrealloc(drawCmd.vertices, drawCmd.counts.y*2);
+			drawCmd.vertices = (Vertex2*)memtrealloc(drawCmd.vertices, drawCmd.counts.vertices*2);
+			drawCmd.indices  = (u32*)memtrealloc(drawCmd.indices, drawCmd.counts.indices*2);
 			drawContext.vstart = drawCmd.vertices;
 			drawContext.istart = drawCmd.indices;
 		}
 	};
-
+	
 	auto debug_rect = [&](vec2 pos, vec2 size){
 		check_drawcmd(8,24);
 		drawContext.vcount += 8;
 		drawContext.icount += 24;
 		CustomItem_DCMakeRect(drawCmd, pos, size, 1, Color_Red);
 	};
-
+	
 	auto debug_line = [&](vec2 start, vec2 end){
 		check_drawcmd(4,6);
 		drawContext.vcount += 4;
@@ -263,7 +263,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				str8 rightParen = str8l(")");
 				vec2 rightParenSize = CalcTextSize(rightParen);
 				check_drawcmd(4,6);
-				u32 voffset = (u32)drawCmd.counts.x;
+				u32 voffset = (u32)drawCmd.counts.vertices;
 				CustomItem_DCMakeText(drawCmd, rightParen, vec2::ZERO, textColor, textScale);
 				drawCmd.vertices[voffset+0].pos.x += mmbbx.x;
 				drawCmd.vertices[voffset+1].pos.x += mmbbx.x;
@@ -323,8 +323,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 					str8 symr = str8_lit(")");
 					f32  ratio = 1; //ratio of parenthesis to drawn child nodes over y
 					vec2 symsize = CalcTextSize(syml); // i sure hope theres no font with different sizes for these
-					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
+					drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.vertices);
+					drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.indices);
 					if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
 						ratio = ret.bbx.y / symsize.y;
@@ -396,7 +396,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid term");
 						}
-
+						
 					}
 					else if(!term->child_count){
 						Assert(!"why did this happen");
@@ -461,32 +461,32 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							(retr.vstart + i)->pos.x += retl.bbx.x + 2*radius + drawcfg.multiplication_explicit_padding*2;
 							(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
 						}
-						drawContext.vcount = retl.vcount + retr.vcount + render_make_circle_counts(15).x;
+						drawContext.vcount = retl.vcount + retr.vcount + render_make_circle_counts(15).vertices;
 						drawContext.bbx.x = retl.bbx.x + retr.bbx.r + 2*radius + 2*drawcfg.multiplication_explicit_padding;
 						drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y, radius*2));
-						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+						check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
 						CustomItem_DCMakeFilledCircle(drawCmd, vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor); 
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
 						drawContext.bbx = vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
-							check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+							check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
 							CustomItem_DCMakeFilledCircle(drawCmd, vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += radius*2+drawcfg.additive_padding*2;
 							}
-							check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
+							check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
 							CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 						}
-						drawContext.vcount = ret.vcount + render_make_circle_counts(15).x;
+						drawContext.vcount = ret.vcount + render_make_circle_counts(15).vertices;
 					}
 					else if(!term->child_count){
 						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
-						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
-						drawContext.vcount = render_make_circle_counts(15).x;
+						check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
+						drawContext.vcount = render_make_circle_counts(15).vertices;
 						CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 					}
 				}break;
@@ -572,12 +572,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						//if the left side isnt the largest we dont need to worry about adjusting the left side at all
 						if(!leftdominant)
 							forI(retl.vcount)
-								(retl.vstart + i)->pos.y += loffset;
+						(retl.vstart + i)->pos.y += loffset;
 						
 						forI(retr.vcount){
 							(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x + drawcfg.additive_padding*2;
 							if(leftdominant) 
-								(retr.vstart + i)->pos.y += roffset;
+							(retr.vstart + i)->pos.y += roffset;
 						}
 						drawContext.bbx.x = retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2;
 						if(leftdominant){
