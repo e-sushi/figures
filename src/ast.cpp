@@ -971,7 +971,7 @@ b32 parse(Expression* expr){
 					}break;
 					
 					case OpType_ImplicitMultiplication:{
-						Assert(it->child_count == 2, "impicit multiplies should always have 2 children");
+						Assert(it->child_count == 2, "implicit multiplies should always have 2 children");
 					}break;
 					
 					case OpType_ExpressionEquals:{

@@ -98,7 +98,55 @@ void update_debug(){
 }
 #endif
 
-int main(){
+int main(int args_count, char** args){
+	//parse cmd line args
+	b32 cmdline_solve = false;
+	str8_builder cmdline_solve_input;
+	if(args_count > 1){
+		for(int arg_index = 1; arg_index < args_count; arg_index += 1){
+			//solve without creating a window
+			if(strcmp("-solve", args[arg_index]) == 0){
+				if(args_count < 3){
+					printf("Error: Using the -solve option in suugu expects an equation to follow it.\n  eg: suugu.exe -solve 1+2/3");
+					return 1;
+				}
+				
+				cmdline_solve = true;
+				str8_builder_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
+				for(arg_index = arg_index+2; arg_index < args_count; arg_index += 1){
+					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
+				}
+				break;
+			}
+		}
+	}
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	// Headless Solve Mode
+	if(cmdline_solve){
+		Expression expr{};
+		expr.term.type = TermType_Expression;
+		expr.raw_cursor_start = 1;
+		expr.raw = cmdline_solve_input;
+		expr.valid = parse(&expr);
+		solve(&expr.term);
+		//debug_print_term(&expr.term);
+		
+		if(expr.equals){
+			if(expr.solution == MAX_F64){
+				printf("%*s ERROR\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
+			}else{
+				printf("%*s %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+			}
+		}else if(expr.solution != MAX_F64){
+			printf("%*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+		}
+		
+		return 0;
+	}
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	// Regular Mode
 	//init deshi
 	Stopwatch deshi_watch = start_stopwatch();
 	memory_init(Gigabytes(1), Gigabytes(1));
@@ -134,4 +182,5 @@ int main(){
 	render_cleanup();
 	logger_cleanup();
 	memory_cleanup();
+	return 0;
 }
