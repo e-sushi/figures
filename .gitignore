@@ -24,7 +24,9 @@
 .vs/
 .vscode/
 build/
+GPUCache/
 docs/doxygen/
+misc/VTune Profiler Results/
 
 #data ignores
 data/cfg/*
@@ -38,6 +40,7 @@ data/textures/*
 #specific files
 imgui.ini
 TODOs.txt
+debug.log
 misc/suugu.vcxproj.user
 
 #delle specifics

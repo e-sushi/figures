@@ -141,7 +141,9 @@ int main(int args_count, char** args){
 		}else if(expr.solution != MAX_F64){
 			printf("%*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
 		}
+		fflush(stdout);
 		
+		_Exit(0); //dumb c++ and it's destructors
 		return 0;
 	}
 	
