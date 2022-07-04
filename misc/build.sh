@@ -217,16 +217,18 @@ app_sources="src/suugu.cpp"
 #### Specifiy libs ####
 lib_paths=(
   $vulkan_folder/lib
-  #deshi/src/external/glslang/lib
 )
 libs=(
+  #win32 libs
   gdi32
   shell32
   ws2_32
+  winmm
+
+  #graphics libs
   opengl32
   vulkan-1
-  shaderc_combined
-  #glslang
+  shaderc_combined    #required for vulkan shader compilation at runtime
 )
 #_____________________________________________________________________________________________________
 #                                         Global Defines
