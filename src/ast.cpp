@@ -125,14 +125,14 @@ void debug_draw_term_simple(Term* term){
 			}
 			
 			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
 			if(term->child_count){
 				DDA_NextLayer();
 				for_node(term->first_child){
 					f32 pre_width = layers[layer];
 					debug_draw_term_simple(it);
 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
 				}
 				DDA_PrevLayer();
 			}
@@ -148,14 +148,14 @@ void debug_draw_term_simple(Term* term){
 			DDA_AddToLayer(term->raw);
 			
 			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
 			if(term->child_count){
 				DDA_NextLayer();
 				for_node(term->first_child){
 					f32 pre_width = layers[layer];
 					debug_draw_term_simple(it);
 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
 				}
 				DDA_PrevLayer();
 			}
@@ -165,14 +165,14 @@ void debug_draw_term_simple(Term* term){
 			DDA_AddToLayer(str8l("?"));
 			
 			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
 			if(term->child_count){
 				DDA_NextLayer();
 				for_node(term->first_child){
 					f32 pre_width = layers[layer];
 					debug_draw_term_simple(it);
 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
 				}
 				DDA_PrevLayer();
 			}

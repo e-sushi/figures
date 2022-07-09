@@ -120,7 +120,7 @@ ToScreen(vec2f64 point){
 	point += vec2f64{1.0, 1.0};
 	point.x *= f64(DeshWindow->dimensions.x); point.y *= f64(DeshWindow->dimensions.y);
 	point /= 2.0;
-	return vec2(point.x, point.y);
+	return Vec2(point.x, point.y);
 }FORCE_INLINE vec2 ToScreen(f64 x, f64 y){ return ToScreen({x,y}); }
 
 local vec2f64 
@@ -138,7 +138,7 @@ ToWorld(vec2 _point){
 //returns the width and height of the area in world space that the user can currently see as a vec2
 local vec2 
 WorldViewArea(){
-	return vec2(2 * camera_zoom, 2 * camera_zoom * (float)DeshWindow->height / DeshWindow->width);
+	return Vec2(2 * camera_zoom, 2 * camera_zoom * (float)DeshWindow->height / DeshWindow->width);
 }
 
 
@@ -180,7 +180,7 @@ struct{
 	f32  division_scale = 0.8;                 //how much to scale division's operands by 
 	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
 	f32  division_line_thickness = 3;          //how thick the division line is 
-	vec2 exponential_offset = vec2(-4,-10);    //offset of exponent
+	vec2 exponential_offset = Vec2(-4,-10);    //offset of exponent
 	f32  exponential_scaling = 0.7;            //amount to scale the exponent by
 }drawcfg;
 
@@ -336,12 +336,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.vcount = ret.vcount+8;
 						drawContext.icount = ret.icount+12;
 						check_drawcmd(8,12);
-						CustomItem_DCMakeText(drawCmd, syml, vec2(0, 0), textColor, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, syml, Vec2(0, 0), textColor, Vec2(1, ratio) * textScale);
 						if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
-							CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), textColor, vec2(1, ratio) * textScale);
+							CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x + ret.bbx.x, 0), textColor, Vec2(1, ratio) * textScale);
 						}
 						else{
-							CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x + ret.bbx.x, 0), textColor * 0.3, vec2(1, ratio) * textScale);
+							CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x + ret.bbx.x, 0), textColor * 0.3, Vec2(1, ratio) * textScale);
 						}
 						drawContext.midline = ret.midline;
 					}
@@ -352,8 +352,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.icount = 12;
 						drawContext.midline = drawContext.bbx.y/2;
 						check_drawcmd(8,12);
-						CustomItem_DCMakeText(drawCmd, syml, vec2(0, (drawContext.bbx.y - symsize.y) / 2), textColor, vec2(1, ratio) * textScale);
-						CustomItem_DCMakeText(drawCmd, symr, vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), textColor, vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, syml, Vec2(0, (drawContext.bbx.y - symsize.y) / 2), textColor, Vec2(1, ratio) * textScale);
+						CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), textColor, Vec2(1, ratio) * textScale);
 					}
 					else{
 						Log("", "Parenthesis has more than 1 child");
@@ -380,14 +380,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.midline = retl.bbx.y/2 + retr.bbx.y + drawcfg.exponential_offset.y;
 					}
 					else if(term->child_count == 1){
-						vec2 size = vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
+						vec2 size = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
 						DrawContext ret = draw_term(expr, term->first_child);
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.y += size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeFilledRect(drawCmd, vec2(ret.bbx.x+drawcfg.exponential_offset.x, 0), size*drawcfg.exponential_scaling, Color_DarkGrey);
+							CustomItem_DCMakeFilledRect(drawCmd, Vec2(ret.bbx.x+drawcfg.exponential_offset.x, 0), size*drawcfg.exponential_scaling, Color_DarkGrey);
 							drawContext.vcount = ret.vcount + 4;
 							drawContext.bbx.x = ret.bbx.x + size.x * drawcfg.exponential_scaling + drawcfg.exponential_offset.x;
 							drawContext.bbx.y = ret.bbx.y + size.y * drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
@@ -465,29 +465,29 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						drawContext.bbx.x = retl.bbx.x + retr.bbx.r + 2*radius + 2*drawcfg.multiplication_explicit_padding;
 						drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y, radius*2));
 						check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
-						CustomItem_DCMakeFilledCircle(drawCmd, vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor); 
+						CustomItem_DCMakeFilledCircle(drawCmd, Vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor); 
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						drawContext.bbx = vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
+						drawContext.bbx = Vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
-							CustomItem_DCMakeFilledCircle(drawCmd, vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
+							CustomItem_DCMakeFilledCircle(drawCmd, Vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += radius*2+drawcfg.additive_padding*2;
 							}
 							check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
-							CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
+							CustomItem_DCMakeFilledCircle(drawCmd, Vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 						}
 						drawContext.vcount = ret.vcount + render_make_circle_counts(15).vertices;
 					}
 					else if(!term->child_count){
-						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
+						drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
 						check_drawcmd(render_make_circle_counts(15).vertices,render_make_circle_counts(15).indices);
 						drawContext.vcount = render_make_circle_counts(15).vertices;
-						CustomItem_DCMakeFilledCircle(drawCmd, vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
+						CustomItem_DCMakeFilledCircle(drawCmd, Vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 					}
 				}break;
 				
@@ -511,15 +511,15 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 							(retr.vstart + i)->pos.y += retl.bbx.y + drawcfg.division_padding;
 						}
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
-						drawContext.bbx = vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
+						drawContext.bbx = Vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
 						check_drawcmd(4,6);
 						f32 liney = retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2);
 						drawContext.midline = liney;
-						CustomItem_DCMakeLine(drawCmd, vec2(0, liney),  vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
+						CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),  Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 					}
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						drawContext.bbx = vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
+						drawContext.bbx = Vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
 						f32 liney = (drawContext.bbx.y-drawcfg.division_line_thickness)/2;
 						drawContext.midline = liney;
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
@@ -527,7 +527,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 								(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeLine(drawCmd, vec2(0, liney),vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
+							CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
@@ -535,18 +535,18 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 								(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeLine(drawCmd, vec2(0, liney),vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
+							CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 						}
 						drawContext.vcount = ret.vcount + 4;
 						drawContext.icount = ret.icount + 6;
 					}
 					else if(!term->child_count){
-						drawContext.bbx = vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
+						drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
 						drawContext.vcount = 4;
 						drawContext.icount = 6;
 						drawContext.midline = drawContext.bbx.y / 2;
 						check_drawcmd(4,6);
-						CustomItem_DCMakeLine(drawCmd, vec2(0, drawContext.bbx.y/2),vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, textColor);
+						CustomItem_DCMakeLine(drawCmd, Vec2(0, drawContext.bbx.y/2),Vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, textColor);
 					}
 				}break;
 				
@@ -585,27 +585,27 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 						}else{
 							drawContext.bbx.y = Max(retl.bbx.y+loffset, Max(retr.bbx.y, symsize.y));
 						}
-						//drawContext.bbx = vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
+						//drawContext.bbx = Vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
 						drawContext.vcount = retl.vcount + retr.vcount + 4;
 						drawContext.icount = retl.icount + retr.icount + 6; 
 						drawContext.midline = maxmidl;
 						check_drawcmd(4,6);
-						CustomItem_DCMakeText(drawCmd, sym, vec2(retl.bbx.x+drawcfg.additive_padding, maxmidl - symsize.y/2), textColor, textScale);
+						CustomItem_DCMakeText(drawCmd, sym, Vec2(retl.bbx.x+drawcfg.additive_padding, maxmidl - symsize.y/2), textColor, textScale);
 					}
 					//operator has a first child but it isnt followed by anything
 					else if(term->child_count == 1){
 						DrawContext ret = draw_term(expr, term->first_child);
-						drawContext.bbx = vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
+						drawContext.bbx = Vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
 						if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
 							check_drawcmd(4,6);
-							CustomItem_DCMakeText(drawCmd, sym, vec2(ret.bbx.x+drawcfg.additive_padding, ret.midline - symsize.y/2), textColor, textScale);
+							CustomItem_DCMakeText(drawCmd, sym, Vec2(ret.bbx.x+drawcfg.additive_padding, ret.midline - symsize.y/2), textColor, textScale);
 						}
 						else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
 							forI(ret.vcount){
 								(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
 							}
 							check_drawcmd(4,6);
-							CustomItem_DCMakeText(drawCmd, sym, vec2(0, ret.midline - symsize.y/2), textColor, textScale);
+							CustomItem_DCMakeText(drawCmd, sym, Vec2(0, ret.midline - symsize.y/2), textColor, textScale);
 						}
 						drawContext.vcount = ret.vcount + 4;
 						drawContext.icount = ret.icount + 6;
@@ -655,7 +655,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				forI(ret.vcount){
 					(ret.vstart + i)->pos.x += tsize.x;
 				}
-				CustomItem_DCMakeText(drawCmd, term->raw, vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
+				CustomItem_DCMakeText(drawCmd, term->raw, Vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
 				drawContext.bbx.x = tsize.x + ret.bbx.x;
 				drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
 				drawContext.midline = drawContext.bbx.y / 2;
@@ -672,7 +672,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 		default: LogE("exrend", "Custom rendering does not support term type:", OpTypeStrs(term->type)); break;//Assert(!"term type drawing not setup"); break;
 	}
 	//debug_rect(vec2::ZERO, drawContext.bbx);
-	//debug_line(vec2(0, drawContext.midline), vec2(drawContext.bbx.x, drawContext.midline));
+	//debug_line(Vec2(0, drawContext.midline), Vec2(drawContext.bbx.x, drawContext.midline));
 	return drawContext;
 }
 
@@ -873,7 +873,7 @@ void init_canvas(){
 
 void update_canvas(){
 	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
-	UI::SetNextWindowSize(DeshWindow->dimensions);
+	UI::SetNextWindowSize(DeshWindow->width, DeshWindow->height);
 	UI::Begin(str8_lit("canvas"), vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1288,7 +1288,7 @@ void update_canvas(){
 	}
 	
 	//// @draw_pencil //// //TODO smooth line drawing
-	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, DeshWindow->dimensions, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, Vec2(DeshWindow->width,DeshWindow->height), UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	//UI::PushScale(vec2::ONE * camera_zoom * 2.0);
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
