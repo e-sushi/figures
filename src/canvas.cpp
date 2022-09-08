@@ -686,15 +686,15 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
-			UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->raw_cursor_start == 1) CursorBeforeLastItem();
 			}
 			if(term->child_count){
 				draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 				for_node(term->first_child->next){
-					UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 					draw_term_old(expr, it, cursor_start, cursor_y);
 				}
 			}
@@ -705,48 +705,48 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 				UI::PushColor(UIStyleCol_Text, Color_Grey);
 				if(expr->equals){
 					if(expr->solution == MAX_F64){
-						UI::Text(str8_lit("ERROR"));
+						UI::TextOld(str8_lit("ERROR"));
 					}else{
 						UI::TextF(str8_lit("%g"), expr->solution);
 					}
 					UI::SameLine();
 				}else if(expr->solution != MAX_F64){
-					UI::Text(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
 					UI::TextF(str8_lit("%g"), expr->solution);
 					UI::SameLine();
 				}
 				UI::PopColor();
 			}
-			UI::Text(str8_lit(" "), UITextFlags_NoWrap);
+			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap);
 		}break;
 		
 		case TermType_Operator:{
 			switch(term->op_type){
 				case OpType_Parentheses:{
-					UI::Text(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->first_child){
 						draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 						for_node(term->first_child->next){
-							UI::Text(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+							UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 							draw_term_old(expr, it, cursor_start, cursor_y);
 						}
 					}
 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
-						UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+						UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 						if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
 					}
 				}break;
 				
 				case OpType_Exponential:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Negation:{
-					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
 				}break;
@@ -758,39 +758,39 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 				
 				case OpType_ExplicitMultiplication:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Division:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Modulo:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_Addition:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				case OpType_Subtraction:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 				}break;
 				
 				case OpType_ExpressionEquals:{
 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-					UI::Text(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
+					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
 					if(term->last_child) for_node(term->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
@@ -799,7 +799,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 				default: Assert(!"operator type drawing not setup"); break;
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
 			}
 		}break;
@@ -807,19 +807,19 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		case TermType_Literal:
 		case TermType_Variable:{
 			//TODO italics for variables (make this an option)
-			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 			}
 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-				UI::Text(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 			}
 		}break;
 		
 		case TermType_FunctionCall:{
-			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
@@ -828,7 +828,7 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 		}break;
 		
 		case TermType_Logarithm:{
-			UI::Text(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
@@ -867,8 +867,8 @@ void init_canvas(){
 	
 	//load_constants();
 	
-	math_font = Storage::CreateFontFromFileTTF(str8_lit("STIXTwoMath-Regular.otf"), 100).second;
-	Assert(math_font != Storage::NullFont(), "Canvas math font failed to load");
+	math_font = storage_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
+	Assert(math_font != storage_font_null(), "Canvas math font failed to load");
 }
 
 void update_canvas(){
@@ -947,7 +947,7 @@ void update_canvas(){
 	}
 	if(activeGraph){
 		UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		UI::Text(str8_lit("Graph Info"));
+		UI::TextOld(str8_lit("Graph Info"));
 		UI::TextF(str8_lit("Element Pos:   (%g,%g)"), activeGraph->element.x,activeGraph->element.y);
 		UI::TextF(str8_lit("Element Size:  (%g,%g)"), activeGraph->element.width,activeGraph->element.height);
 		UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y);

@@ -73,6 +73,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/threading.h"
 #include "core/time.h"
 #include "core/ui.h"
+#include "core/ui2.h"
 #include "core/window.h"
 #include "core/file.h"
 #include "math/math.h"
@@ -155,10 +156,11 @@ int main(int args_count, char** args){
 	platform_init();
 	logger_init();
 	window_create(str8l("suugu"));
-	console_init();
 	render_init();
-	Storage::Init();
+	storage_init();
+	uiInit(g_memory,0);
 	UI::Init();
+	console_init();
 	cmd_init();
 	window_show(DeshWindow);
 	render_use_default_camera();
@@ -175,6 +177,7 @@ int main(int args_count, char** args){
 #endif
 		console_update();
 		UI::Update();
+		uiUpdate();
 		render_update();
 		logger_update();
 		memory_clear_temp();

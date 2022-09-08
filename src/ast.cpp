@@ -81,7 +81,7 @@ void debug_print_term(Term* term){
 void debug_draw_term_simple(Term* term){
 #  define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
 #  define DDA_PrevLayer() layer -= 1;
-#  define DDA_AddToLayer(text) UI::Text(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
+#  define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
 	persist array<f32> layers;
 	persist s32 font_height = 32;
 	persist s32 vertical_padding = 16;
@@ -97,7 +97,7 @@ void debug_draw_term_simple(Term* term){
 				layers = array<f32>(deshi_temp_allocator);
 				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
 				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
-				UI::Text(str8l(" "));
+				UI::TextOld(str8l(" "));
 				DDA_NextLayer();
 				for_node(term->first_child) debug_draw_term_simple(it);
 				DDA_PrevLayer();
@@ -1026,15 +1026,15 @@ string lit_str = stringf(deshi_temp_allocator, "%.*f", (lit->decimal) ? lit->dec
 
 //add a space between different literals
 if(term->left && term->left->type == TermType_Literal){
-UI::Text(" ", UITextFlags_NoWrap); UI::SameLine();
+UI::TextOld(" ", UITextFlags_NoWrap); UI::SameLine();
 }
 
 //draw the literal string
-UI::Text(lit_str, UITextFlags_NoWrap); UI::SameLine();
+UI::TextOld(lit_str, UITextFlags_NoWrap); UI::SameLine();
 
 //draw the decimal when a whole number with decimal inputs (since printf truncates)
 if(lit->decimal == 1){ //TODO decimal config here
-UI::Text(".", UITextFlags_NoWrap); UI::SameLine();
+UI::TextOld(".", UITextFlags_NoWrap); UI::SameLine();
 }
 }break;*/
 
