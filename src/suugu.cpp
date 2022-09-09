@@ -61,21 +61,21 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 //// deshi includes ////
 #define DESHI_DISABLE_IMGUI
+#include "core/assets.h"
 #include "core/commands.h"
 #include "core/console.h"
+#include "core/file.h"
 #include "core/graphing.h"
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
 #include "core/platform.h"
 #include "core/render.h"
-#include "core/storage.h"
 #include "core/threading.h"
 #include "core/time.h"
 #include "core/ui.h"
 #include "core/ui2.h"
 #include "core/window.h"
-#include "core/file.h"
 #include "math/math.h"
 
 //// suugu includes ////
@@ -157,7 +157,7 @@ int main(int args_count, char** args){
 	logger_init();
 	window_create(str8l("suugu"));
 	render_init();
-	storage_init();
+	assets_init();
 	uiInit(g_memory,0);
 	UI::Init();
 	console_init();

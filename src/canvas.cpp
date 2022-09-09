@@ -867,8 +867,8 @@ void init_canvas(){
 	
 	//load_constants();
 	
-	math_font = storage_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
-	Assert(math_font != storage_font_null(), "Canvas math font failed to load");
+	math_font = assets_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
+	Assert(math_font != assets_font_null(), "Canvas math font failed to load");
 }
 
 void update_canvas(){
