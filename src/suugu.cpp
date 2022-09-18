@@ -100,6 +100,8 @@ void update_debug(){
 #endif
 
 int main(int args_count, char** args){
+	profiler_init();
+	
 	//parse cmd line args
 	b32 cmdline_solve = false;
 	str8_builder cmdline_solve_input;
