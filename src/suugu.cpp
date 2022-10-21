@@ -99,6 +99,42 @@ void update_debug(){
 }
 #endif
 
+void interactive(){
+	memory_init(Kilobytes(50), Kilobytes(50));
+	platform_init();
+	logger_init();
+	logger_expose()->auto_newline = false;
+	Log("", "----- ", CyanFormat("suugu"), " -----\n");
+	Log("", "> ");
+
+
+	char buffer[255];
+
+	while(platform_update()){
+		Log("", "> ");
+		//TODO(sushi) this way of getting input sucks ass change it later
+		char* buffer = (char*)memalloc(1024);
+		u32 buffer_size = 1024;
+		if(!fgets(buffer, 1024, stdin)){
+			Log("", "fgets error pls fix");
+		}
+
+		if(!strcmp("quit", buffer)){
+			Log("", "bye");
+			platform_exit();
+		}else{
+			Expression expr{};
+			expr.term.type = TermType_Expression;
+			expr.raw_cursor_start = 1;
+			str8_builder_init(&expr.raw, str8{(u8*)buffer,(s64)strlen(buffer)}, deshi_temp_allocator);
+			expr.valid = parse(&expr);
+			solve(&expr.term);
+		}
+
+		memory_clear_temp();
+	}
+}
+
 int main(int args_count, char** args){
 	profiler_init();
 	
@@ -120,6 +156,10 @@ int main(int args_count, char** args){
 					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
 				}
 				break;
+			}else if(!strcmp("-console", args[arg_index])){
+				//starts an interactive console mode that runs until 'quit' is receieved
+				interactive();
+				return 0;
 			}
 		}
 	}

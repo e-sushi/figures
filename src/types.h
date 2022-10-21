@@ -100,6 +100,7 @@ struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a 
 	Element element;
 	Graph* graph;
 };
+//TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
 
 //struct TextElement{
@@ -406,7 +407,11 @@ struct Expression{
 	b32 valid;
 	f64 solution;
 };
+//TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
+
+
+
 
 #endif //SUUGU_TYPES_H
