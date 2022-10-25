@@ -5,12 +5,14 @@ index
 @complete - list of top-level TODOs considered complete
 @info     - information about this file
 
+NOTE: dates are year/month/day 
+
 @TODOs ------------------------------------------------------------------------------------------------------------------------------------------------
 
 [ ] console mode
-    [x] input loop ()
-    [x] pass input to parser
-    [x] show output of parser
+    [x] input loop (22/10/21, sushi)
+    [x] pass input to parser (22/10/21, sushi)
+    [x] show output of parser (22/10/21, sushi)
     [ ] built-in history
     [ ] autocomplete
         this can probably go through the same autocomplete system the visual mode will have, so design it with that in mind
@@ -35,15 +37,15 @@ index
     [ ] implicit multiplication
         a space between tokens implies multiplication in most cases
     [x] numerical operations
-        [x] addition/subtraction (03/11/22, delle)
-        [x] multiplication/division (03/12/22, delle)
-        [x] parenthesis (04/05/22, delle)
-        [x] exponentials (04/05/22, delle)
-        [x] modulo (04/05/22, delle)
+        [x] addition/subtraction (22/03/11, delle)
+        [x] multiplication/division (22/03/12, delle)
+        [x] parenthesis (22/04/05, delle)
+        [x] exponentials (22/04/05, delle)
+        [x] modulo (22/04/05, delle)
         [ ] bit OR/AND/XOR/shift
         [ ] logical OR/AND
-    [x] literals (03/11/22, delle)
-    [x] equals (03/14/22, delle)
+    [x] literals (22/03/11, delle)
+    [x] equals (22/03/14, delle)
     [ ] variables
         [ ] numerical solving around a variable (eg. literal simplification)
         [ ] solving for a variable
@@ -59,11 +61,11 @@ index
         [ ] vectors/matrices
         [ ] ± (plus or minus)
     [ ] functions 
-        [x] builtin system (04/06/22, delle)
+        [x] builtin system (22/04/06, delle)
             a system for defining builtin numerical functions
         [ ] user-defined
     [ ] hotstrings (turn into symbols or place slots in non-linear ways)
-    
+
 @plans -----------------------------------------------------------------------------------------------------------------------------------------------
 
 sushi
@@ -75,9 +77,10 @@ constants/
     file/
         determine a format
         loading
-variables/
-    integrate into solver/
-        numerical solving around a variable
+solving/
+    variables/
+        numerical solve around
+
 
 @complete --------------------------------------------------------------------------------------------------------------------------------------------
 
