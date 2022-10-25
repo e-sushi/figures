@@ -139,3 +139,7 @@ f64 solve(Term* term){
 	}
 }
 
+Term* solve(){
+	
+}
+

@@ -105,32 +105,34 @@ void interactive(){
 	logger_init();
 	logger_expose()->auto_newline = false;
 	Log("", "----- ", CyanFormat("suugu"), " -----\n");
-	Log("", "> ");
-
 
 	char buffer[255];
 
 	while(platform_update()){
 		Log("", "> ");
 		//TODO(sushi) this way of getting input sucks ass change it later
-		char* buffer = (char*)memalloc(1024);
+		char* buffer_stage = (char*)memalloc(1024);
 		u32 buffer_size = 1024;
-		if(!fgets(buffer, 1024, stdin)){
+		if(!fgets(buffer_stage, 1024, stdin)){
 			Log("", "fgets error pls fix");
 		}
 
-		if(!strcmp("quit", buffer)){
+		str8 buffer = str8{(u8*)buffer_stage, s64(strlen(buffer_stage) - 1)};
+
+		if(str8_equal(buffer, STR8("quit"))){
 			Log("", "bye");
 			platform_exit();
 		}else{
 			Expression expr{};
 			expr.term.type = TermType_Expression;
 			expr.raw_cursor_start = 1;
-			str8_builder_init(&expr.raw, str8{(u8*)buffer,(s64)strlen(buffer)}, deshi_temp_allocator);
+			str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
 			expr.valid = parse(&expr);
-			solve(&expr.term);
+			logger_expose()->auto_newline = 1;
+			debug_print_term(&expr.term);
+			logger_expose()->auto_newline = 0;
+			Log("",solve(&expr.term),"\n");
 		}
-
 		memory_clear_temp();
 	}
 }

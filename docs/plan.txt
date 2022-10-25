@@ -1,0 +1,96 @@
+index
+-----
+@TODOs    - collection of things that need to be done 
+@plans    - list of things a contributor plans to do in chronological order
+@complete - list of top-level TODOs considered complete
+@info     - information about this file
+
+@TODOs ------------------------------------------------------------------------------------------------------------------------------------------------
+
+[ ] console mode
+    [x] input loop ()
+    [x] pass input to parser
+    [x] show output of parser
+    [ ] built-in history
+    [ ] autocomplete
+        this can probably go through the same autocomplete system the visual mode will have, so design it with that in mind
+
+[ ] variables // sushi
+    [ ] internal representation 
+        this should include a full name and short description, possibly with links to references about it
+        optionally, variables store a value
+    [ ] integrate into solver
+        [ ] numerical solving around a variable
+        [ ] solving for a variable
+
+[ ] constants
+    [ ] internal representation
+    [ ] file
+        [ ] determine a format
+        [ ] loading from a file
+            [ ] filtering 
+        [ ] making and saving a new constant to the file in the app
+
+[ ] solving
+    [ ] implicit multiplication
+        a space between tokens implies multiplication in most cases
+    [x] numerical operations
+        [x] addition/subtraction (03/11/22, delle)
+        [x] multiplication/division (03/12/22, delle)
+        [x] parenthesis (04/05/22, delle)
+        [x] exponentials (04/05/22, delle)
+        [x] modulo (04/05/22, delle)
+        [ ] bit OR/AND/XOR/shift
+        [ ] logical OR/AND
+    [x] literals (03/11/22, delle)
+    [x] equals (03/14/22, delle)
+    [ ] variables
+        [ ] numerical solving around a variable (eg. literal simplification)
+        [ ] solving for a variable
+    [ ] complex math
+        [ ] implicit multiplication between variables (and constants)
+        [ ] variable super/subscript
+        [ ] inequalities
+        [ ] integrals/derivatives
+        [ ] limits
+        [ ] function notation
+        [ ] sum
+        [ ] patterns (python colon, c for, ellipses)
+        [ ] vectors/matrices
+        [ ] ± (plus or minus)
+    [ ] functions 
+        [x] builtin system (04/06/22, delle)
+            a system for defining builtin numerical functions
+        [ ] user-defined
+    [ ] hotstrings (turn into symbols or place slots in non-linear ways)
+    
+@plans -----------------------------------------------------------------------------------------------------------------------------------------------
+
+sushi
+-----
+variables/
+    internal representation
+constants/
+    internal representation
+    file/
+        determine a format
+        loading
+variables/
+    integrate into solver/
+        numerical solving around a variable
+
+@complete --------------------------------------------------------------------------------------------------------------------------------------------
+
+
+@info ------------------------------------------------------------------------------------------------------------------------------------------------
+
+Everything in this file is a feature, no bugs.
+Plans are tasks a contributor plans to do in chronological order.
+
+Top-level TODO names should be short
+Sub-level TODOs must be dated when completed and the name of who completed it should be added.
+Top-level TODOs are not moved to @complete until all sub-TODOs are finished, when it is moved you must date the top-level TODO with its finished date. 
+
+Formatting:
+[ ] - A TODO that has not been started yet
+[x] - A TODO that has been finished
