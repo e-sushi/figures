@@ -11,10 +11,34 @@
 
 #include "kigu/common.h"
 #include "core/memory.h"
+#include "external/stb/stb_ds.h"
 
-struct Constant{
+// represents a number that can be expressed as a fraction
+struct RationalNumber{
+	u64 numerator, denominator;
+};
+
+// A Unit used for dimensional analysis. A Unit on its own doesnt store any sort of dimensional information.
+// Instead it stores 2 arrays of NamedUnits.
+struct NamedUnit;
+struct Unit{
+	NamedUnit* arr; 
+	
+};
+
+// represents a named unit, which may or may not be composed of other NamedUnits
+// these are what are actually loaded into the program, Unit is what is used in calculations involving units 
+struct NamedUnit{
+	Unit unit;
+	str8 id; 	   // the unique identifier of this unit 
+	str8 quantity; // the physical quantity this unit represents such as length, mass, etc.
+	str8 symbols;  // symbols this unit may use
+	str8 description;
+};
+
+struct Variable{
 	str8 name;
-	str8 unit;
+	Unit unit;
 	f64  value;
 };
 
