@@ -99,15 +99,71 @@ void update_debug(){
 }
 #endif
 
-void interactive(){
-	memory_init(Kilobytes(50), Kilobytes(50));
+int main(int args_count, char** args){
+	profiler_init();
+	
+	//parse cmd line args
+	b32 solve_mode = false;
+	b32 interactive_mode = false;
+	str8_builder cmdline_solve_input;
+	if(args_count > 1){
+		for(int arg_index = 1; arg_index < args_count; arg_index += 1){
+			//solve without creating a window
+			if(strcmp("-solve", args[arg_index]) == 0){
+				if(args_count < 3){
+					printf("Error: Using the -solve option in suugu expects an equation to follow it.\n  eg: suugu.exe -solve 1+2/3");
+					return 1;
+				}
+				
+				 solve_mode = true;
+				str8_builder_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
+				for(arg_index = arg_index+2; arg_index < args_count; arg_index += 1){
+					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
+				}
+				break;
+			}else if(!strcmp("-console", args[arg_index])){
+				interactive_mode = true;
+				break;
+			}
+		}
+	}
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	// Headless Solve Mode
+	if(solve_mode){
+		Expression expr{};
+		expr.term.type = TermType_Expression;
+		expr.raw_cursor_start = 1;
+		expr.raw = cmdline_solve_input;
+		expr.valid = parse(&expr);
+		solve(&expr.term);
+		//debug_print_term(&expr.term);
+		
+		if(expr.equals){
+			if(expr.solution == MAX_F64){
+				printf("%*s ERROR\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
+			}else{
+				printf("%*s %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+			}
+		}else if(expr.solution != MAX_F64){
+			printf("%*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+		}
+		fflush(stdout);
+		
+		_Exit(0); //NOTE(delle) force exit without calling destructors
+		return 0;
+	}
+	
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	// Headless Interactive Mode
+	if(interactive_mode){
+		memory_init(Kilobytes(50), Kilobytes(50));
 	platform_init();
 	logger_init();
 	logger_expose()->auto_newline = false;
 	Log("", "----- ", CyanFormat("suugu"), " -----\n");
 
 	char buffer[255];
-
 	while(platform_update()){
 		Log("", "> ");
 		//TODO(sushi) this way of getting input sucks ass change it later
@@ -134,61 +190,7 @@ void interactive(){
 			Log("",solve(&expr.term),"\n");
 		}
 		memory_clear_temp();
-	}
-}
-
-int main(int args_count, char** args){
-	profiler_init();
-	
-	//parse cmd line args
-	b32 cmdline_solve = false;
-	str8_builder cmdline_solve_input;
-	if(args_count > 1){
-		for(int arg_index = 1; arg_index < args_count; arg_index += 1){
-			//solve without creating a window
-			if(strcmp("-solve", args[arg_index]) == 0){
-				if(args_count < 3){
-					printf("Error: Using the -solve option in suugu expects an equation to follow it.\n  eg: suugu.exe -solve 1+2/3");
-					return 1;
-				}
-				
-				cmdline_solve = true;
-				str8_builder_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
-				for(arg_index = arg_index+2; arg_index < args_count; arg_index += 1){
-					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
-				}
-				break;
-			}else if(!strcmp("-console", args[arg_index])){
-				//starts an interactive console mode that runs until 'quit' is receieved
-				interactive();
-				return 0;
-			}
 		}
-	}
-	
-	//-///////////////////////////////////////////////////////////////////////////////////////////////
-	// Headless Solve Mode
-	if(cmdline_solve){
-		Expression expr{};
-		expr.term.type = TermType_Expression;
-		expr.raw_cursor_start = 1;
-		expr.raw = cmdline_solve_input;
-		expr.valid = parse(&expr);
-		solve(&expr.term);
-		//debug_print_term(&expr.term);
-		
-		if(expr.equals){
-			if(expr.solution == MAX_F64){
-				printf("%*s ERROR\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
-			}else{
-				printf("%*s %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
-			}
-		}else if(expr.solution != MAX_F64){
-			printf("%*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
-		}
-		fflush(stdout);
-		
-		_Exit(0); //dumb c++ and it's destructors
 		return 0;
 	}
 	
@@ -208,17 +210,20 @@ int main(int args_count, char** args){
 	cmd_init();
 	window_show(DeshWindow);
 	render_use_default_camera();
-	DeshThreadManager->init();
+	threader_init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
 	//init suugu
 	init_canvas();
 	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
+		//update suugu
 		update_canvas();
 #if BUILD_INTERNAL
 		update_debug();
 #endif
+		
+		//update deshi
 		console_update();
 		UI::Update();
 		uiUpdate();
