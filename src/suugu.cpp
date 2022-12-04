@@ -88,16 +88,8 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "ast.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
+#include "suugu_commands.cpp" //NOTE(delle) this should be the last include so it can reference .cpp vars
 
-#if BUILD_INTERNAL
-void update_debug(){
-	persist b32 show_metrics = false;
-	if(key_pressed(Key_M | InputMod_LctrlLshift)) ToggleBool(show_metrics);
-	if(show_metrics) UI::ShowMetricsWindow();
-	
-	//UI::DemoWindow();
-}
-#endif
 
 int main(int args_count, char** args){
 	profiler_init();
@@ -115,7 +107,7 @@ int main(int args_count, char** args){
 					return 1;
 				}
 				
-				 solve_mode = true;
+				solve_mode = true;
 				str8_builder_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
 				for(arg_index = arg_index+2; arg_index < args_count; arg_index += 1){
 					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
@@ -158,38 +150,38 @@ int main(int args_count, char** args){
 	// Headless Interactive Mode
 	if(interactive_mode){
 		memory_init(Kilobytes(50), Kilobytes(50));
-	platform_init();
-	logger_init();
-	logger_expose()->auto_newline = false;
-	Log("", "----- ", CyanFormat("suugu"), " -----\n");
-
-	char buffer[255];
-	while(platform_update()){
-		Log("", "> ");
-		//TODO(sushi) this way of getting input sucks ass change it later
-		char* buffer_stage = (char*)memalloc(1024);
-		u32 buffer_size = 1024;
-		if(!fgets(buffer_stage, 1024, stdin)){
-			Log("", "fgets error pls fix");
-		}
-
-		str8 buffer = str8{(u8*)buffer_stage, s64(strlen(buffer_stage) - 1)};
-
-		if(str8_equal(buffer, STR8("quit"))){
-			Log("", "bye");
-			platform_exit();
-		}else{
-			Expression expr{};
-			expr.term.type = TermType_Expression;
-			expr.raw_cursor_start = 1;
-			str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
-			expr.valid = parse(&expr);
-			logger_expose()->auto_newline = 1;
-			debug_print_term(&expr.term);
-			logger_expose()->auto_newline = 0;
-			Log("",solve(&expr.term),"\n");
-		}
-		memory_clear_temp();
+		platform_init();
+		logger_init();
+		logger_expose()->auto_newline = false;
+		Log("", "----- ", CyanFormat("suugu"), " -----\n");
+		
+		char buffer[255];
+		while(platform_update()){
+			Log("", "> ");
+			//TODO(sushi) this way of getting input sucks ass change it later
+			char* buffer_stage = (char*)memalloc(1024);
+			u32 buffer_size = 1024;
+			if(!fgets(buffer_stage, 1024, stdin)){
+				Log("", "fgets error pls fix");
+			}
+			
+			str8 buffer = str8{(u8*)buffer_stage, s64(strlen(buffer_stage) - 1)};
+			
+			if(str8_equal(buffer, STR8("quit"))){
+				Log("", "bye");
+				platform_exit();
+			}else{
+				Expression expr{};
+				expr.term.type = TermType_Expression;
+				expr.raw_cursor_start = 1;
+				str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
+				expr.valid = parse(&expr);
+				logger_expose()->auto_newline = 1;
+				debug_print_term(&expr.term);
+				logger_expose()->auto_newline = 0;
+				Log("",solve(&expr.term),"\n");
+			}
+			memory_clear_temp();
 		}
 		return 0;
 	}
@@ -212,16 +204,15 @@ int main(int args_count, char** args){
 	render_use_default_camera();
 	threader_init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
+	
 	//init suugu
 	init_canvas();
+	init_suugu_commands();
 	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
 		update_canvas();
-#if BUILD_INTERNAL
-		update_debug();
-#endif
 		
 		//update deshi
 		console_update();
