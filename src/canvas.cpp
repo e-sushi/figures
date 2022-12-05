@@ -842,6 +842,198 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 #undef CursorBeforeLastItem
 }
 
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+// @debug_draw_term_tree //@@
+//NOTE(delle) for simplicity, currently supports only the active expression
+local struct{
+	b32 visible = false;
+	int depth;
+	uiStyle term_style{};
+	uiItem* expression;
+	
+	struct{
+		int depth;
+		uiItem* item;
+	}**term_array; //sorted by deepest first
+}debug_draw_term_tree_context;
+
+void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
+#define ctx debug_draw_term_tree_context
+	if(term == 0) return;
+	
+	str8 term_text{};
+	switch(term->type){
+		case TermType_Expression:{
+			//reset the context
+			ctx.depth = 0;
+			if(ctx.expression) uiItemR(ctx.expression);
+			ctx.expression = 0;
+			if(ctx.term_array) arrfree(ctx.term_array);
+			ctx.term_array = 0;
+			
+			//fill the term style
+			ctx.term_style.positioning   = pos_static;
+			ctx.term_style.font_height   = 12;
+			ctx.term_style.text_color    = Color_LightGrey;
+			ctx.term_style.content_align = Vec2(0.5f,0.5f);
+			
+			//begin the expression container
+			ctx.expression = uiItemB();
+			ctx.expression->style.positioning      = pos_draggable_absolute;
+			ctx.expression->style.anchor           = anchor_bottom_left;
+			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
+			ctx.expression->style.background_color = Color_DarkCyan;
+			ctx.expression->style.border_style     = border_solid;
+			ctx.expression->style.border_color     = Color_Cyan;
+			ctx.expression->style.border_width     = 5;
+			ctx.expression->style.font             = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
+			ctx.expression->style.focus            = true;
+			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
+			ctx.expression->style.overflow         = overflow_scroll;
+			
+			//gather the terms and their depths
+#if 0
+			arrsetcap(ctx.term_array, expr->terms.count);
+			Expression* expr = ExpressionFromTerm(term);
+			if(term->child_count){
+				ctx.depth += 1;
+				debug_draw_term_tree(expr, term->first_child);
+				for_node(term->first_child->next){
+					debug_draw_term_tree(expr, it);
+				}
+				ctx.depth -= 1;
+			}
+#endif
+			
+			//position the term items
+			
+			
+			//draw lines between terms and their parents
+			
+			
+			//end the expression container
+			uiItemE();
+		}break;
+		
+		case TermType_Operator:{
+			switch(term->op_type){
+				case OpType_Parentheses:{
+					if(term->first_child){
+						ctx.depth += 1;
+						debug_draw_term_tree(expr, term->first_child);
+						for_node(term->first_child->next){
+							debug_draw_term_tree(expr, it);
+						}
+						ctx.depth -= 1;
+					}
+					term_text = STR8("(");
+				}break;
+				case OpType_Exponential:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("^");
+				}break;
+				case OpType_Negation:{
+					ctx.depth += 1;
+					debug_draw_term_tree(expr, term->first_child);
+					ctx.depth -= 1;
+					term_text = STR8("NEG");
+				}break;
+				case OpType_ImplicitMultiplication:{
+					ctx.depth += 1;
+					debug_draw_term_tree(expr, term->first_child);
+					debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("*i");
+				}break;
+				case OpType_ExplicitMultiplication:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("*e");
+				}break;
+				case OpType_Division:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("/");
+				}break;
+				case OpType_Modulo:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("%");
+				}break;
+				case OpType_Addition:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("+");
+				}break;
+				case OpType_Subtraction:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					ctx.depth -= 1;
+					term_text = STR8("-");
+				}break;
+				case OpType_ExpressionEquals:{
+					ctx.depth += 1;
+					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+					if(term->last_child) for_node(term->last_child->next) debug_draw_term_tree(expr, it);
+					ctx.depth -= 1;
+					term_text = STR8("=");
+				}break;
+				default: Assert(!"operator type drawing not setup"); break;
+			}
+		}break;
+		
+		case TermType_Literal:{
+			term_text = ToString8(deshi_temp_allocator, term->lit_value);
+		}break;
+		
+		case TermType_Variable:{
+			term_text = term->raw;
+		}break;
+		
+		case TermType_FunctionCall:{
+			ctx.depth += 1;
+			for_node(term->first_child) debug_draw_term_tree(expr, it);
+			ctx.depth -= 1;
+			term_text = term->func->text;
+		}break;
+		
+		case TermType_Logarithm:{
+			ctx.depth += 1;
+			for_node(term->first_child) debug_draw_term_tree(expr, it);
+			ctx.depth -= 1;
+			term_text = ToString8(deshi_temp_allocator, STR8("log"), term->log_base);
+		}break;
+		
+		default: Assert(!"term type drawing not setup"); break;
+	}
+	
+	if(term_text){
+		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
+		}
+		
+		//create the term text item
+		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
+		
+		//binary insertion sort
+		
+	}
+#undef ctx
+}
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
@@ -1169,6 +1361,7 @@ void update_canvas(){
 					expr->valid = parse(expr);
 					solve(&expr->term);
 					debug_print_term(&expr->term);
+					debug_draw_term_tree(expr, &expr->term);
 				}
 			}
 		}break;

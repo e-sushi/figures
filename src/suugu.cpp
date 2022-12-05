@@ -78,6 +78,9 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/window.h"
 #include "math/math.h"
 
+//// external includes ////
+#include <stb/stb_ds.h>
+
 //// suugu includes ////
 #ifdef SUUGU_USE_GRAPHVIZ
 #  include "graphviz/gvc.h"
