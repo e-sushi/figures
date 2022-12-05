@@ -859,6 +859,14 @@ local struct{
 
 void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 #define ctx debug_draw_term_tree_context
+	auto highlight_border_when_focused = [](uiItem* item){
+		if(g_ui->active == item){
+			item->style.border_color = Color_Grey;
+		}else{
+			item->style.border_color = Color_VeryDarkGrey;
+		}
+	};
+	
 	if(term == 0) return;
 	
 	str8 term_text{};
@@ -867,12 +875,11 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 			//reset the context
 			ctx.depth = 0;
 			if(ctx.expression) uiItemR(ctx.expression);
-			ctx.expression = 0;
-			if(ctx.term_array) arrfree(ctx.term_array);
-			ctx.term_array = 0;
 			
 			//fill the term style
-			ctx.term_style.positioning   = pos_static;
+			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
+			ctx.term_style.margin        = Vec4(2,2,2,2);
+			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
 			ctx.term_style.font_height   = 12;
 			ctx.term_style.text_color    = Color_LightGrey;
 			ctx.term_style.content_align = Vec2(0.5f,0.5f);
@@ -884,16 +891,16 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
 			ctx.expression->style.background_color = Color_DarkCyan;
 			ctx.expression->style.border_style     = border_solid;
-			ctx.expression->style.border_color     = Color_Cyan;
+			ctx.expression->style.border_color     = Color_VeryDarkGrey;
 			ctx.expression->style.border_width     = 5;
-			ctx.expression->style.font             = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
 			ctx.expression->style.focus            = true;
 			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
 			ctx.expression->style.overflow         = overflow_scroll;
+			ctx.expression->action         = highlight_border_when_focused;
+			ctx.expression->action_trigger = action_act_always;
 			
 			//gather the terms and their depths
-#if 0
-			arrsetcap(ctx.term_array, expr->terms.count);
+			arrsetlen(ctx.term_array, expr->terms.count);
 			Expression* expr = ExpressionFromTerm(term);
 			if(term->child_count){
 				ctx.depth += 1;
@@ -903,7 +910,6 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 				}
 				ctx.depth -= 1;
 			}
-#endif
 			
 			//position the term items
 			
