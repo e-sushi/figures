@@ -19,6 +19,7 @@
 *.svg
 *.code-workspace
 *.cache
+*.smproj
 
 #folders
 .vs/

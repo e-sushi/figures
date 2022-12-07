@@ -1366,8 +1366,8 @@ void update_canvas(){
 				if(expr->changed){
 					expr->valid = parse(expr);
 					solve(&expr->term);
-					debug_print_term(&expr->term);
 					debug_draw_term_tree(expr, &expr->term);
+					debug_print_term(&expr->term);
 				}
 			}
 		}break;
@@ -1455,10 +1455,10 @@ void update_canvas(){
 				UI::PopColor();
 				
 				//draw AST
-				//if(selected_element == el){
-				//	UI::SetNextWindowPos(window->x, window->y + window->height);
-				//	debug_draw_term_simple(&expr->term);
-				//}
+				if(selected_element == el && DEBUG_draw_term_simple_){
+					UI::SetNextWindowPos(window->x, window->y + window->height);
+					debug_draw_term_simple(&expr->term);
+				}
 				UI::PopScale();
 				UI::PopFont();
 			}break;

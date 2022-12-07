@@ -16,9 +16,10 @@
 @old_ast_delete_literal
 */
 
-#define PRINT_AST true
-#if PRINT_AST
+local b32 DEBUG_print_term_ = false;
 void debug_print_term(Term* term){
+	if(!DEBUG_print_term_) return;
+	
 	persist s32 print_indent = -1;
 	persist Expression* expr = 0;
 	print_indent++;
@@ -72,16 +73,12 @@ void debug_print_term(Term* term){
 	
 	print_indent--;
 }
-#else
-#  define debug_print_term(term) (void)0
-#endif //PRINT_AST
 
-#define DRAW_AST true
-#if DRAW_AST
+local b32 DEBUG_draw_term_simple_ = false;
 void debug_draw_term_simple(Term* term){
-#  define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
-#  define DDA_PrevLayer() layer -= 1;
-#  define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
+#define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
+#define DDA_PrevLayer() layer -= 1;
+#define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
 	persist array<f32> layers;
 	persist s32 font_height = 32;
 	persist s32 vertical_padding = 16;
@@ -178,17 +175,14 @@ void debug_draw_term_simple(Term* term){
 			}
 		}break;
 	}
-#  undef DDA_NextLayer
-#  undef DDA_PrevLayer
-#  undef DDA_AddToLayer
+#undef DDA_NextLayer
+#undef DDA_PrevLayer
+#undef DDA_AddToLayer
 }
-#else
-#  define debug_draw_term_simple(term) (void)0
-#endif //DRAW_AST
 
 
 //~///////////////////////////////////////////////////////////////////////////////////////////////
-//// @parse
+//// @ast_parse
 b32 parse(Expression* expr){
 	expr->term = Term{TermType_Expression};
 	expr->terms.clear();
@@ -205,13 +199,13 @@ b32 parse(Expression* expr){
 		
 		switch(*stream.str){
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_whitespace
+			//// @ast_parse_whitespace
 			case ' ': case '\n': case '\r': case '\t': case '\v':{
 				while(isspace(*stream.str)){ str8_advance(&stream); } //skip to non-whitespace
 			}continue; //skip token creation
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_literal
+			//// @ast_parse_literal
 			case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.':{
 				f64 value = MAX_F64;
 				
@@ -309,7 +303,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_letters
+			//// @ast_parse_letters
 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
 			case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
 			case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
@@ -322,7 +316,7 @@ b32 parse(Expression* expr){
 				while(open_paren && *open_paren.str != '(') str8_advance(&open_paren);
 				if(open_paren && *open_paren.str == '('){
 					//-///////////////////////////////////////////////////////////////////////////////////////////
-					//// @parse_letters_logarithm
+					//// @ast_parse_letters_logarithm
 					if(strncmp("log_", (const char*)token_start, 4) == 0){
 						b32 decimal_already = false;
 						u8* base_cursor = token_start+4;
@@ -344,7 +338,7 @@ b32 parse(Expression* expr){
 					}
 					
 					//-///////////////////////////////////////////////////////////////////////////////////////////
-					//// @parse_letters_function
+					//// @ast_parse_letters_function
 					if(func == 0){
 						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
 							//NOTE compare until the length of the larger string
@@ -448,7 +442,7 @@ b32 parse(Expression* expr){
 					cursor = paren;
 				}else{
 					//-////////////////////////////////////////////////////////////////////////////////////////////
-					//// @parse_letters_term
+					//// @ast_parse_letters_term
 					str8_advance(&stream);
 					
 					forI(TOKEN_LENGTH){
@@ -508,7 +502,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_operator
+			//// @ast_parse_operator
 			case '(':{
 				str8_advance(&stream);
 				
@@ -922,7 +916,7 @@ b32 parse(Expression* expr){
 			}break;
 			
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-			//// @parse_error
+			//// @ast_parse_error
 			default:{
 				LogE("lexer", "Unhandled token '",*stream.str,"' at (",TOKEN_OFFSET,").");
 				valid = false;
@@ -934,7 +928,7 @@ b32 parse(Expression* expr){
 	}
 	
 	//-/////////////////////////////////////////////////////////////////////////////////////////////
-	//// @parse_valid (check if the AST is valid)
+	//// @ast_parse_valid (check if the AST is valid)
 	if(!valid) return false; //early out if we already know its invalid
 	if(expr->term.child_count == 0 || expr->term.child_count > 1) return false;
 	forE(expr->terms){

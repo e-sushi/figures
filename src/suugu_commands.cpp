@@ -7,12 +7,21 @@ void init_suugu_commands(){
 	str8 suugu__last_cmd_desc;
 	
 	
-	SUUGU_CMD_START(show_ast_tree, "Toggles the visibility of the AST tree visualizer"){
+	SUUGU_CMD_START(show_ast_tree, "Toggles the visibility of the debug AST tree visualizer"){
 		ToggleBool(debug_draw_term_tree_context.visible);
 		if(debug_draw_term_tree_context.expression){
 			debug_draw_term_tree_context.expression->style.display = (debug_draw_term_tree_context.visible) ? 0 : display_hidden;
 		}
 	}SUUGU_CMD_END_NO_ARGS(show_ast_tree);
+	
+	SUUGU_CMD_START(show_ast_tree_simple, "Toggles the visibility of the debug AST tree visualizer"){
+		//TODO(delle) remove this once show_ast_tree is functional
+		ToggleBool(DEBUG_draw_term_simple_);
+	}SUUGU_CMD_END_NO_ARGS(show_ast_tree_simple);
+	
+	SUUGU_CMD_START(print_ast_tree, "Toggles the debug AST tree logging"){
+		ToggleBool(DEBUG_print_term_);
+	}SUUGU_CMD_END_NO_ARGS(print_ast_tree);
 	
 	
 #undef SUUGU_CMD_START
