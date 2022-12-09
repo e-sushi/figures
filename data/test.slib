@@ -1,0 +1,190 @@
+###
+
+suugu testing library
+
+for testing storage of units, constants, formulas, etc.
+
+notes:
+    [[<word>]] is a link to <word>, if it exists in the library. If it doesn't exist, it will be displayed as a red link.
+    [[<word0>|<word1>]] is a link to <word0>, but it will be displayed as a link to <word1> 
+    {<word>, <word>} defines a list of words. Only some fields use this. Those that do can also be given a single word with no {}.
+
+    """<string>""" is a multiline string. 
+
+###
+
+### @constant
+
+* before the name indicates that the field is required
+fields:
+   *id:            identifier       = A unique id 
+   *symbol:        string           = the symbol used in formulas to visually represent a constant
+   *value:         decimal          = the numerical value of this constant
+    names:         list[string]     = a name or list of names 
+    tags:          list[identifier] = A list of ids corresponding to tags 
+    description:   string           = A string describing the constant
+###
+
+constant{
+    id     = pi;
+    names  = { pi, Archimedes' Constant, π};
+    symbol = π;
+    value  = 3.1415926535897932;
+    tags   = { mathematics, trancendental, irrational };
+    description = 
+    "
+        A mathematical constant defined as the [[ratio]] of a [[circle]]'s [[circumference]] to its [[diameter]].
+    ";
+}
+
+constant{
+    id     = euler_num;
+    names  = { e, Euler's Number };
+    symbol = e;
+    value  = 2.7182818284590452;
+    tags   = { mathematics, trancendental, irrational };
+    description = 
+    "
+        A mathematical constant. TODO(sushi)
+    ";
+}
+
+constant{
+    id     = golden_ratio;
+    name   = { phi, Golden Ratio, φ };
+    symbol = φ;
+    value  = 1.6180339887498948;
+    tags   = { mathematics, irrational };
+    description = 
+    "
+        The ratio between two quantities when the ratio between them is the same as the ratio of their sum to the larger
+        quantity. 
+    ";
+}
+
+constant{
+    id = earth_mass;
+    name = Earth's mass;
+    symbol = { M_{⊕} , M_{E} };
+    value = 5.9736e24:kg;
+    tags = { physics, astronomy, mass };
+}
+
+constant{
+    id = earth_radius;
+    name = Earth's mean radius;
+    symbol = { R_{⊕}, R_{E} };
+    value = 6371000:m;
+    tags = { physics, astronomy, length }; 
+}
+
+constant{
+    id = solar_mass;
+    name = Solar mass;
+    symbol = { M_{⊙}, M_{S}, M_{Sun} };
+    value = 1.9891e30:kg;
+    tags = { physics, astronomy, mass };
+}
+
+constant{
+    id = solar_radius;
+    name = Solar radius;
+    symbol = { R_{⊙}, R_{E} };
+    value = 6.957e8:m;
+    tags = { physics, astronomy, length }; 
+}
+
+constant{
+    id = bohr_radius;
+    name = Bohr Radius;
+    symbol = { a_{0}, r_{Bohr} };
+    value = 5.291772e-11:m;
+    tags = { physics, atmoic_physics, length };
+    description = 
+    "
+        Physical constant approximately equal to the most probable distance between the nucleus and the electron in a 
+        hydrogen atom in its ground state. Named for [[Niels Bohr]].
+    ";
+}
+
+constant{
+    id = fine_structure_constant;
+    name = { Fine Structure Constant, Sommerfield Constant };
+    symbol = { α };
+    value = 7.2973525664e-3;
+    tags = { physics, electromagnetism };
+}
+
+constant{
+    id = rydberg_constant        
+    name = Rydberg Constant        
+    value = 10973731.568508:1/m
+    tags = { physics, atomic_physics }
+}
+
+constant{
+    id = thomson_cross_section   
+    name = Thomson Cross Section   
+    value = 0.66524587158e-28:m^2
+    tags = { physics, atomic_physics }
+}
+
+constant{
+    id = weak_mixing_angle       
+    name = Weak Mixing Angle       
+    value = 0.2223 
+    tags = { physics, atomic_physics }
+}
+
+#TODO(sushi) finish moving over constants
+
+### @unit
+    
+###
+
+
+
+unit{
+    id = second
+    quantity = time
+    symbols = s
+}
+
+unit{
+    id = meter
+    quantity = length
+    symbols = m
+}
+
+unit{
+    id = gram
+    quantity = mass
+    symbols = g
+}
+
+unit{
+    id = ampere
+    quantity = electric_current
+    symbols = A
+    physics_branch = electrodynamics 
+}
+
+unit{
+    id = kelvin
+    quantity = temperature
+    symbols = K
+    physics_branch = thermodynamics
+}
+
+unit{
+    id = mole
+    quantity = amount_of_substance
+    symbols = mol
+    physics_branch = electrodynamics 
+}
+
+unit{
+    id = candela
+    quantity = luminous_intensity
+    symbols = cd
+}

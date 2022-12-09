@@ -886,6 +886,7 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 			
 			//begin the expression container
 			ctx.expression = uiItemB();
+			ctx.expression->id = STR8("expression");
 			ctx.expression->style.positioning      = pos_draggable_absolute;
 			ctx.expression->style.anchor           = anchor_bottom_left;
 			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
@@ -1033,6 +1034,7 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 		
 		//create the term text item
 		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
+		term_item->id = STR8("HELLO!");
 		
 		//binary insertion sort
 		
