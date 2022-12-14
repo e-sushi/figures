@@ -75,6 +75,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/time.h"
 #include "core/ui.h"
 #include "core/ui2.h"
+#include "core/ui2_widgets.h"
 #include "core/window.h"
 #include "math/math.h"
 
