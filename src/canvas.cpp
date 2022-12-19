@@ -1065,7 +1065,40 @@ void init_canvas(){
 	defgraph.graph->yAxisLabel = str8_lit("y");
 	elements.add(&defgraph.element);
 	
-	//load_constants();
+	library_load(STR8("test.slib"));
+
+#if 0
+	//debug testing ui
+	//maximized, this runs at around 500-600 fps
+
+	const u32 n = 100;
+	static uiItem* items[n];
+	uiItem* inside;
+
+	forI(n){
+		items[i] = uiItemB();
+		items[i]->style.sizing = size_auto;
+		items[i]->style.padding = {5,5,5,5};
+		items[i]->style.background_color = {100, 50, u8(255 * f32(i)/n), 255};
+
+	}
+
+	inside = uiItemM();
+	inside->style.size = {10,10};
+	inside->action_trigger = action_act_always;
+	inside->style.positioning = pos_absolute;
+	inside->action = [](uiItem* item){
+		item->style.pos = {BoundTimeOsc(0, 80), BoundTimeOsc(0,80)};
+	};
+
+	forI(n){
+		uiItemE();
+	}
+
+	items[0]->style.positioning = pos_fixed;
+	items[0]->style.pos = {200,200};
+
+#endif
 	
 	math_font = assets_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
 	Assert(math_font != assets_font_null(), "Canvas math font failed to load");

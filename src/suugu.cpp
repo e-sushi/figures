@@ -89,6 +89,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #define SUUGU_IMPLEMENTATION
 #include "types.h"
 #include "functions.cpp"
+#include "library.cpp"
 #include "ast.cpp"
 #include "solver.cpp"
 #include "canvas.cpp"
@@ -226,7 +227,7 @@ int main(int args_count, char** args){
 		logger_update();
 		memory_clear_temp();
 	}
-	
+
 	//cleanup deshi
 	render_cleanup();
 	logger_cleanup();

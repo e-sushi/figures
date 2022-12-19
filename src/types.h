@@ -23,10 +23,12 @@ struct Unit{
 };
 
 struct Variable{
-	str8 name;
-	Unit unit;
-	f64  value;
+	str8  name;
+	Unit* unit;
+	f64   value;
+	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
 };
+
 
 struct Function{
 	str8  text;
