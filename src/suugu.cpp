@@ -195,7 +195,7 @@ int main(int args_count, char** args){
 	// Regular Mode
 	//init deshi
 	Stopwatch deshi_watch = start_stopwatch();
-	memory_init(Gigabytes(1), Gigabytes(1));
+	memory_init(Gigabytes(4), Gigabytes(1));
 	platform_init();
 	logger_init();
 	window_create(str8l("suugu"));
@@ -213,7 +213,14 @@ int main(int args_count, char** args){
 	//init suugu
 	init_canvas();
 	init_suugu_commands();
-	
+
+	// mint a = Mint(255);
+	// mint c = mint_add(a,a);
+	// forI(65565){
+	// 	c = mint_add(c,c);
+	// }
+	//Log("", memory_expose_generic_heap()->used);
+
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu

@@ -75,6 +75,51 @@ inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
 inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
+//// @mint
+// multiprecision integer, or big int
+// NOTE(sushi) temporarily u8 to make testing a little easier
+struct mint{
+	u8* arr;
+};
+
+// initializes a mint object
+mint Mint(s8 init){
+	mint m = {0};
+	arrput(m.arr, *(u8*)&init);
+	return m;
+}
+
+mint mint_copy(mint m){
+	mint out = {0};
+	memcpy(arraddnptr(out.arr,arrlen(m.arr)), m.arr, arrlen(m.arr));
+	return out;
+}
+
+mint mint_add(mint a, mint b){
+	mint min, max;
+	if(arrlen(a.arr)<arrlen(b.arr)) 
+		min = a, max = b;
+	else 
+		min = b, max = a;
+	mint m = mint_copy(max);
+
+	u32 carry = 0;
+	forI(arrlen(max.arr)){
+		if(i<arrlen(min.arr)){
+			m.arr[i] = max.arr[i] + min.arr[i] + carry;
+			carry = m.arr[i] < max.arr[i];
+		}else if(carry){
+			m.arr[i] += 1;
+			carry = m.arr[i] < max.arr[i];
+		}else break;
+	}
+	
+	if(carry) arrput(m.arr,1);
+	return m;
+}
+
+
+//~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @element
 enum CoordinateSpace : u32{
 	//CoordinateSpace_World,
@@ -272,6 +317,7 @@ struct Term{
 		f64 lit_value;
 		Function* func;
 		f64 log_base;
+		Variable variable;
 	};
 	
 	//syntax tree
@@ -422,7 +468,6 @@ struct Expression{
 //TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
-
 
 
 

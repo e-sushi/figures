@@ -447,7 +447,7 @@ b32 parse(Expression* expr){
 					
 					forI(TOKEN_LENGTH){
 						expr->terms.add(Term{});
-						Term* term = &expr->terms[expr->terms.count-1];
+						Term* term = expr->terms.last;
 						term->type      = TermType_Variable;
 						term->raw.str   = token_start + i;
 						term->raw.count = 1;
