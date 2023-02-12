@@ -294,11 +294,7 @@ mint mint_add_s64(mint a, s64 b){
 
 // subtracts 'b' from 'a', and stores the result in 'a'
 void mint_sub(mint* a, mint b){
-	//TODO(sushi) write out subtraction in the same manner we do for addition
-	//            this copying is much less efficient, im just being lazy for now
-	mint bn = mint_negate_new(b);
-	mint_add(a, bn);
-	mint_deinit(&bn);
+
 }
 
 // subtracts 'b' from 'a' and stores the result in a new mint
