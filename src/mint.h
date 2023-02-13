@@ -1,3 +1,10 @@
+/* suugu multi-precision integer lib
+
+	This library provides a mutiprecision integer, aka bigint for use in suugu.
+
+*/
+
+
 #ifndef SUUGU_MINT_H
 #define SUUGU_MINT_H
 #include "kigu/common.h"
@@ -8,13 +15,10 @@ StartLinkageC();
 //// @mint
 
 // multiprecision integer, or big int
-// NOTE(sushi) temporarily u8 to make testing a little easier
-// because we need to use dynamic memory to implement this, you must be aware
-// of what functions perform allocations and make sure you delete things 
-// when you are finished!
 struct mint{
-	s8* arr;
-	u64 count;
+	s8 sign; // the sign of this mint, -1 for negative, 0 for zero, and 1 for positive
+	u8* arr; // array of integers representing this mint
+	u64 count; 
 };
 
 // initializes a mint object
@@ -26,45 +30,53 @@ void mint_deinit(mint* m);
 // allocates a new mint and copies the given mint to it
 mint mint_copy(mint m);
 
+// compares two mints.
+// returns 
+//	 1 -> a > b
+//   0 -> a == b
+//  -1 -> a < b 
+s8 mint_compare(mint a, mint b);
+
 // tests if 'a' is less than 'b'
 b32 mint_less_than(mint a, mint b);
 
 // tests if 'a' is less than or equal to 'b'
 b32 mint_less_than_or_equal(mint a, mint b);
 
-// negates the given mint
-void mint_negate(mint* m);
+// tests if 'a' is greater than 'b'
+b32 mint_greater_than(mint a, mint b);
+
+// tests if 'a' is greater than or equal to 'b'
+b32 mint_greater_than_or_equal(mint a, mint b);
+
+// negates the given mint and returns it
+mint* mint_negate(mint* m);
 
 // allocates a copy of the given mint and negates it
 mint mint_negate_new(mint m);
 
-// increments the given mint
-void mint_inc(mint* m);
-
-// decrements the given mint
-void mint_dec(mint* m);
-
-// computes log2 of 'a' and stores the result in 'a'
-void mint_log2(mint* a);
+// computes log2 of 'a', stores the result in 'a', then returns a pointer to 'a'
+mint* mint_log2(mint* a);
 
 // returns a newly allocated mint equal to log2(a)
 mint mint_log2_new(mint a);
 
-// shifts 'a' left by 'b'
-void mint_shift_left(mint* a, mint b);
+// shifts 'a' left by 'b', then returns a pointer to 'a'
+mint* mint_shift_left(mint* a, mint b);
 
-// adds 'b' to 'a' and stores the result in 'a'
-// TODO(sushi) this needs a lot more testing and there are probably several optimizations we can do as well
-void mint_add(mint* a, mint b);
+// adds 'b' to 'a', stores the result in 'a', then returns a pointer to 'a'
+mint* mint_add(mint* a, mint b);
 
 // allocates a copy of 'a' then adds 'b' to the copy
 mint mint_add_new(mint a, mint b);
 
 mint mint_add_s64(mint a, s64 b);
 
-// subtracts 'b' from 'a'
-// allocates a copy of the largest mint to operate on and return 
-mint mint_sub(mint a, mint b);
+// subtracts 'b' from 'a', then returns the pointer to 'a'
+mint* mint_sub(mint* a, mint b);
+
+// allocates a copy of 'a', then subtracts 'b' from it
+mint mint_sub_new(mint a, mint b);
 
 // multiplies two mints
 // allocates a copy of the largest mint to modify and return
@@ -84,13 +96,27 @@ EndLinkageC();
 #if defined(SUUGU_IMPLEMENTATION) && !defined(SUUGU_MINT_IMPL)
 #define SUUGU_MINT_IMPL
 
-#define sign(x) x<0
+#define sign(x) (s8)x<0
+
+// adds b's array to a's, which modifies a
+void __mint_internal_add(mint a, mint b){
+	if(a.count < b.count){
+
+	}
+}
+
+void __mint_internal_sub(u8* a, u8* b){
+
+}
 
 mint mint_init(s8 init){
 	mint m = {0};
-	m.count = 1;
-	m.arr = (s8*)memalloc(sizeof(s8));
-	m.arr[0] = init;
+	if(init){
+		m.count = 1;
+		m.arr = (u8*)memalloc(sizeof(s8));
+		m.arr[0] = init;
+		m.sign = (init < 0 ? -1 : 1);
+	}
 	return m;
 }
 
@@ -100,36 +126,43 @@ void mint_delete(mint m){
 	m.count = 0;
 }
 
+// resizes a mint to hold n integers. this is for internal use to abstract the allocations
+// a user will never use this because mints manage their own sizes.
+void mint_resize(mint* a,u64 n){
+	a->count = n;
+	a->arr = (u8*)memrealloc(a->arr, n*sizeof(u8));
+}
+
 // allocates a new mint and copies the given mint to it
 mint mint_copy(mint m){
 	mint out = {0};
-	out.arr = (s8*)memalloc(sizeof(s8)*m.count);
+	out.sign = m.sign;
+	out.arr = (u8*)memalloc(sizeof(s8)*m.count);
 	out.count = m.count;
 	memcpy(out.arr, m.arr, m.count*sizeof(s8));
 	return out;
 }
 
-// tests if 'a' is less than 'b'
-// allocates nothing
-b32 mint_less_than(mint a, mint b){
-	forI(a.count) if(b.arr[i] > a.arr[i]) return true;
-	return false;
+s8 mint_compare(mint a, mint b){
+	if(a.sign  > b.sign)  return  1;
+	if(a.sign  < b.sign)  return -1;
+	if(a.count < b.count) return  1;
+	if(a.count > b.count) return -1;
+	forI(a.count){
+		if(a.arr[i] != b.arr[i])
+			return (a.arr[i] < b.arr[i] ? -1 : 1);
+	}
+	return 0;
 }
-
-// tests if 'a' is less than or equal to 'b'
-// allocates nothing
-b32 mint_less_than_or_equal(mint a, mint b){
-	forI(a.count) if(b.arr[i] < a.arr[i]) return false;
-	return false;
-}
+b32 mint_less_than(mint a, mint b)            { return mint_compare(a,b) <  0; }
+b32 mint_less_than_or_equal(mint a, mint b)   { return mint_compare(a,b) <= 0; }
+b32 mint_greater_than(mint a, mint b)         { return mint_compare(a,b) >  0; }
+b32 mint_greater_than_or_equal(mint a, mint b){ return mint_compare(a,b) >= 0; }
 
 // negates the given mint
-void mint_negate(mint* a){
-	a->arr[0] = ~a->arr[0];
-	a->arr[0] += 1;
-	forI(a->count-1){
-		a->arr[1+i] = ~a->arr[1+i];
-	}
+mint* mint_negate(mint* a){
+	a->sign = !a->sign;
+	return a;
 }
 
 // allocates a copy of the given mint and negates it
@@ -139,36 +172,8 @@ mint mint_negate_new(mint a){
 	return out;
 }
 
-
-// increments a
-void mint_inc(mint* a){
-    if(a->arr[a->count-1] < 0) {
-		a->arr[0]++;
-		return;
-	}
-	
-	s8 res = a->arr[0] + 1;
-    b32 carry = sign(res) != sign(a->arr[0]);
-    a->arr[0] = res;
-    if(carry) forI(a->count-1){
-        res = a->arr[i+1] + 1;
-        carry = res < a->arr[i+1];
-        a->arr[i+1] = res;
-        if(!carry) break;
-    }
-
-    if(carry) a->arr = (s8*)memrealloc(a->arr, ++a->count);
-
-}
-
-
-
-// mint mint_log2_fast(mint* a){
-
-// }
-
 // computes log2 of 'a' and stores the result in 'a'
-void mint_log2(mint* a){
+mint* mint_log2(mint* a){
 	s32 count = 0;
 	forI_reverse(a->count){
 		if(!a->arr[i]) continue;
@@ -176,6 +181,7 @@ void mint_log2(mint* a){
 			count++;
 		count = 7-count;
 	}
+	return a;
 }
 
 // returns a newly allocated mint equal to log2(a)
@@ -185,11 +191,8 @@ mint mint_log2_new(mint a){
 	return m;
 }
 
-void mint_add(mint* a, mint b);
-void mint_add_s64(mint* a, s64 b);
-
 // shifts 'a' left by 'b'
-void mint_shift_left(mint* a, mint b){	
+mint* mint_shift_left(mint* a, mint b){	
 	u32 count = 0;
 	forI_reverse(a->count){
 		if(!a->arr[i]) continue;
@@ -199,13 +202,20 @@ void mint_shift_left(mint* a, mint b){
 	count = 7-count;
 
 	mint_add_s64(b, count);
+	return a;
 }
 
 // adds 'b' to 'a' and stores the result in 'a'
 // TODO(sushi) this needs a lot more testing and there are probably several optimizations we can do as well
-void mint_add(mint* a, mint b){
-
-	b32 samesign = sign(a->arr[a->count-1]) == sign(b.arr[b.count-1]);
+mint* mint_add(mint* a, mint b){
+	if(!b.sign) return a;
+	if(b.sign < a->sign){
+		return mint_sub(a, b); 
+	}
+	if(a->sign < b.sign){
+		// here, we do -(a-b), because mint_sub stores the result in a, so we can't just flip the order of operands
+		return mint_negate(mint_sub(mint_negate(a), *mint_negate(&b)));
+	}
 
 	//special case where we are adding a mint with itself
 	if(a->arr == b.arr){
@@ -213,53 +223,32 @@ void mint_add(mint* a, mint b){
 		//NOTE(sushi) handle this
 	}
 
-	u32 i = 0;
+
+	// if a is smaller in memory than b, we need to allocate enough space for it
+	if(a->count < b.count) mint_resize(a, b.count);
+
+	//u32 i = 0;
+	// add the corresponding parts of the numbers 
 	s32 carry = 0;
-	// iterate over each piece of the integers
-	while(1){
-		if(i >= b.count && i < a->count){
-			// if we have iterated over all of b, we have to propagate carries across a
-			if(b.arr[b.count-1] < 0){
-				// if b is negative we have to sign extend
-				s8 res = a->arr[i] + carry - 1;
-				carry = sign(res) != sign(a->arr[i]);
-				a->arr[i] = res;
-			}else if(carry){
-				// otherwise, we can just carry normally
-				s8 res = a->arr[i] + 1;
-				carry = sign(res) != sign(a->arr[i]);
-				a->arr[i] = res;
-			}else break;
-		}else{
-			// otherwise, we just add normally, unless a's size is less than b
-			if(i >= a->count && i < b.count){ 
-				// if a is smaller in memory than b, we need to extend it 
-				a->arr = (s8*)memrealloc(a->arr, ++a->count);
-				if(a->arr[a->count-2] < 0) a->arr[a->count-1] = -1;
-			}
-			s8 res = a->arr[i] + b.arr[i] + carry;
-			carry = sign(res) != sign(a->arr[0]);
-			a->arr[i] = res;
-		}
-		i++;
-		if(i == a->count) break;
+	forI(b.count){
+		u8 res = a->arr[i] + b.arr[i] + carry;
+		carry = a->arr[i] > res;
+		a->arr[i] = res;
 	}
 
+	// propagate carries through for as long as needed
+	for(s32 i = b.count; i < a->count && carry; i++){
+		u8 res = a->arr[i] + carry;
+		carry = a->arr[i] > res;
+		a->arr[i] = res;
+	}
 
-	// there is never overflow when adding 2 numbers of different signs
-	if(!samesign) return;
-	// somewhat of a special case where doubling a negative number causes the above algo to think it needs
-	// to carry, but it doesn't
-	if(a->count == b.count && a->arr[a->count-1] < 0 == b.arr[b.count-1] < 0) 
-		carry = 0; 
-
+	// if we still need to carry, we need to add one more integer to a and add one to it.
 	if(carry){
-		a->arr = (s8*)memrealloc(a->arr, ++a->count);
-		if(b.arr[b.count-1] < 0) a->arr[a->count-1] = -1;
-		else a->arr[a->count] = 1;
-	}else if(a->arr[a->count-1] < 0 != b.arr[b.count-1] < 0){
-		a->arr = (s8*)memrealloc(a->arr, sizeof(u8) * ++a->count);
+		mint_resize(a, a->count+1);
+		a->arr[a->count-1] += 1;
 	}
+	return a;
 }
 
 // allocates a copy of 'a' then adds 'b' to the copy
@@ -276,7 +265,7 @@ mint mint_add_s64(mint a, s64 b){
 	s32 carry = (u8)m.arr[0] < (u8)a.arr[0];
 	if(b<0) forI(a.count-1) {
 		m.arr[i+1] += carry - 1;
-		carry = sign(m.arr[i+1]) > sign(a.arr[i+1]);
+		carry = sign(m.arr[i+1]) != sign(a.arr[i+1]);
 	}else if(carry) forI(a.count-1) {
 		m.arr[i+1] += 1;
 		carry = sign(m.arr[i+1]) != sign(a.arr[i+1]);
@@ -284,7 +273,7 @@ mint mint_add_s64(mint a, s64 b){
 	}
 
 	if(carry){
-		m.arr = (s8*)memrealloc(m.arr, sizeof(s8) * ++m.count);
+		m.arr = (u8*)memrealloc(m.arr, sizeof(s8) * ++m.count);
 		if(m.arr[m.count-1] > 0) m.arr[m.count-1] = 1;
 		else m.arr[m.count-1] = -1;
 	}
@@ -293,8 +282,8 @@ mint mint_add_s64(mint a, s64 b){
 }
 
 // subtracts 'b' from 'a', and stores the result in 'a'
-void mint_sub(mint* a, mint b){
-
+mint* mint_sub(mint* a, mint b){
+	return 0;
 }
 
 // subtracts 'b' from 'a' and stores the result in a new mint

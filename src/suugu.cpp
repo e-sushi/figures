@@ -215,17 +215,16 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 
-	mint a = mint_init(-127);
-	mint_add(&a, mint_init(-127));
-	mint b = mint_init(-127);
+	mint a = mint_init(20);
+	mint b = mint_init(127);
 
 
 	forI(0xffff){
 		mint_add(&a, b);
-		if     (a.count == 1) Log("", *( s8*)&a.arr[0]);
-		else if(a.count == 2) Log("", *(s16*)&a.arr[0]);
-		else if(a.count == 3) Log("", *(s32*)&a.arr[0]);
-		else if(a.count == 4) Log("", *(s64*)&a.arr[0]);
+		if     (a.count == 1) Log("", *( u8*)&a.arr[0]);
+		else if(a.count == 2) Log("", *(u16*)&a.arr[0]);
+		else if(a.count == 3) Log("", *(u32*)&a.arr[0]);
+		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
 	}
 
 
