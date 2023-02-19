@@ -65,7 +65,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/commands.h"
 #include "core/console.h"
 #include "core/file.h"
-#include "core/graphing.h"
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
@@ -76,6 +75,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/ui.h"
 #include "core/ui2.h"
 #include "core/ui2_widgets.h"
+#include "core/ui2_graphing.h"
 #include "core/window.h"
 #include "math/math.h"
 
@@ -213,14 +213,14 @@ int main(int args_count, char** args){
 	//init suugu
 	init_canvas();
 	init_suugu_commands();
-
+	
 	// mint a = Mint(255);
 	// mint c = mint_add(a,a);
 	// forI(65565){
 	// 	c = mint_add(c,c);
 	// }
 	//Log("", memory_expose_generic_heap()->used);
-
+	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
@@ -234,7 +234,7 @@ int main(int args_count, char** args){
 		logger_update();
 		memory_clear_temp();
 	}
-
+	
 	//cleanup deshi
 	render_cleanup();
 	logger_cleanup();

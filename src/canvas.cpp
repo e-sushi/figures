@@ -1047,42 +1047,41 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 //// @canvas
 local array<Element*> elements(deshi_allocator);
 local Element* selected_element;
-local GraphElement* activeGraph; //TODO remove this and use selected_element instead
+local GraphElement* active_graph; //TODO remove this and use selected_element instead
 local vec2f64 mouse_pos_world;
 local Font* math_font;
-local GraphElement defgraph; //temp default graph
+local GraphElement default_graph; //temp default graph
 
 void init_canvas(){
 	f32 world_height  = WorldViewArea().y;
-	defgraph.element.height = world_height / 2.f;
-	defgraph.element.width  = world_height / 2.f;
-	defgraph.element.y      =  defgraph.element.height / 2.f;
-	defgraph.element.x      = -defgraph.element.width  / 2.f;
-	defgraph.element.type   = ElementType_Graph;
-	defgraph.graph = (Graph*)memory_alloc(sizeof(Graph));
-	Graph g; memcpy(defgraph.graph, &g, sizeof(Graph));
-	defgraph.graph->xAxisLabel = str8_lit("x");
-	defgraph.graph->yAxisLabel = str8_lit("y");
-	elements.add(&defgraph.element);
+	default_graph.element.height  = world_height / 2.f;
+	default_graph.element.width   = world_height / 2.f;
+	default_graph.element.y       =  default_graph.element.height / 2.f;
+	default_graph.element.x       = -default_graph.element.width  / 2.f;
+	default_graph.element.type    = ElementType_Graph;
+	default_graph.cartesian_graph = ui_graph_make_cartesian();
+	default_graph.cartesian_graph->x_axis_label = str8_lit("x");
+	default_graph.cartesian_graph->y_axis_label = str8_lit("y");
+	elements.add(&default_graph.element);
 	
 	library_load(STR8("test.slib"));
-
+	
 #if 0
 	//debug testing ui
 	//maximized, this runs at around 500-600 fps
-
+	
 	const u32 n = 100;
 	static uiItem* items[n];
 	uiItem* inside;
-
+	
 	forI(n){
 		items[i] = uiItemB();
 		items[i]->style.sizing = size_auto;
 		items[i]->style.padding = {5,5,5,5};
 		items[i]->style.background_color = {100, 50, u8(255 * f32(i)/n), 255};
-
+		
 	}
-
+	
 	inside = uiItemM();
 	inside->style.size = {10,10};
 	inside->action_trigger = action_act_always;
@@ -1090,14 +1089,14 @@ void init_canvas(){
 	inside->action = [](uiItem* item){
 		item->style.pos = {BoundTimeOsc(0, 80), BoundTimeOsc(0,80)};
 	};
-
+	
 	forI(n){
 		uiItemE();
 	}
-
+	
 	items[0]->style.positioning = pos_fixed;
 	items[0]->style.pos = {200,200};
-
+	
 #endif
 	
 	math_font = assets_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
@@ -1127,7 +1126,7 @@ void update_canvas(){
 		previous_tool = active_tool;
 		active_tool   = CanvasTool_Pencil;
 	}else if(key_pressed(CanvasBind_SetTool_Graph)){
-		activeGraph   = (activeGraph) ? 0 : &defgraph;
+		active_graph   = (active_graph) ? 0 : &default_graph;
 	}else if(key_pressed(CanvasBind_SetTool_Previous)){
 		Swap(previous_tool, active_tool);
 	}
@@ -1145,11 +1144,11 @@ void update_canvas(){
 		camera_pan_active = false;
 	}
 	if(DeshInput->scrollY != 0 && input_mods_down(InputMod_None) && !UI::AnyWinHovered()){
-		if(!activeGraph){
+		if(!active_graph){
 			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
 			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
 		}else{
-			activeGraph->graph->cameraZoom -= 0.2*activeGraph->graph->cameraZoom*DeshInput->scrollY;
+			active_graph->cartesian_graph->camera_zoom -= 0.2 * active_graph->cartesian_graph->camera_zoom * DeshInput->scrollY;
 		}
 	}
 	
@@ -1178,16 +1177,14 @@ void update_canvas(){
 		}
 		UI::End();
 	}
-	if(activeGraph){
+	if(active_graph){
 		UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
 		UI::TextOld(str8_lit("Graph Info"));
-		UI::TextF(str8_lit("Element Pos:   (%g,%g)"), activeGraph->element.x,activeGraph->element.y);
-		UI::TextF(str8_lit("Element Size:  (%g,%g)"), activeGraph->element.width,activeGraph->element.height);
-		UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), activeGraph->graph->cameraPosition.x,activeGraph->graph->cameraPosition.y);
-		UI::TextF(str8_lit("Camera View:   (%g,%g)"), activeGraph->graph->cameraZoom);
-		UI::TextF(str8_lit("Camera Zoom:   %g"), activeGraph->graph->cameraView.x,activeGraph->graph->cameraView.y);
-		UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), activeGraph->graph->dimensions_per_unit_length.x, activeGraph->graph->dimensions_per_unit_length.y);
-		UI::TextF(str8_lit("Aspect Ratio:  %g"), activeGraph->graph->aspect_ratio);
+		UI::TextF(str8_lit("Element Pos:   (%g,%g)"), active_graph->element.x,active_graph->element.y);
+		UI::TextF(str8_lit("Element Size:  (%g,%g)"), active_graph->element.width,active_graph->element.height);
+		UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), active_graph->cartesian_graph->camera_position.x,active_graph->cartesian_graph->camera_position.y);
+		UI::TextF(str8_lit("Camera Zoom:   %g"),      active_graph->cartesian_graph->camera_zoom);
+		UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), active_graph->cartesian_graph->unit_length.x,active_graph->cartesian_graph->unit_length.y);
 		UI::End();
 	}
 #endif
@@ -1198,35 +1195,35 @@ void update_canvas(){
 			if(key_pressed(CanvasBind_Navigation_Pan)){
 				camera_pan_active = true;
 				camera_pan_mouse_pos = input_mouse_position();
-				if(!activeGraph){
+				if(!active_graph){
 					camera_pan_start_pos = camera_pos;
 				}else{
-					camera_pan_start_pos = vec2f64{activeGraph->graph->cameraPosition.x, activeGraph->graph->cameraPosition.y};
+					camera_pan_start_pos = vec2f64{active_graph->cartesian_graph->camera_position.x, active_graph->cartesian_graph->camera_position.y};
 				}
 			}
 			if(key_down(CanvasBind_Navigation_Pan)){
-				if(!activeGraph){
+				if(!active_graph){
 					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
 				}else{
-					activeGraph->graph->cameraPosition.x = (camera_pan_start_pos.x + (camera_pan_mouse_pos.x - DeshInput->mouseX) / activeGraph->graph->dimensions_per_unit_length.x);
-					activeGraph->graph->cameraPosition.y = (camera_pan_start_pos.y + (camera_pan_mouse_pos.y - DeshInput->mouseY) / activeGraph->graph->dimensions_per_unit_length.y);
+					active_graph->cartesian_graph->camera_position.x = (camera_pan_start_pos.x + (camera_pan_mouse_pos.x - DeshInput->mouseX) / active_graph->cartesian_graph->unit_length.x);
+					active_graph->cartesian_graph->camera_position.y = (camera_pan_start_pos.y + (camera_pan_mouse_pos.y - DeshInput->mouseY) / active_graph->cartesian_graph->unit_length.y);
 				}
 			}
 			if(key_released(CanvasBind_Navigation_Pan)){
 				camera_pan_active = false;
 			}
 			if(key_pressed(CanvasBind_Navigation_ResetPos)){
-				if(!activeGraph){
+				if(!active_graph){
 					camera_pos = {0,0};
 				}else{
-					activeGraph->graph->cameraPosition = {0,0};
+					active_graph->cartesian_graph->camera_position = vec2g{0,0};
 				}
 			}
 			if(key_pressed(CanvasBind_Navigation_ResetZoom)){
-				if(!activeGraph){
+				if(!active_graph){
 					camera_zoom = 1.0;
 				}else{
-					activeGraph->graph->cameraZoom = 5.0;
+					active_graph->cartesian_graph->camera_zoom = 5.0;
 				}
 			}
 		}break;
@@ -1504,7 +1501,8 @@ void update_canvas(){
 				GraphElement* ge = ElementToGraphElement(el);
 				vec2 tl = ToScreen(ge->element.x, ge->element.y);
 				vec2 br = ToScreen(ge->element.x + ge->element.width, ge->element.y - ge->element.height);
-				draw_graph(ge->graph, vec2g{tl.x, tl.y}, vec2g{br.x - tl.x, br.y - tl.y});
+				ge->cartesian_graph->item.style.pos  = tl;
+				ge->cartesian_graph->item.style.size = vec2_subtract(br, tl);
 			}break;
 			
 			///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1549,7 +1547,7 @@ void update_canvas(){
 	UI::TextF(str8_lit("campos:  (%g, %g)"),camera_pos.x,camera_pos.y);
 	UI::TextF(str8_lit("camzoom: %g"), camera_zoom);
 	UI::TextF(str8_lit("camarea: (%g, %g)"), WorldViewArea().x, WorldViewArea().y);
-	UI::TextF(str8_lit("graph active: %s"), (activeGraph) ? "true" : "false");
+	UI::TextF(str8_lit("graph active: %s"), (active_graph) ? "true" : "false");
 	
 	UI::End();
 	UI::PopVar();

@@ -102,7 +102,7 @@ mint mint_add(mint a, mint b){
 	else 
 		min = b, max = a;
 	mint m = mint_copy(max);
-
+	
 	u32 carry = 0;
 	forI(arrlen(max.arr)){
 		if(i<arrlen(min.arr)){
@@ -153,9 +153,9 @@ struct Element{
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
-struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
+struct GraphElement{
 	Element element;
-	Graph* graph;
+	uiGraphCartesian* cartesian_graph;
 };
 //TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
