@@ -88,6 +88,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #endif
 #define SUUGU_IMPLEMENTATION
 #include "types.h"
+#include "mint.h"
 #include "functions.cpp"
 #include "library.cpp"
 #include "ast.cpp"
@@ -214,12 +215,18 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 	
-	// mint a = Mint(255);
-	// mint c = mint_add(a,a);
-	// forI(65565){
-	// 	c = mint_add(c,c);
-	// }
-	//Log("", memory_expose_generic_heap()->used);
+#if 0 //mint testing
+	mint a = mint_init(20);
+	mint b = mint_init(127);
+	
+	forI(0xffff){
+		mint_add(&a, b);
+		if     (a.count == 1) Log("", *( u8*)&a.arr[0]);
+		else if(a.count == 2) Log("", *(u16*)&a.arr[0]);
+		else if(a.count == 3) Log("", *(u32*)&a.arr[0]);
+		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
+	}
+#endif
 	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
