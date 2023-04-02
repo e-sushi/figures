@@ -13,6 +13,8 @@
 #include "core/memory.h"
 #include "external/stb/stb_ds.h"
 
+struct Expression;
+
 // represents a unit, which may or may not be composed of other units
 struct Unit{
 	Unit* unit; //array of units that this unit may be made of, 0 if base unit
@@ -23,9 +25,9 @@ struct Unit{
 };
 
 struct Variable{
-	str8  name;
+	Expression* expr;
+	str8 name;
 	Unit* unit;
-	f64   value;
 	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
 };
 
@@ -36,6 +38,7 @@ struct Function{
 	s32   args;
 };
 typedef f64(*Function1Arg)(f64 a);
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @vec2f64
@@ -125,6 +128,7 @@ struct GraphElement{
 //f32 rotation;
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @term
@@ -261,7 +265,6 @@ static str8 OpTypeStrs(u32 type){
 		default:                            return str8l("invalid term type");
 	}
 }
-
 
 //term: generic base thing (literal, operator, variable, function call, etc)
 struct Term{
@@ -419,12 +422,21 @@ struct Expression{
 	b32 right_paren_cursor;
 	
 	b32 valid;
+	u32 variable_count;
 	f64 solution;
 };
-//TODO(sushi) remove this and usage of it since we can just use normal C casting
+
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
 
-
+Expression* make_expression(){
+	Expression* expr = memory_allocT(Expression); //TODO expression arena
+	expr->term.type         = TermType_Expression;
+	expr->terms.allocator   = deshi_allocator;
+	expr->raw_cursor_start  = 0;
+	expr->term_cursor_start = &expr->term;
+	str8_builder_init(&expr->raw, str8{}, deshi_allocator);
+	return expr;
+}
 
 #endif //SUUGU_TYPES_H

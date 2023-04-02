@@ -1253,17 +1253,15 @@ void update_canvas(){
 			}
 			
 			if(key_pressed(CanvasBind_Expression_Create)){
-				Expression* expr = (Expression*)memory_alloc(sizeof(Expression)); //TODO expression arena
+				Expression* expr = make_expression();
 				expr->element.x         = mouse_pos_world.x;
 				expr->element.y         = mouse_pos_world.y;
 				expr->element.height    = (320*camera_zoom) / (f32)DeshWindow->width;
 				expr->element.width     = expr->element.height / 2.0;
 				expr->element.type      = ElementType_Expression;
-				expr->term.type         = TermType_Expression;
-				expr->terms.allocator   = deshi_allocator;
-				expr->raw_cursor_start  = 1;
 				expr->term_cursor_start = &expr->term;
-				str8_builder_init(&expr->raw, str8_lit(" "), deshi_allocator);
+				expr->raw_cursor_start  = 1;
+				str8_builder_append(&expr->raw, str8_lit(" "));
 				
 				elements.add(&expr->element);
 				selected_element = &expr->element;

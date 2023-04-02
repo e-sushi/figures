@@ -138,8 +138,3 @@ f64 solve(Term* term){
 		}break;
 	}
 }
-
-//Term* solve(){
-	//
-//}
-

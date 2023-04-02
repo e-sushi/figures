@@ -13,12 +13,12 @@ struct{
         VariableMap* constants;
         UnitMap* units;
     }maps;
-
+	
     struct{ // lists of tags that have been used on constants or units
         str8* constants;
         str8* units;
     }tags;
-
+	
 }library;
 
 // loads a suugu library (.slib) into the global library
@@ -26,14 +26,14 @@ struct{
 //            right now it only handles defining a constant with the fields id, value, and symbol
 void library_load(str8 filename){
     str8 file = file_read_simple(ToString8(deshi_temp_allocator, "data/", filename), deshi_temp_allocator);
-
+	
 #define liberr(line_num, line_col, ...) LogE("", "library error: ", filename, "(", line_num, ",", line_col, "): ", __VA_ARGS__)
-
+	
     str8 stream = file;
-
+	
     u32 line_num = 1;
     u32 line_col = 1;
-
+	
     auto stream_next = [&](){
         if(stream.str[0] == '\r'){      
             line_col = 0;               
@@ -45,19 +45,19 @@ void library_load(str8 filename){
         } else line_col++;              
         str8_advance(&stream);         
     };
-
+	
     auto skip_whitespace = [&](){
         while(is_whitespace(decoded_codepoint_from_utf8(stream.str,4).codepoint)){
             stream_next();
         }
     };
-
+	
     auto skip_until_whitespace = [&](){
         while(!is_whitespace(decoded_codepoint_from_utf8(stream.str,4).codepoint)){
             stream_next();
         }
     };
-
+	
     auto eat_until = [&](u32 codepoint){
         u8* save = stream.str;
         while(stream && codepoint != decoded_codepoint_from_utf8(stream.str,4).codepoint){
@@ -65,7 +65,7 @@ void library_load(str8 filename){
         }
         return str8{save, stream.str-save};
     };
-
+	
     while(stream.count){
         if(str8_begins_with(stream, STR8("###"))){
             u32 line_start = line_num;
@@ -85,6 +85,14 @@ void library_load(str8 filename){
             stream_next();
         }else if(str8_begins_with(stream, STR8("constant"))){
             Variable constant = {0};
+			
+			//make an expression holding one literal
+			constant.expr = make_expression();
+			constant.expr->terms.add(Term{});
+			Term* literal_term = &constant.expr->terms[constant.expr->terms.count-1];
+			literal_term->type = TermType_Literal;
+			insert_last(&constant.expr->term, literal_term);
+			insert_right(&constant.expr->term, literal_term);
             
             forI(8) stream_next();
             skip_whitespace();
@@ -93,13 +101,13 @@ void library_load(str8 filename){
                 return;
             }
             stream_next();
-
+			
             struct{
                 b32 id:1;
                 b32 symbol:1;
                 b32 value:1;
             }checklist = {0};
-
+			
             while(1){ //TODO(sushi) the way this is makes it so that nothing but fields can exist within a definition, so you can't have comments
                 skip_whitespace();
                 if(str8_begins_with(stream, STR8("id"))){
@@ -110,22 +118,22 @@ void library_load(str8 filename){
                         liberr(line_num, line_col, "expected a '=' after field identifier 'id'");
                         return;
                     }
-
+					
                     stream_next();
                     skip_whitespace();
-
+					
                     if(stream.str[0] == '{'){
                         liberr(line_num, line_col, "lists are not allowed for identifiers");
                     }else if(stream.str[0] ==';'){
                         liberr(line_num, line_col, "missing identifier for id field.");
                     }
-
+					
                     str8 id = stream;
                     while(stream.str[0] != ';' && !is_whitespace(decoded_codepoint_from_utf8(stream.str,4).codepoint)){
                         stream_next();
                     }
                     id.count = stream.str - id.str;
-                    constant.name = id;
+					literal_term->raw = id;
                     u32 line_start = line_num;
                     u32 col_start = line_col;
                     skip_whitespace();
@@ -142,14 +150,14 @@ void library_load(str8 filename){
                         liberr(line_num, line_col, "expected a '=' after field identifier 'id'");
                         return;
                     }
-
+					
                     stream_next();
                     skip_whitespace();
-
+					
                     if(stream.str[0] ==';'){
                         liberr(line_num, line_col, "missing value for symbol field. A symbol field can be a string or a list of strings.");
                     }
-
+					
                     if(stream.str[0] == '{'){
                         stream_next();
                         while(1){
@@ -186,7 +194,7 @@ void library_load(str8 filename){
                         arrput(constant.symbols, str);
                         stream_next();
                     }
-
+					
                     skip_whitespace();
                     if(stream.str[0] != ';'){
                         liberr(line_num, line_col, "expected ';'");
@@ -213,8 +221,8 @@ void library_load(str8 filename){
                         return;
                     }
                     val.count = stream.str - val.str;
-                    constant.value = stod(val);
-                    if(constant.value == 0.0){ //NOTE(sushi) for whatever reason, strtod returns 0.0 if no valid conversion could be made, so it's possible someone tries to make a constant with a value 0 and we error here.
+					literal_term->lit_value = stod(val);
+                    if(literal_term->lit_value == 0.0){ //NOTE(sushi) for whatever reason, strtod returns 0.0 if no valid conversion could be made, so it's possible someone tries to make a constant with a value 0 and we error here.
                         liberr(line_num, line_col, "invalid number given for value field.");
                         return;
                     }
@@ -230,5 +238,5 @@ void library_load(str8 filename){
             stream_next();
         }
     }
-
+	
 }
