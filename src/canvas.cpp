@@ -165,10 +165,10 @@ struct DrawContext{
 };
 
 struct{ //information for the current instance of draw_term, this will need to be its own thing if we ever do multithreading here somehow
-	UIItem*      item;
+	UIItem_old* item;
 	UIDrawCmd drawCmd = UIDrawCmd(1);
 	vec2 cursor_start;
-	f32      cursor_y;
+	f32 cursor_y;
 	b32 initialized = false;
 }drawinfo;
 
@@ -208,7 +208,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	//drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 	//drawcfg.multiplication_explicit_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
 	
-	UIItem* item       = drawinfo.item; //:)
+	UIItem_old* item   = drawinfo.item; //:)
 	UIDrawCmd& drawCmd = drawinfo.drawCmd;
 	UIStyle_old style  = GetStyle();
 	f32 fontHeight = style.fontHeight;
