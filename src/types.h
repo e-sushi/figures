@@ -25,10 +25,11 @@ struct Unit{
 };
 
 struct Variable{
-	Expression* expr;
+	Expression* expr; //TODO maybe let variable terms have expression children rather than a tree disconnect
 	str8 name;
 	Unit* unit;
 	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
+	b32 right_of_equals;
 };
 
 
@@ -146,6 +147,7 @@ enum TermFlags_{
 	TermFlag_NONE = 0,
 	
 	//// operator argument flags //// //NOTE these flags are mainly used to determine empty slots on operators
+	//TODO(delle) explain these better, i forgot what they do and why, seems to be mostly for rendering?
 	TermFlag_OpArgLeft   = (1 << 0),
 	TermFlag_OpArgRight  = (1 << 1),
 	TermFlag_OpArgTop    = (1 << 2),
@@ -278,7 +280,7 @@ struct Term{
 		f64 lit_value;
 		Function* func;
 		f64 log_base;
-		Variable variable;
+		Variable var;
 	};
 	
 	//syntax tree
@@ -424,7 +426,7 @@ struct Expression{
 	b32 right_paren_cursor;
 	
 	b32 valid;
-	u32 variable_count;
+	u32 unknown_vars;
 	f64 solution;
 };
 

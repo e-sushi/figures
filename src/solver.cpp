@@ -1,3 +1,23 @@
+/* suugu solver.cpp
+Notes:
+
+
+Index:
+@solver_equation
+@solver_unknowns
+
+References:
+
+
+TODO:
+history of steps the solver took (make this toggleable so it isnt used if doing heavy stuff)
+unknown variable deep search (check that variables with expressions don't contain unknown variables)
+turn solver variables into a struct so that solving can be multithreaded (threading by expression seems the easiest)
+multi variable solve
+*/
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 enum{
 	SolverError_None = 0,
 	SolverError_NotImplemented,
@@ -7,34 +27,50 @@ enum{
 	SolverError_LogarithmBaseZero,
 	SolverError_LogarithmBaseOne,
 	SolverError_LogarithmOfZero,
+	SolverError_VariableSolveWithoutEquals,
 };
 
-//TODO solver steps: history of steps the solver took (NOTE make this toggleable so it isnt used if doing heavy stuff)
-
-#define SOLVER_ERROR_VALUE MAX_F64
-#define SOLVER_ERROR_PASSTHRU(var) if(var == MAX_F64) return MAX_F64
-#define SOLVER_ERROR(code) (solver_error_code = code, solver_error_term = term, SOLVER_ERROR_VALUE)
+b32 solver_has_error = false;
 s32 solver_error_code = SolverError_None;
 Term* solver_error_term = 0;
-b32 solver_has_error = false;
+Expression* solver_expression = 0;
+Term** solver_unknown_variables = 0;
+u32 solver_unknown_variables_count_left = 0;
+u32 solver_unknown_variables_count_right = 0;
+
+#define SOLVER_ERROR_VALUE MAX_F64
+#define SOLVER_ERROR_PASSTHRU(var) if(var == SOLVER_ERROR_VALUE) return SOLVER_ERROR_VALUE
+#define SOLVER_ERROR(error_code) (solver_has_error = true, solver_error_code = error_code, solver_error_term = term, SOLVER_ERROR_VALUE)
+
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @solver_equation
+
+
+void solve_find_unknowns(Expression* expr);
+void solve_unknowns(Expression* expr);
+
 f64 solve(Term* term){
 	if(solver_has_error) return SOLVER_ERROR_VALUE;
 	
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
-			if(!expr->valid){
-				solver_has_error = false;
-				solver_error_code = SolverError_InvalidExpression;
-				return SOLVER_ERROR_VALUE;
+			if(!expr->valid) return SOLVER_ERROR(SolverError_InvalidExpression);
+			
+			solver_has_error = false;
+			solver_error_code = SolverError_None;
+			solver_error_term = 0;
+			solver_expression = expr;
+			
+			//either solve for the equation or solve for variables
+			if(expr->unknown_vars){
+				solve_unknowns(expr);
+			}else{
+				expr->solution = solve(term->first_child);
 			}
 			
-			expr->solution = solve(term->first_child);
-			solver_has_error = false;
-			if(expr->solution != SOLVER_ERROR_VALUE){
-				solver_error_code = SolverError_None;
-				solver_error_term = 0;
-			}
+			solver_expression = 0;
 			return expr->solution;
 		}break;
 		
@@ -91,7 +127,8 @@ f64 solve(Term* term){
 					return a - b;
 				}break;
 				
-				case OpType_ExpressionEquals:{ //TODO variable solving
+				case OpType_ExpressionEquals:{
+					Assert(solver_expression->unknown_vars == 0, "this part of solve() should not be reached when there are unknown vars in the expression");
 					return solve(term->first_child);
 				}break;
 				
@@ -107,8 +144,15 @@ f64 solve(Term* term){
 		}break;
 		
 		case TermType_Variable:{
-			solver_has_error = true;
-			return SOLVER_ERROR_VALUE; //TODO variable solving
+			if(term->var.expr){
+				Expression* temp = solver_expression;
+				f64 a = solve(&term->var.expr->term); SOLVER_ERROR_PASSTHRU(a);
+				solver_expression = temp;
+				return a;
+			}else{
+				Assert(!"this part of solve() should not be reached when there are unknown vars in the expression");
+				return SOLVER_ERROR(SolverError_InvalidExpression);
+			}
 		}break;
 		
 		case TermType_FunctionCall:{
@@ -133,8 +177,128 @@ f64 solve(Term* term){
 		}break;
 		
 		default:{
-			Assert(!"solving not setup for this term yet");
+			Assert(!"solving not setup yet for this term");
 			return SOLVER_ERROR(SolverError_NotImplemented);
 		}break;
+	}
+}
+
+
+//-////////////////////////////////////////////////////////////////////////////////////////////////
+//// @solver_unknowns
+
+
+//TODO rather than solve_unknowns, this should be solve_for with a specific variable to solve for rather than assuming numeric single solve or multivariable solve
+//     (figure out how multivariable solving fits into solve_for, i dont even remember how to do multivariable atm)
+void solve_unknowns(Expression* expr){
+	Assert(expr->equals, "the expression must have an equals operator in order to solve for unknowns");
+	
+	//deep copy the expression so it can be reordered for solving without affecting the original expression
+	//NOTE one extra term as an empty slot for easier reordering
+	Term* terms = (Term*)memory_talloc((expr->terms.count + 1) * sizeof(Term));
+	Term* equals = &terms[expr->equals - expr->terms.data];
+	Term* extra = terms + expr->terms.count;
+	CopyMemory(terms, expr->terms.data, expr->terms.count * sizeof(Term));
+	forI(expr->terms.count){
+		terms[i].prev        = (expr->terms[i].prev)        ? &terms[expr->terms[i].prev        - expr->terms.data] : 0;
+		terms[i].next        = (expr->terms[i].next)        ? &terms[expr->terms[i].next        - expr->terms.data] : 0;
+		terms[i].parent      = (expr->terms[i].parent)      ? &terms[expr->terms[i].parent      - expr->terms.data] : 0;
+		terms[i].first_child = (expr->terms[i].first_child) ? &terms[expr->terms[i].first_child - expr->terms.data] : 0;
+		terms[i].last_child  = (expr->terms[i].last_child)  ? &terms[expr->terms[i].last_child  - expr->terms.data] : 0;
+	}
+	
+	//reset unknown vars array
+	if(solver_unknown_variables && (solver_unknown_variables_count_left + solver_unknown_variables_count_right >= expr->unknown_vars)){
+		ZeroMemory(solver_unknown_variables, expr->unknown_vars*sizeof(Term*));
+	}else{
+		memory_zfree(solver_unknown_variables);
+		solver_unknown_variables = (Term**)memory_alloc(expr->unknown_vars*sizeof(Term*));
+	}
+	solver_unknown_variables_count_left = 0;
+	solver_unknown_variables_count_right = 0;
+	
+	//collect all unknown vars and track which side they are on
+	u32 tracked_unknown_count = 0;
+	For(terms,expr->terms.count){
+		if(it->type == TermType_Variable && it->var.expr == 0){
+			solver_unknown_variables[tracked_unknown_count] = it;
+			if(it->var.right_of_equals){
+				solver_unknown_variables_count_right += 1;
+			}else{
+				solver_unknown_variables_count_left += 1;
+			}
+			tracked_unknown_count += 1;
+		}
+	}
+	
+	//TODO assuming very simple, one-op equations for now
+	if(expr->unknown_vars == 1){
+		//single variable solve by isolating the unknown variable on one side of the equals
+		Term* unknown = solver_unknown_variables[0];
+		
+		if(unknown == equals->first_child){
+			expr->solution = solve(equals->last_child);
+		}else if(unknown == equals->last_child){
+			expr->solution = solve(equals->first_child);
+		}else{
+			//TODO heuristic for choosing which side of the equation to isolate the unknown (opposite of side which is more complex?)
+			//     but for now, keep it still and move everything else
+			Term* op = (unknown->var.right_of_equals) ? equals->last_child : equals->first_child;
+			switch(op->op_type){
+				//(5 = 1 + x; 1 + x = 5)
+				case OpType_Addition:{
+					//create the inverse operator using the extra term
+					ZeroMemory(extra, sizeof(Term));
+					extra->type = TermType_Operator;
+					extra->raw = str8_lit("-");
+					extra->op_type = OpType_Subtraction;
+					
+					//insert the inverse operator into the other side of the equals
+					//for subtraction, parenting everything on the other side
+					//(5 - = 1 + x; 1 + x = 5 -)
+					if(unknown->var.right_of_equals){
+						ast_change_parent_insert_first(extra, equals->first_child);
+						ast_insert_first(equals, extra);
+					}else{
+						ast_change_parent_insert_first(extra, equals->last_child);
+						ast_insert_last(equals, extra);
+					}
+					
+					//change parent of the unknown's sibling to the inverse operator
+					//(5 - 1 = + x; + x = 5 - 1)
+					if(unknown == op->first_child){
+						ast_change_parent_insert_last(extra, op->last_child);
+					}else{
+						ast_change_parent_insert_last(extra, op->first_child);
+					}
+					
+					//elevate the unknown to be the child of the equals
+					//(5 - 1 = x_+; +_x = 5 - 1)
+					if(unknown->var.right_of_equals){
+						ast_change_parent_insert_last(equals, unknown);
+					}else{
+						ast_change_parent_insert_first(equals, unknown);
+					}
+					
+					//convert the operator to be the extra for later reuse
+					//(5 - 1 = x; x = 5 - 1)
+					ast_remove_from_parent(op);
+					ast_remove_horizontally(op);
+					Swap(extra, op);
+				}break;
+				
+				default:{
+					Assert(!"unknown solving no setup yet for this operator");
+				}break;
+			}
+			
+			expr->solution = solve(op);
+		}
+		debug_print_term(equals);
+	}else{
+		//TODO multi variable solve
+		
+		LogE("suugu-solver", "Solving for multiple variables not implemented yet.");
+		Assert(!"solving for multiple variables not implemented yet");
 	}
 }

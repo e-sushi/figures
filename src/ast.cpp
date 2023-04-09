@@ -452,6 +452,13 @@ b32 parse(Expression* expr){
 						term->raw.str   = token_start + i;
 						term->raw.count = 1;
 						
+						//TODO handle variable substitution, currently just assuming we're solving for it
+						expr->unknown_vars += 1;
+						term->var.name = term->raw;
+						//TODO variable unit
+						//TODO variable symbols
+						term->var.right_of_equals = (b32)expr->equals; //if there is already an equals term, we are to the right of it
+						
 						if      (cursor->type == TermType_Expression){
 							ast_insert_last(cursor, term);
 							linear_insert_right(cursor, term);
@@ -875,6 +882,10 @@ b32 parse(Expression* expr){
 			case '=':{
 				str8_advance(&stream);
 				
+				if(expr->equals){
+					valid = false; //NOTE an equals operator already exists
+				}
+				
 				expr->terms.add(Term{});
 				Term* term = &expr->terms[expr->terms.count-1];
 				term->type      = TermType_Operator;
@@ -969,6 +980,7 @@ b32 parse(Expression* expr){
 					}break;
 					
 					case OpType_ExpressionEquals:{
+						//NOTE equals having one child is valid for solving the equation
 						if(it->child_count == 0 || it->child_count > 2) return false;
 					}break;
 					
@@ -982,8 +994,8 @@ b32 parse(Expression* expr){
 			
 			case TermType_Variable:{
 				Assert(it->child_count == 0, "variables should never have children");
-				if(it->variable.expr == 0){
-					//NOTE cant solve for the variable if there is no right side of equals
+				if(it->var.expr == 0){
+					//NOTE cant solve for the variable if one of the sides of the equals is empty
 					if(expr->equals == 0) return false;
 					if(expr->equals->child_count != 2) return false;
 				}
