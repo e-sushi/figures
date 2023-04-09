@@ -91,8 +91,8 @@ void library_load(str8 filename){
 			constant.expr->terms.add(Term{});
 			Term* literal_term = &constant.expr->terms[constant.expr->terms.count-1];
 			literal_term->type = TermType_Literal;
-			insert_last(&constant.expr->term, literal_term);
-			insert_right(&constant.expr->term, literal_term);
+			ast_insert_last(&constant.expr->term, literal_term);
+			linear_insert_right(&constant.expr->term, literal_term);
             
             forI(8) stream_next();
             skip_whitespace();

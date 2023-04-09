@@ -230,8 +230,8 @@ b32 parse(Expression* expr){
 				term->lit_value = value;
 				
 				if      (cursor->type == TermType_Expression){
-					insert_last(cursor, term);
-					insert_right(cursor, term);
+					ast_insert_last(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator){
 					if(cursor->op_type == OpType_Parentheses){
 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
@@ -250,25 +250,25 @@ b32 parse(Expression* expr){
 								lower = lower->parent;
 							}
 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-							insert_last(lower->parent, implicit_multiply);
-							change_parent_insert_first(implicit_multiply, lower);
+							ast_insert_last(lower->parent, implicit_multiply);
+							ast_change_parent_insert_first(implicit_multiply, lower);
 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 							
-							insert_last(implicit_multiply, term);
+							ast_insert_last(implicit_multiply, term);
 							term->flags = TermFlag_OpArgRight;
-							insert_right(cursor, term);
+							linear_insert_right(cursor, term);
 						}else{
-							insert_last(cursor, term);
+							ast_insert_last(cursor, term);
 							term->flags = TermFlag_OpArgRight;
 							if(cursor->first_inside){
-								insert_left(cursor->first_inside, term);
+								linear_insert_left(cursor->first_inside, term);
 							}else{
 								term->outside = cursor;
 								cursor->first_inside = cursor->last_inside = term;
 							}
 						}
 					}else{
-						insert_last(cursor, term);
+						ast_insert_last(cursor, term);
 						term->flags = TermFlag_OpArgRight;
 					}
 				}else if(cursor->type == TermType_Variable){
@@ -287,17 +287,17 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, implicit_multiply);
-					change_parent_insert_first(implicit_multiply, lower);
+					ast_insert_last(lower->parent, implicit_multiply);
+					ast_change_parent_insert_first(implicit_multiply, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 					
-					insert_last(implicit_multiply, term);
+					ast_insert_last(implicit_multiply, term);
 					term->flags = TermFlag_OpArgRight;
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -366,12 +366,12 @@ b32 parse(Expression* expr){
 					paren->raw.str   = stream.str - 1;
 					paren->raw.count = 1;
 					paren->op_type   = OpType_Parentheses;
-					insert_last(func, paren);
-					insert_right(func, paren);
+					ast_insert_last(func, paren);
+					linear_insert_right(func, paren);
 					
 					if      (cursor->type == TermType_Expression){
-						insert_last(cursor, func);
-						insert_right(cursor, func);
+						ast_insert_last(cursor, func);
+						linear_insert_right(cursor, func);
 					}else if(cursor->type == TermType_Operator){
 						if(cursor->op_type == OpType_Parentheses){
 							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
@@ -390,25 +390,25 @@ b32 parse(Expression* expr){
 									lower = lower->parent;
 								}
 								implicit_multiply->flags = (lower->flags & OPARG_MASK);
-								insert_last(lower->parent, implicit_multiply);
-								change_parent_insert_first(implicit_multiply, lower);
+								ast_insert_last(lower->parent, implicit_multiply);
+								ast_change_parent_insert_first(implicit_multiply, lower);
 								ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 								
-								insert_last(implicit_multiply, func);
+								ast_insert_last(implicit_multiply, func);
 								func->flags = TermFlag_OpArgRight;
-								insert_right(cursor, func);
+								linear_insert_right(cursor, func);
 							}else{
-								insert_last(cursor, func);
+								ast_insert_last(cursor, func);
 								func->flags = TermFlag_OpArgRight;
 								if(cursor->first_inside){
-									insert_left(cursor->first_inside, func);
+									linear_insert_left(cursor->first_inside, func);
 								}else{
 									func->outside = cursor;
 									cursor->first_inside = cursor->last_inside = func;
 								}
 							}
 						}else{
-							insert_last(cursor, func);
+							ast_insert_last(cursor, func);
 							func->flags = TermFlag_OpArgRight;
 						}
 					}else if(cursor->type == TermType_Literal){
@@ -427,17 +427,17 @@ b32 parse(Expression* expr){
 							lower = lower->parent;
 						}
 						implicit_multiply->flags = (lower->flags & OPARG_MASK);
-						insert_last(lower->parent, implicit_multiply);
-						change_parent_insert_first(implicit_multiply, lower);
+						ast_insert_last(lower->parent, implicit_multiply);
+						ast_change_parent_insert_first(implicit_multiply, lower);
 						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 						
-						insert_last(implicit_multiply, func);
+						ast_insert_last(implicit_multiply, func);
 						func->flags = TermFlag_OpArgRight;
-						insert_right(cursor, func);
+						linear_insert_right(cursor, func);
 					}else{
 						valid = false;
-						insert_right(cursor, func);
-						insert_last((func->outside) ? func->outside : &expr->term, func);
+						linear_insert_right(cursor, func);
+						ast_insert_last((func->outside) ? func->outside : &expr->term, func);
 					}
 					cursor = paren;
 				}else{
@@ -453,16 +453,16 @@ b32 parse(Expression* expr){
 						term->raw.count = 1;
 						
 						if      (cursor->type == TermType_Expression){
-							insert_last(cursor, term);
-							insert_right(cursor, term);
+							ast_insert_last(cursor, term);
+							linear_insert_right(cursor, term);
 						}else if(cursor->type == TermType_Operator){
-							insert_last(cursor, term);
+							ast_insert_last(cursor, term);
 							term->flags = TermFlag_OpArgRight;
 							if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-								insert_right(cursor, term);
+								linear_insert_right(cursor, term);
 							}else{
 								if(cursor->first_inside){
-									insert_left(cursor->first_inside, term);
+									linear_insert_left(cursor->first_inside, term);
 								}else{
 									term->outside = cursor;
 									cursor->first_inside = cursor->last_inside = term;
@@ -484,17 +484,17 @@ b32 parse(Expression* expr){
 								lower = lower->parent;
 							}
 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-							insert_last(lower->parent, implicit_multiply);
-							change_parent_insert_first(implicit_multiply, lower);
+							ast_insert_last(lower->parent, implicit_multiply);
+							ast_change_parent_insert_first(implicit_multiply, lower);
 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 							
-							insert_last(implicit_multiply, term);
+							ast_insert_last(implicit_multiply, term);
 							term->flags = TermFlag_OpArgRight;
-							insert_right(cursor, term);
+							linear_insert_right(cursor, term);
 						}else{
 							valid = false;
-							insert_right(cursor, term);
-							insert_last((term->outside) ? term->outside : &expr->term, term);
+							linear_insert_right(cursor, term);
+							ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 						}
 						cursor = term;
 					}
@@ -514,8 +514,8 @@ b32 parse(Expression* expr){
 				term->op_type   = OpType_Parentheses;
 				
 				if      (cursor->type == TermType_Expression){
-					insert_last(cursor, term);
-					insert_right(cursor, term);
+					ast_insert_last(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator){
 					if(cursor->op_type == OpType_Parentheses){
 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
@@ -534,27 +534,27 @@ b32 parse(Expression* expr){
 								lower = lower->parent;
 							}
 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-							insert_last(lower->parent, implicit_multiply);
-							change_parent_insert_first(implicit_multiply, lower);
+							ast_insert_last(lower->parent, implicit_multiply);
+							ast_change_parent_insert_first(implicit_multiply, lower);
 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 							
-							insert_last(implicit_multiply, term);
+							ast_insert_last(implicit_multiply, term);
 							term->flags = TermFlag_OpArgRight;
-							insert_right(cursor, term);
+							linear_insert_right(cursor, term);
 						}else{
-							insert_last(cursor, term);
+							ast_insert_last(cursor, term);
 							term->flags = TermFlag_OpArgRight;
 							if(cursor->first_inside){
-								insert_left(cursor->first_inside, term);
+								linear_insert_left(cursor->first_inside, term);
 							}else{
 								term->outside = cursor;
 								cursor->first_inside = cursor->last_inside = term;
 							}
 						}
 					}else{
-						insert_last(cursor, term);
+						ast_insert_last(cursor, term);
 						term->flags = TermFlag_OpArgRight;
-						insert_right(cursor, term);
+						linear_insert_right(cursor, term);
 					}
 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
 					expr->terms.add(Term{});
@@ -572,17 +572,17 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, implicit_multiply);
-					change_parent_insert_first(implicit_multiply, lower);
+					ast_insert_last(lower->parent, implicit_multiply);
+					ast_change_parent_insert_first(implicit_multiply, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 					
-					insert_last(implicit_multiply, term);
+					ast_insert_last(implicit_multiply, term);
 					term->flags = TermFlag_OpArgRight;
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -635,21 +635,21 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_first(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -676,21 +676,21 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -716,21 +716,21 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -756,21 +756,21 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -797,21 +797,21 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -827,8 +827,8 @@ b32 parse(Expression* expr){
 				if      (cursor->type == TermType_Expression){
 					term->op_type = OpType_Negation;
 					
-					insert_last(cursor, term);
-					insert_right(cursor, term);
+					ast_insert_last(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(   cursor->type == TermType_Literal
 						 || cursor->type == TermType_Variable
 						 || cursor->type == TermType_FunctionCall
@@ -844,30 +844,30 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator){
 					term->op_type = OpType_Negation;
 					
-					insert_last(cursor, term);
+					ast_insert_last(cursor, term);
 					term->flags = TermFlag_OpArgRight;
 					if(cursor->op_type == OpType_Parentheses){
 						if(cursor->first_inside){
-							insert_left(cursor->first_inside, term);
+							linear_insert_left(cursor->first_inside, term);
 						}else{
 							term->outside = cursor;
 							cursor->first_inside = cursor->last_inside = term;
 						}
 					}else{
-						insert_right(cursor, term);
+						linear_insert_right(cursor, term);
 					}
 				}else{
 					term->op_type = OpType_Negation;
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 			}break;
@@ -894,22 +894,22 @@ b32 parse(Expression* expr){
 						lower = lower->parent;
 					}
 					term->flags = (lower->flags & OPARG_MASK);
-					insert_last(lower->parent, term);
-					change_parent_insert_first(term, lower);
+					ast_insert_last(lower->parent, term);
+					ast_change_parent_insert_last(term, lower);
 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					insert_right(cursor, term);
+					linear_insert_right(cursor, term);
 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
 					valid = false; //NOTE equals operator cant be inside of parentheses
 					if(cursor->first_inside){
-						insert_left(cursor->first_inside, term);
+						linear_insert_left(cursor->first_inside, term);
 					}else{
 						term->outside = cursor;
 						cursor->first_inside = cursor->last_inside = term;
 					}
 				}else{
 					valid = false;
-					insert_right(cursor, term);
-					insert_last((term->outside) ? term->outside : &expr->term, term);
+					linear_insert_right(cursor, term);
+					ast_insert_last((term->outside) ? term->outside : &expr->term, term);
 				}
 				cursor = term;
 				expr->equals = term;
@@ -969,7 +969,7 @@ b32 parse(Expression* expr){
 					}break;
 					
 					case OpType_ExpressionEquals:{
-						if(it->child_count == 0 || it->child_count > 2) return false; //TODO variable solving
+						if(it->child_count == 0 || it->child_count > 2) return false;
 					}break;
 					
 					default: Assert(!"operator type validity not setup"); break;
@@ -978,14 +978,15 @@ b32 parse(Expression* expr){
 			
 			case TermType_Literal:{
 				Assert(it->child_count == 0, "literals should never have children");
-				if(it->parent->type == TermType_Expression) return false;
 			}break;
 			
 			case TermType_Variable:{
 				Assert(it->child_count == 0, "variables should never have children");
-				if(it->parent->type == TermType_Expression) return false;
-				//if(expr->equals == 0) return false; //NOTE cant solve if there is no right side of equals
-				//if(expr->equals->child_count != 2) return false;
+				if(it->variable.expr == 0){
+					//NOTE cant solve for the variable if there is no right side of equals
+					if(expr->equals == 0) return false;
+					if(expr->equals->child_count != 2) return false;
+				}
 			}break;
 			
 			case TermType_FunctionCall:{
@@ -1083,7 +1084,7 @@ if(*OperatorFromTerm(left_op) >= *OperatorFromTerm(right_op)){
 while(left_op->parent && left_op->parent->type == TermType_Operator && *OperatorFromTerm(left_op->parent) >= *OperatorFromTerm(right_op)) left_op = left_op->parent;
 if(left_op == right_op) break;
 old_parent = left_op->parent;
-change_parent_insert_first(right_op, left_op);
+ast_change_parent_insert_last(right_op, left_op);
 ReplaceOpArgs(left_op->flags, TermFlag_OpArgLeft);
 left_op = (old_parent && old_parent->type == TermType_Operator) ? old_parent : 0;
 }else{
@@ -1104,11 +1105,11 @@ Term* left_parent = 0;
 while(cursor->type == TermType_Operator){
 if(cursor->linear <= split){
 Term* old_parent = cursor->parent;
-change_parent_insert_first(&expr->term, cursor);
+ast_change_parent_insert_last(&expr->term, cursor);
 RemoveOpArgs(cursor->flags);
 
 if(cursor->child_count == 2){
-change_parent_insert_first(old_parent, cursor->last_child);
+ast_change_parent_insert_last(old_parent, cursor->last_child);
 ReplaceOpArgs(old_parent->first_child->flags, TermFlag_OpArgLeft);
 }
 
@@ -1172,7 +1173,7 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }else{
 change_parent_insert_last(expr->cursor, &op->term);
@@ -1184,7 +1185,7 @@ if(*op >= *OperatorFromTerm(expr->cursor->right->right)){
 change_parent_insert_last(&op->term, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgRight);
 }else{
-change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 }
 
@@ -1201,7 +1202,7 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }else{
 change_parent_insert_last(expr->cursor, &op->term);
@@ -1218,7 +1219,7 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }else{
 change_parent_insert_last(expr->cursor, &op->term);
@@ -1237,7 +1238,7 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }else{
 change_parent_insert_last(expr->cursor, &op->term);
@@ -1254,7 +1255,7 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 
 if(expr->cursor->right->parent->type == TermType_Operator){
@@ -1284,7 +1285,7 @@ if(*OperatorFromTerm(expr->cursor->left) >= *op){
 change_parent_insert_last(expr->cursor->left, expr->cursor);
 ReplaceOpArgs(expr->cursor->flags, TermFlag_OpArgRight);
 }else{
-change_parent_insert_first(&op->term, expr->cursor);
+ast_change_parent_insert_last(&op->term, expr->cursor);
 ReplaceOpArgs(expr->cursor->flags, TermFlag_OpArgLeft);
 }
 
@@ -1294,7 +1295,7 @@ Term* lower = expr->cursor->left;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }else{
 change_parent_insert_last(expr->cursor->left, &op->term);
@@ -1304,7 +1305,7 @@ ReplaceOpArgs(op->term.flags, TermFlag_OpArgRight);
 attach_at_operators(&op->term, expr->cursor->right);
 }else{
 //if left is a dangling lit and right is an op, change left lit parent to op, attach the expressions
-change_parent_insert_first(&op->term, expr->cursor);
+ast_change_parent_insert_last(&op->term, expr->cursor);
 ReplaceOpArgs(expr->cursor->flags, TermFlag_OpArgLeft);
 
 insert_first(&expr->term, &op->term);
@@ -1320,14 +1321,14 @@ Term* lower = expr->cursor;
 while((lower->parent->type == TermType_Operator) && (*op <= *OperatorFromTerm(lower->parent))) lower = lower->parent;
 op->term.flags = (lower->flags & OPARG_MASK);
 insert_last(lower->parent, &op->term);
-change_parent_insert_first(&op->term, lower);
+ast_change_parent_insert_last(&op->term, lower);
 ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
 }
 }else{
 NotImplemented;
 }
 
-insert_right(expr->cursor, &op->term);
+linear_insert_right(expr->cursor, &op->term);
 return op;
 }*/
 
@@ -1346,7 +1347,7 @@ ast_changed = true;
 Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 lit->term.type   = TermType_Literal;
 insert_first(&expr->term, &lit->term);
-insert_right(&expr->term, &lit->term);
+linear_insert_right(&expr->term, &lit->term);
 expr->cursor = &lit->term;
 }
 
@@ -1380,7 +1381,7 @@ insert_first(expr->cursor->right, &lit->term);
 //if there was already a right literal of the operator, give it to a right operator and split the expression,
 //or make it dangling if there is no right operator
 if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
-change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 
 split_at_operator(expr, expr->cursor);
@@ -1396,7 +1397,7 @@ insert_last(expr->cursor, &lit->term);
 lit->term.flags = TermFlag_OpArgRight;
 insert_last(expr->cursor, &lit->term);
 }
-insert_right(expr->cursor, &lit->term);
+linear_insert_right(expr->cursor, &lit->term);
 expr->cursor = &lit->term;
 }else if(expr->cursor->right->type == TermType_Operator){ //left side of operator
 //NOTE no need to check if between operators here since the cursor would have been on an operator if there was one on left
@@ -1407,7 +1408,7 @@ lit->value = f32(input-48);
 lit->term.type   = TermType_Literal;
 lit->term.flags  = TermFlag_OpArgLeft;
 insert_first(expr->cursor->right, &lit->term);
-insert_right(expr->cursor, &lit->term);
+linear_insert_right(expr->cursor, &lit->term);
 expr->cursor = &lit->term;
 }
 }break;
@@ -1418,7 +1419,7 @@ ast_changed = true;
 Literal* lit = (Literal*)memory_alloc(sizeof(Literal)); //TODO expression arena
 lit->term.type   = TermType_Literal;
 insert_first(&expr->term, &lit->term);
-insert_right(&expr->term, &lit->term);
+linear_insert_right(&expr->term, &lit->term);
 expr->cursor = &lit->term;
 }
 
@@ -1446,7 +1447,7 @@ insert_first(expr->cursor->right, &lit->term);
 //if there was already a right literal of the operator, give it to a right operator and split the expression,
 //or make it dangling if there is no right operator
 if(expr->cursor->right->right && expr->cursor->right->right->type == TermType_Operator){
-change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 
 split_at_operator(expr, expr->cursor);
@@ -1462,7 +1463,7 @@ insert_last(expr->cursor, &lit->term);
 lit->term.flags = TermFlag_OpArgRight;
 insert_last(expr->cursor, &lit->term);
 }
-insert_right(expr->cursor, &lit->term);
+linear_insert_right(expr->cursor, &lit->term);
 expr->cursor = &lit->term;
 }else if(expr->cursor->right->type == TermType_Operator){ //left side of operator
 ast_changed = true;
@@ -1472,7 +1473,7 @@ lit->decimal = 1;
 lit->term.type   = TermType_Literal;
 lit->term.flags  = TermFlag_OpArgLeft;
 insert_first(expr->cursor->right, &lit->term);
-insert_right(expr->cursor, &lit->term);
+linear_insert_right(expr->cursor, &lit->term);
 expr->cursor = &lit->term;
 }
 }break;
@@ -1567,13 +1568,13 @@ if(*OperatorFromTerm(expr->cursor->left) >= *OperatorFromTerm(expr->cursor->righ
 change_parent_insert_last(expr->cursor->left, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgRight);
 }else{
-change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 }
 
 attach_at_operators(expr->cursor->left, expr->cursor->right->right);
 }else if(expr->cursor->right->type != TermType_Operator){ //if left and right are operators, simply remove the operator
-change_parent_insert_first(expr->cursor->left, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->left, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 }
 }
@@ -1585,13 +1586,13 @@ if(*OperatorFromTerm(expr->cursor->left->left) >= *OperatorFromTerm(expr->cursor
 change_parent_insert_last(expr->cursor->left->left, expr->cursor->left);
 ReplaceOpArgs(expr->cursor->left->flags, TermFlag_OpArgRight);
 }else{
-change_parent_insert_first(expr->cursor->right, expr->cursor->left);
+ast_change_parent_insert_last(expr->cursor->right, expr->cursor->left);
 ReplaceOpArgs(expr->cursor->left->flags, TermFlag_OpArgLeft);
 }
 
 attach_at_operators(expr->cursor->left->left, expr->cursor->right);
 }else if(expr->cursor->left->type != TermType_Operator){ //if left and right are operators, simply remove the operator
-change_parent_insert_first(expr->cursor->right, expr->cursor->left);
+ast_change_parent_insert_last(expr->cursor->right, expr->cursor->left);
 ReplaceOpArgs(expr->cursor->left->flags, TermFlag_OpArgLeft);
 }
 }
@@ -1610,7 +1611,7 @@ if(   expr->cursor->right == expr->cursor->last_child
 && expr->cursor->right->right 
 && expr->cursor->right->right->type == TermType_Operator 
 && *op >= *OperatorFromTerm(expr->cursor->right->right)){
-change_parent_insert_first(expr->cursor->right->right, expr->cursor->right);
+ast_change_parent_insert_last(expr->cursor->right->right, expr->cursor->right);
 ReplaceOpArgs(expr->cursor->right->flags, TermFlag_OpArgLeft);
 }
 }
@@ -1647,7 +1648,7 @@ debug_print_term(&expr->term, expr->cursor);
 if(expr->cursor == expr->cursor->parent->first_child){
 while(expr->cursor->first_child){
 ReplaceOpArgs(expr->cursor->first_child->flags, TermFlag_OpArgLeft);
-change_parent_insert_first(expr->cursor->parent, expr->cursor->first_child);
+ast_change_parent_insert_last(expr->cursor->parent, expr->cursor->first_child);
 }
 }else{
 while(expr->cursor->first_child){
@@ -1712,7 +1713,7 @@ attach_at_operators(stolen_lit_old_parent, expr->cursor->right);
 }
 }else{
 						//if left's parent is not an operator, left is dangling, so just change replace cursor with it
-change_parent_insert_first(expr->cursor->parent, expr->cursor->left);
+ast_change_parent_insert_last(expr->cursor->parent, expr->cursor->left);
 ReplaceOpArgs(expr->cursor->left->flags, TermFlag_OpArgLeft);
 }
 }

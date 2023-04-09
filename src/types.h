@@ -49,6 +49,7 @@ union vec2f64{
 	static const vec2f64 ZERO;
 	static const vec2f64 ONE;
 	static const vec2f64 UP;
+	
 	static const vec2f64 DOWN;
 	static const vec2f64 LEFT;
 	static const vec2f64 RIGHT;
@@ -271,6 +272,7 @@ struct Term{
 	TermType  type;
 	TermFlags flags;
 	str8 raw;
+	
 	union{
 		OpType op_type;
 		f64 lit_value;
@@ -295,30 +297,30 @@ struct Term{
 	Term* last_inside;
 };
 
-global void insert_after(Term* target, Term* term){
+global void ast_insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;
 	term->next = target->next;
 	term->prev = target;
 	target->next = term;
 }
 
-global void insert_before(Term* target, Term* term){
+global void ast_insert_before(Term* target, Term* term){
 	if(target->prev) target->prev->next = term;
 	term->prev = target->prev;
 	term->next = target;
 	target->prev = term;
 }
 
-global void remove_horizontally(Term* term){
+global void ast_remove_horizontally(Term* term){
 	if(term->next) term->next->prev = term->prev;
 	if(term->prev) term->prev->next = term->next;
 	term->next = term->prev = 0;
 }
 
-global void insert_last(Term* parent, Term* child){
+global void ast_insert_last(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
-		insert_after(parent->last_child, child);
+		ast_insert_after(parent->last_child, child);
 		parent->last_child = child;
 	}else{
 		parent->first_child = child;
@@ -327,10 +329,10 @@ global void insert_last(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global void insert_first(Term* parent, Term* child){
+global void ast_insert_first(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
-		insert_before(parent->first_child, child);
+		ast_insert_before(parent->first_child, child);
 		parent->first_child = child;
 	}else{
 		parent->first_child = child;
@@ -339,7 +341,7 @@ global void insert_first(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global void remove_from_parent(Term* term){
+global void ast_remove_from_parent(Term* term){
 	if(term->parent == 0) return;
 	if(term->parent->child_count > 1){
 		if(term == term->parent->first_child) term->parent->first_child = term->next;
@@ -352,21 +354,21 @@ global void remove_from_parent(Term* term){
 	term->parent->child_count--;
 }
 
-global void change_parent_insert_last(Term* new_parent, Term* term){
+global void ast_change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
-	remove_from_parent(term);
-	remove_horizontally(term);
-	insert_last(new_parent, term);
+	ast_remove_from_parent(term);
+	ast_remove_horizontally(term);
+	ast_insert_last(new_parent, term);
 }
 
-global void change_parent_insert_first(Term* new_parent, Term* term){
+global void ast_change_parent_insert_first(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
-	remove_from_parent(term);
-	remove_horizontally(term);
-	insert_first(new_parent, term);
+	ast_remove_from_parent(term);
+	ast_remove_horizontally(term);
+	ast_insert_first(new_parent, term);
 }
 
-global void insert_left(Term* target, Term* term){
+global void linear_insert_left(Term* target, Term* term){
 	if(target->left) target->left->right = term;
 	term->right = target;
 	term->left  = target->left;
@@ -379,7 +381,7 @@ global void insert_left(Term* target, Term* term){
 	}
 }
 
-global void insert_right(Term* target, Term* term){
+global void linear_insert_right(Term* target, Term* term){
 	if(target->right) target->right->left = term;
 	term->left  = target;
 	term->right = target->right;
@@ -392,7 +394,7 @@ global void insert_right(Term* target, Term* term){
 	}
 }
 
-global void remove_linear(Term* term){
+global void linear_remove(Term* term){
 	if(term->right) term->right->left = term->left;
 	if(term->left)  term->left->right = term->right;
 	if(term->outside){
