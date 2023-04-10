@@ -145,20 +145,20 @@ int main(int args_count, char** args){
 			if(expr.unknown_vars){
 				//TODO assuming very simple, one-op equations for now (5 = 1 + x; 1 + x = 5)
 				//TODO hacky direct usage of solver vars
-				Logf("","%.*s = %g\n", (int)solver_unknown_variables[0]->raw.count, (const char*)solver_unknown_variables[0]->raw.str, expr.solution);
+				Logf("","%.*s = %g", (int)solver_unknown_variables[0]->raw.count, (const char*)solver_unknown_variables[0]->raw.str, expr.solution);
 			}else{
 				if(expr.solution == MAX_F64){
-					Logf("","%.*s ERROR\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
+					Logf("","%.*s ERROR", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
 				}else{
-					Logf("","%.*s %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+					Logf("","%.*s %g", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
 				}
 			}
 		}else if(expr.solution != MAX_F64){
-			Logf("","%.*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+			Logf("","%.*s = %g", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
 		}
-		fflush(stdout);
 		
-		_Exit(0); //NOTE(delle) force exit without calling destructors
+		fflush(stdout);
+		_exit(solver_error_code); //NOTE(delle) force exit without calling destructors
 		return 0;
 	}
 	

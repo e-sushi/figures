@@ -27,7 +27,6 @@ enum{
 	SolverError_LogarithmBaseZero,
 	SolverError_LogarithmBaseOne,
 	SolverError_LogarithmOfZero,
-	SolverError_VariableSolveWithoutEquals,
 };
 
 b32 solver_has_error = false;
@@ -47,7 +46,6 @@ u32 solver_unknown_variables_count_right = 0;
 //// @solver_equation
 
 
-void solve_find_unknowns(Expression* expr);
 void solve_unknowns(Expression* expr);
 
 f64 solve(Term* term){
@@ -194,7 +192,7 @@ void solve_unknowns(Expression* expr){
 	Assert(expr->equals, "the expression must have an equals operator in order to solve for unknowns");
 	
 	//deep copy the expression so it can be reordered for solving without affecting the original expression
-	//NOTE one extra term as an empty slot for easier reordering
+	//NOTE one extra term as an empty slot for easier reordering and an extra operator (like subtraction where we want an extra negation op)
 	Term* terms = (Term*)memory_talloc((expr->terms.count + 1) * sizeof(Term));
 	Term* equals = &terms[expr->equals - expr->terms.data];
 	Term* extra = terms + expr->terms.count;
@@ -242,20 +240,17 @@ void solve_unknowns(Expression* expr){
 			expr->solution = solve(equals->first_child);
 		}else{
 			//TODO heuristic for choosing which side of the equation to isolate the unknown (opposite of side which is more complex?)
-			//     but for now, keep it still and move everything else
 			Term* op = (unknown->var.right_of_equals) ? equals->last_child : equals->first_child;
 			switch(op->op_type){
-				//(5 = 1 + x; 1 + x = 5)
 				case OpType_Addition:{
-					//create the inverse operator using the extra term
+					//5 = 1 + x    1 + x = 5
+					
+					//create a subtraction operator as the parent on the other side
+					//5 - = 1 + x    1 + x = 5 -
 					ZeroMemory(extra, sizeof(Term));
 					extra->type = TermType_Operator;
 					extra->raw = str8_lit("-");
 					extra->op_type = OpType_Subtraction;
-					
-					//insert the inverse operator into the other side of the equals
-					//for subtraction, parenting everything on the other side
-					//(5 - = 1 + x; 1 + x = 5 -)
 					if(unknown->var.right_of_equals){
 						ast_change_parent_insert_first(extra, equals->first_child);
 						ast_insert_first(equals, extra);
@@ -264,27 +259,76 @@ void solve_unknowns(Expression* expr){
 						ast_insert_last(equals, extra);
 					}
 					
-					//change parent of the unknown's sibling to the inverse operator
-					//(5 - 1 = + x; + x = 5 - 1)
+					//change parent of the unknown's sibling to the subtraction operator
+					//5 - 1 = + x    + x = 5 - 1
 					if(unknown == op->first_child){
 						ast_change_parent_insert_last(extra, op->last_child);
 					}else{
 						ast_change_parent_insert_last(extra, op->first_child);
 					}
 					
-					//elevate the unknown to be the child of the equals
-					//(5 - 1 = x_+; +_x = 5 - 1)
+					//elevate the unknown to be a child of the equals
+					//5 - 1 = x_+    +_x = 5 - 1
 					if(unknown->var.right_of_equals){
 						ast_change_parent_insert_last(equals, unknown);
 					}else{
 						ast_change_parent_insert_first(equals, unknown);
 					}
 					
-					//convert the operator to be the extra for later reuse
-					//(5 - 1 = x; x = 5 - 1)
+					//convert the addition operator to be the extra for later reuse
+					//5 - 1 = x     x = 5 - 1
 					ast_remove_from_parent(op);
 					ast_remove_horizontally(op);
 					Swap(extra, op);
+				}break;
+				
+				case OpType_Subtraction:{
+					if(unknown == op->first_child){
+						//5 = x - 1    x - 1 = 5
+						
+						//create an addition operator as the parent on the other side
+						//5 + = x - 1    x - 1 = 5 +
+						ZeroMemory(extra, sizeof(Term));
+						extra->type = TermType_Operator;
+						extra->raw = str8_lit("+");
+						extra->op_type = OpType_Addition;
+						if(unknown->var.right_of_equals){
+							ast_change_parent_insert_first(extra, equals->first_child);
+							ast_insert_first(equals, extra);
+						}else{
+							ast_change_parent_insert_first(extra, equals->last_child);
+							ast_insert_last(equals, extra);
+						}
+						
+						//change parent of the unknown's sibling to the new addition operator
+						//5 + 1 = x -    x - = 5 + 1
+						ast_change_parent_insert_last(extra, op->last_child);
+						
+						//elevate the unknown to be a child of the equals
+						//5 + 1 = x_-    x_- = 5 + 1
+						if(unknown->var.right_of_equals){
+							ast_change_parent_insert_last(equals, unknown);
+						}else{
+							ast_change_parent_insert_first(equals, unknown);
+						}
+						
+						//convert the original subtraction operator to be the extra for later reuse
+						//5 + 1 = x    x = 5 + 1
+						ast_remove_from_parent(op);
+						ast_remove_horizontally(op);
+						Swap(extra, op);
+					}else{
+						//5 = 1 - x    1 - x = 5
+						Term* other_side = (unknown->var.right_of_equals) ? equals->first_child : equals->last_child;
+						
+						//elevate the unknown to be a child of the equals on the other side
+						//5_x = 1 -    1 - = 5_x
+						ast_change_parent_insert_last(equals, unknown);
+						
+						//change parent of the the other side to the original subtraction
+						//x = 1 - 5    1 - 5 = x
+						ast_change_parent_insert_last(op, other_side);
+					}
 				}break;
 				
 				default:{
