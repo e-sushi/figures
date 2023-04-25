@@ -222,11 +222,7 @@ b32 parse(Expression* expr){
 					value = (f64)strtoll((const char*)token_start, 0, 10);
 				}
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Literal;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Literal);
 				term->lit_value = value;
 				
 				if      (cursor->type == TermType_Expression){
@@ -235,12 +231,8 @@ b32 parse(Expression* expr){
 				}else if(cursor->type == TermType_Operator){
 					if(cursor->op_type == OpType_Parentheses){
 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-							expr->terms.add(Term{});
-							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-							implicit_multiply->type      = TermType_Operator;
-							implicit_multiply->raw.str   = 0;
-							implicit_multiply->raw.count = 0;
-							implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 							//loop until we find a lower precedence operator, then insert op below it
 							Term* lower = cursor;
@@ -272,11 +264,7 @@ b32 parse(Expression* expr){
 						term->flags = TermFlag_OpArgRight;
 					}
 				}else if(cursor->type == TermType_Variable){
-					expr->terms.add(Term{});
-					Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-					implicit_multiply->type      = TermType_Operator;
-					implicit_multiply->raw.str   = 0;
-					implicit_multiply->raw.count = 0;
+					Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
 					implicit_multiply->op_type   = OpType_ImplicitMultiplication;
 					
 					//loop until we find a lower precedence operator, then insert op below it
@@ -328,12 +316,8 @@ b32 parse(Expression* expr){
 							stream = open_paren;
 							str8_advance(&stream);
 							
-							expr->terms.add(Term{});
-							func = &expr->terms[expr->terms.count-1];
-							func->type      = TermType_Logarithm;
-							func->raw.str   = token_start;
-							func->raw.count = TOKEN_LENGTH - 1;
-							func->log_base  = atof((const char*)token_start+4);
+							Term* func = make_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_Logarithm);
+							func->log_base = atof((const char*)token_start+4);
 						}
 					}
 					
@@ -347,12 +331,8 @@ b32 parse(Expression* expr){
 								stream = open_paren;
 								str8_advance(&stream);
 								
-								expr->terms.add(Term{});
-								func = &expr->terms[expr->terms.count-1];
-								func->type      = TermType_FunctionCall;
-								func->raw.str   = token_start;
-								func->raw.count = TOKEN_LENGTH - 1;
-								func->func      = it;
+								Term* func = make_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_FunctionCall);
+								func->func = it;
 								break;
 							}
 						}
@@ -360,12 +340,8 @@ b32 parse(Expression* expr){
 				}
 				
 				if(func){
-					expr->terms.add(Term{});
-					Term* paren = &expr->terms[expr->terms.count-1];
-					paren->type      = TermType_Operator;
-					paren->raw.str   = stream.str - 1;
-					paren->raw.count = 1;
-					paren->op_type   = OpType_Parentheses;
+					Term* paren = make_term(expr, {stream.str-1, 1}, TermType_Operator);
+					paren->op_type = OpType_Parentheses;
 					ast_insert_last(func, paren);
 					linear_insert_right(func, paren);
 					
@@ -375,12 +351,8 @@ b32 parse(Expression* expr){
 					}else if(cursor->type == TermType_Operator){
 						if(cursor->op_type == OpType_Parentheses){
 							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-								expr->terms.add(Term{});
-								Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-								implicit_multiply->type      = TermType_Operator;
-								implicit_multiply->raw.str   = 0;
-								implicit_multiply->raw.count = 0;
-								implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+								Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+								implicit_multiply->op_type = OpType_ImplicitMultiplication;
 								
 								//loop until we find a lower precedence operator, then insert op below it
 								Term* lower = cursor;
@@ -412,12 +384,8 @@ b32 parse(Expression* expr){
 							func->flags = TermFlag_OpArgRight;
 						}
 					}else if(cursor->type == TermType_Literal){
-						expr->terms.add(Term{});
-						Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-						implicit_multiply->type      = TermType_Operator;
-						implicit_multiply->raw.str   = 0;
-						implicit_multiply->raw.count = 0;
-						implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+						Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+						implicit_multiply->op_type = OpType_ImplicitMultiplication;
 						
 						//loop until we find a lower precedence operator, then insert op below it
 						Term* lower = cursor;
@@ -446,11 +414,7 @@ b32 parse(Expression* expr){
 					str8_advance(&stream);
 					
 					forI(TOKEN_LENGTH){
-						expr->terms.add(Term{});
-						Term* term = expr->terms.last;
-						term->type      = TermType_Variable;
-						term->raw.str   = token_start + i;
-						term->raw.count = 1;
+						Term* term = make_term(expr, {token_start, 1}, TermType_Variable);
 						
 						//TODO handle variable substitution, currently just assuming we're solving for it
 						expr->unknown_vars += 1;
@@ -476,12 +440,8 @@ b32 parse(Expression* expr){
 								}
 							}
 						}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-							expr->terms.add(Term{});
-							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-							implicit_multiply->type      = TermType_Operator;
-							implicit_multiply->raw.str   = 0;
-							implicit_multiply->raw.count = 0;
-							implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 							//loop until we find a lower precedence operator, then insert op below it
 							Term* lower = cursor;
@@ -513,12 +473,8 @@ b32 parse(Expression* expr){
 			case '(':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_Parentheses;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_Parentheses;
 				
 				if      (cursor->type == TermType_Expression){
 					ast_insert_last(cursor, term);
@@ -526,12 +482,8 @@ b32 parse(Expression* expr){
 				}else if(cursor->type == TermType_Operator){
 					if(cursor->op_type == OpType_Parentheses){
 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-							expr->terms.add(Term{});
-							Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-							implicit_multiply->type      = TermType_Operator;
-							implicit_multiply->raw.str   = 0;
-							implicit_multiply->raw.count = 0;
-							implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 							//loop until we find a lower precedence operator, then insert op below it
 							Term* lower = cursor;
@@ -564,12 +516,8 @@ b32 parse(Expression* expr){
 						linear_insert_right(cursor, term);
 					}
 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-					expr->terms.add(Term{});
-					Term* implicit_multiply = &expr->terms[expr->terms.count-1];
-					implicit_multiply->type      = TermType_Operator;
-					implicit_multiply->raw.str   = 0;
-					implicit_multiply->raw.count = 0;
-					implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+					Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+					implicit_multiply->op_type = OpType_ImplicitMultiplication;
 					
 					//loop until we find a lower precedence operator, then insert op below it
 					Term* lower = cursor;
@@ -623,12 +571,8 @@ b32 parse(Expression* expr){
 			case '^':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_Exponential;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_Exponential;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
@@ -664,12 +608,8 @@ b32 parse(Expression* expr){
 			case '*':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_ExplicitMultiplication;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_ExplicitMultiplication;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
@@ -704,12 +644,8 @@ b32 parse(Expression* expr){
 			case '/':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_Division;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_Division;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
@@ -744,12 +680,8 @@ b32 parse(Expression* expr){
 			case '%':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_Modulo;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_Modulo;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
@@ -785,12 +717,8 @@ b32 parse(Expression* expr){
 			case '+':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_Addition;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_Addition;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable
@@ -825,11 +753,7 @@ b32 parse(Expression* expr){
 			case '-':{
 				str8_advance(&stream);
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 				
 				if      (cursor->type == TermType_Expression){
 					term->op_type = OpType_Negation;
@@ -886,12 +810,8 @@ b32 parse(Expression* expr){
 					valid = false; //NOTE an equals operator already exists
 				}
 				
-				expr->terms.add(Term{});
-				Term* term = &expr->terms[expr->terms.count-1];
-				term->type      = TermType_Operator;
-				term->raw.str   = token_start;
-				term->raw.count = TOKEN_LENGTH;
-				term->op_type   = OpType_ExpressionEquals;
+				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+				term->op_type = OpType_ExpressionEquals;
 				
 				if(   cursor->type == TermType_Literal
 				   || cursor->type == TermType_Variable

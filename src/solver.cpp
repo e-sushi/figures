@@ -39,7 +39,7 @@ u32 solver_unknown_variables_count_right = 0;
 
 #define SOLVER_ERROR_VALUE MAX_F64
 #define SOLVER_ERROR_PASSTHRU(var) if(var == SOLVER_ERROR_VALUE) return SOLVER_ERROR_VALUE
-#define SOLVER_ERROR(error_code) (solver_has_error = true, solver_error_code = error_code, solver_error_term = term, SOLVER_ERROR_VALUE)
+#define SOLVER_ERROR(error_code) (solver_error_code = error_code, solver_error_term = term, SOLVER_ERROR_VALUE)
 
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,14 +49,13 @@ u32 solver_unknown_variables_count_right = 0;
 void solve_unknowns(Expression* expr);
 
 f64 solve(Term* term){
-	if(solver_has_error) return SOLVER_ERROR_VALUE;
+	if(solver_error_code != SolverError_None) return SOLVER_ERROR_VALUE;
 	
 	switch(term->type){
 		case TermType_Expression:{
 			Expression* expr = ExpressionFromTerm(term);
 			if(!expr->valid) return SOLVER_ERROR(SolverError_InvalidExpression);
 			
-			solver_has_error = false;
 			solver_error_code = SolverError_None;
 			solver_error_term = 0;
 			solver_expression = expr;
@@ -192,7 +191,7 @@ void solve_unknowns(Expression* expr){
 	Assert(expr->equals, "the expression must have an equals operator in order to solve for unknowns");
 	
 	//deep copy the expression so it can be reordered for solving without affecting the original expression
-	//NOTE one extra term as an empty slot for easier reordering and an extra operator (like subtraction where we want an extra negation op)
+	//NOTE one extra term as an empty slot for easier reordering
 	Term* terms = (Term*)memory_talloc((expr->terms.count + 1) * sizeof(Term));
 	Term* equals = &terms[expr->equals - expr->terms.data];
 	Term* extra = terms + expr->terms.count;

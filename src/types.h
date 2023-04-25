@@ -433,7 +433,7 @@ struct Expression{
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
 
-Expression* make_expression(){
+global Expression* make_expression(){
 	Expression* expr = memory_allocT(Expression); //TODO expression arena
 	expr->term.type         = TermType_Expression;
 	expr->terms.allocator   = deshi_allocator;
@@ -441,6 +441,14 @@ Expression* make_expression(){
 	expr->term_cursor_start = &expr->term;
 	str8_builder_init(&expr->raw, str8{}, deshi_allocator);
 	return expr;
+}
+
+global Term* make_term(Expression* expr, str8 raw, TermType type){
+	expr->terms.add(Term{}); //TODO expression arena
+	Term* result = &expr->terms[expr->terms.count-1];
+	result->type = type;
+	result->raw  = raw;
+	return result;
 }
 
 #endif //SUUGU_TYPES_H
