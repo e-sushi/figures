@@ -52,7 +52,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 //// kigu includes ////
 #include "kigu/profiling.h"
-#include "kigu/array.h"
+#include "kigu/arrayT.h"
 #include "kigu/array_utils.h"
 #include "kigu/common.h"
 #include "kigu/cstring.h"
