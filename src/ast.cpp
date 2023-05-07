@@ -79,7 +79,7 @@ void debug_draw_term_simple(Term* term){
 #define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
 #define DDA_PrevLayer() layer -= 1;
 #define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
-	persist array<f32> layers;
+	persist arrayT<f32> layers;
 	persist s32 font_height = 32;
 	persist s32 vertical_padding = 16;
 	persist s32 horizontal_padding = 16;
@@ -91,7 +91,7 @@ void debug_draw_term_simple(Term* term){
 			expr = ExpressionFromTerm(term);
 			if(term->child_count){
 				layer = -1;
-				layers = array<f32>(deshi_temp_allocator);
+				layers = arrayT<f32>(deshi_temp_allocator);
 				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
 				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
 				UI::TextOld(str8l(" "));
@@ -1688,8 +1688,8 @@ struct gvEdge {
 };
 
 struct gvGraph {
-	array<gvNode> nodes;
-	array<gvEdge> edges;
+	arrayT<gvNode> nodes;
+	arrayT<gvEdge> edges;
 	f64 xmax=0,ymax=0;
 };
 

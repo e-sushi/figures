@@ -109,7 +109,7 @@ struct Element{
 //struct Workspace{
 //Element element;
 //str8 name;
-//array<Expression*> expressions = array<Expression*>(deshi_allocator);
+//arrayT<Expression*> expressions = arrayT<Expression*>(deshi_allocator);
 //};
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
@@ -417,7 +417,7 @@ struct Expression{
 	
 	b32 changed;
 	Term term;
-	array<Term> terms; //NOTE temporary until expression arena
+	arrayT<Term> terms; //NOTE temporary until expression arena
 	Term* equals;
 	Term* rightmost;
 	

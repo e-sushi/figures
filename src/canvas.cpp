@@ -92,10 +92,10 @@ enum CanvasBind_{ //TODO ideally support multiple keybinds per action
 struct PencilStroke{
 	f32   size;
 	color color;
-	array<vec2f64> pencil_points;
+	arrayT<vec2f64> pencil_points;
 };
 
-local array<PencilStroke> pencil_strokes;
+local arrayT<PencilStroke> pencil_strokes;
 local u32     pencil_stroke_idx  = 0;
 local f32     pencil_stroke_size = 1;
 local color   pencil_stroke_color = PackColorU32(249,195,69,255);
@@ -1045,7 +1045,7 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
-local array<Element*> elements(deshi_allocator);
+local arrayT<Element*> elements(deshi_allocator);
 local Element* selected_element;
 local GraphElement* active_graph; //TODO remove this and use selected_element instead
 local vec2f64 mouse_pos_world;
@@ -1523,7 +1523,7 @@ void update_canvas(){
 	forE(pencil_strokes){
 		if(it->pencil_points.count > 1){
 			
-			//array<vec2> pps(it->pencil_points.count);
+			//arrayT<vec2> pps(it->pencil_points.count);
 			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
 			
