@@ -16,7 +16,9 @@ StartLinkageC();
 
 // multiprecision integer, or big int
 struct mint{
-	s8 sign; // the sign of this mint, -1 for negative, 0 for zero, and 1 for positive
+	// the sign of this mint, -1 for negative, 0 for zero, and 1 for positive
+	// if this is 0, then the entire struct is 0! a mint with no sign has nothing allocated.
+	s8 sign; 
 	u8* arr; // array of integers representing this mint
 	u64 count; 
 };
@@ -32,10 +34,17 @@ mint mint_copy(mint m);
 
 // compares two mints.
 // returns 
-//	 1 -> a > b
-//   0 -> a == b
-//  -1 -> a < b 
+//	 1 if a > b
+//   0 if a == b
+//  -1 if a < b 
 s8 mint_compare(mint a, mint b);
+
+// compares two mints, ignoring sign
+// returns 
+//	 1 if a > b
+//   0 if a == b
+//  -1 if a < b 
+s8 mint_compare_mag(mint a, mint b);
 
 // tests if 'a' is less than 'b'
 b32 mint_less_than(mint a, mint b);
@@ -98,17 +107,6 @@ EndLinkageC();
 
 #define sign(x) (s8)x<0
 
-// adds b's array to a's, which modifies a
-void __mint_internal_add(mint a, mint b){
-	if(a.count < b.count){
-
-	}
-}
-
-void __mint_internal_sub(u8* a, u8* b){
-
-}
-
 mint mint_init(s8 init){
 	mint m = {0};
 	if(init){
@@ -116,6 +114,8 @@ mint mint_init(s8 init){
 		m.arr = (u8*)memalloc(sizeof(s8));
 		m.arr[0] = init;
 		m.sign = (init < 0 ? -1 : 1);
+		// if the given number is negative we need to perform two's complement to get the actual magnitude
+		if(m.sign == -1) m.arr[0] = ~m.arr[0] + 1;
 	}
 	return m;
 }
@@ -144,16 +144,26 @@ mint mint_copy(mint m){
 }
 
 s8 mint_compare(mint a, mint b){
-	if(a.sign  > b.sign)  return  1;
-	if(a.sign  < b.sign)  return -1;
-	if(a.count < b.count) return  1;
-	if(a.count > b.count) return -1;
+	if(a.sign == b.sign) {
+		switch(a.sign){
+			case  1: return mint_compare_mag(a,b);
+			case  0: return 0; 
+			case -1: return mint_compare_mag(b,a);
+		}
+	}
+	return a.sign > b.sign ? 1 : -1;
+}
+
+s8 mint_compare_mag(mint a, mint b){
+	if(a.count > b.count) return  1;
+	if(a.count < b.count) return -1;
 	forI(a.count){
 		if(a.arr[i] != b.arr[i])
 			return (a.arr[i] < b.arr[i] ? -1 : 1);
 	}
 	return 0;
 }
+
 b32 mint_less_than(mint a, mint b)            { return mint_compare(a,b) <  0; }
 b32 mint_less_than_or_equal(mint a, mint b)   { return mint_compare(a,b) <= 0; }
 b32 mint_greater_than(mint a, mint b)         { return mint_compare(a,b) >  0; }
@@ -184,14 +194,12 @@ mint* mint_log2(mint* a){
 	return a;
 }
 
-// returns a newly allocated mint equal to log2(a)
 mint mint_log2_new(mint a){
 	mint m = mint_copy(a);
 	mint_log2(&m);
 	return m;
 }
 
-// shifts 'a' left by 'b'
 mint* mint_shift_left(mint* a, mint b){	
 	u32 count = 0;
 	forI_reverse(a->count){
@@ -205,17 +213,19 @@ mint* mint_shift_left(mint* a, mint b){
 	return a;
 }
 
-// adds 'b' to 'a' and stores the result in 'a'
 // TODO(sushi) this needs a lot more testing and there are probably several optimizations we can do as well
 mint* mint_add(mint* a, mint b){
-	if(!b.sign) return a;
-	if(b.sign < a->sign){
+	if(!a->sign){ // a is 0
+		*a = mint_copy(b);
+		return a;
+	}
+	if(!b.sign) // b is 0
+		return a;
+	if(b.sign < a->sign) // b is negative
 		return mint_sub(a, b); 
-	}
-	if(a->sign < b.sign){
-		// here, we do -(a-b), because mint_sub stores the result in a, so we can't just flip the order of operands
+	if(a->sign < b.sign) // here, we do -(a-b), because mint_sub stores the result in a, so we can't just flip the order of operands
 		return mint_negate(mint_sub(mint_negate(a), *mint_negate(&b)));
-	}
+	
 
 	//special case where we are adding a mint with itself
 	if(a->arr == b.arr){
@@ -227,8 +237,7 @@ mint* mint_add(mint* a, mint b){
 	// if a is smaller in memory than b, we need to allocate enough space for it
 	if(a->count < b.count) mint_resize(a, b.count);
 
-	//u32 i = 0;
-	// add the corresponding parts of the numbers 
+	// add corresponding parts of the numbers 
 	s32 carry = 0;
 	forI(b.count){
 		u8 res = a->arr[i] + b.arr[i] + carry;
@@ -281,12 +290,53 @@ mint mint_add_s64(mint a, s64 b){
 	return m;
 }
 
-// subtracts 'b' from 'a', and stores the result in 'a'
 mint* mint_sub(mint* a, mint b){
-	return 0;
+	if(!b.sign) return a;
+	if(!a->sign){
+		// if a is zero, just take whatever b is and make it negative
+		*a = mint_copy(b);
+		a->sign = -1;
+		return a;
+	}	
+	if(a->sign == b.sign) return mint_add(a, b);
+
+	s8 compare = mint_compare_mag(*a, b);
+	switch(compare){
+		case 0:{ // the numbers are equal, so a becomes 0
+			memzfree(a->arr);
+			*a = {0};
+			return a;
+		}
+		case 1: break; //no need to do anything maybe
+		case -1: a->sign = !a->sign; break;
+	}
+
+	// if a is smaller in memory than b, we need to allocate enough space for it
+	if(a->count < b.count) mint_resize(a, b.count);
+
+	// subtract corresponding parts of the numbers
+	s32 borrow = 0;
+	forI(b.count){
+		u8 res = a->arr[i] - b.arr[i] - borrow;
+		borrow = sign(a->arr[i]) != sign(res);
+		a->arr[i] = res;
+	}
+
+	// propagate borrows as much as needed
+	for(s32 i = b.count; i < a->count && borrow; i++){
+		u8 res = a->arr[i] - borrow;
+		borrow = sign(a->arr[i]) != sign(res);
+		if(!borrow) break;
+	}
+
+	if(borrow){
+		DebugBreakpoint;
+	}
+
+
+	return a;
 }
 
-// subtracts 'b' from 'a' and stores the result in a new mint
 mint mint_sub_new(mint a, mint b){
 	mint m = mint_copy(a);
 	mint_sub(&m,b);
