@@ -13,6 +13,8 @@
 #include "core/memory.h"
 #include "external/stb/stb_ds.h"
 
+struct Expression;
+
 // represents a unit, which may or may not be composed of other units
 struct Unit{
 	Unit* unit; //array of units that this unit may be made of, 0 if base unit
@@ -23,10 +25,11 @@ struct Unit{
 };
 
 struct Variable{
-	str8  name;
+	Expression* expr; //TODO maybe let variable terms have expression children rather than a tree disconnect
+	str8 name;
 	Unit* unit;
-	f64   value;
 	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
+	b32 right_of_equals;
 };
 
 
@@ -37,6 +40,7 @@ struct Function{
 };
 typedef f64(*Function1Arg)(f64 a);
 
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @vec2f64
 union vec2f64{
@@ -46,6 +50,7 @@ union vec2f64{
 	static const vec2f64 ZERO;
 	static const vec2f64 ONE;
 	static const vec2f64 UP;
+	
 	static const vec2f64 DOWN;
 	static const vec2f64 LEFT;
 	static const vec2f64 RIGHT;
@@ -73,7 +78,6 @@ inline const vec2f64 vec2f64::UP    = vec2f64{ 0,  1};
 inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
 inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
 inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
-
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
@@ -105,14 +109,14 @@ struct Element{
 //struct Workspace{
 //Element element;
 //str8 name;
-//array<Expression*> expressions = array<Expression*>(deshi_allocator);
+//arrayT<Expression*> expressions = arrayT<Expression*>(deshi_allocator);
 //};
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
-struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a deshi module
+struct GraphElement{
 	Element element;
-	Graph* graph;
+	uiGraphCartesian* cartesian_graph;
 };
 //TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
@@ -126,6 +130,7 @@ struct GraphElement{ //NOTE this is in expectance of Graph being extracted to a 
 //f32 rotation;
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @term
@@ -142,6 +147,7 @@ enum TermFlags_{
 	TermFlag_NONE = 0,
 	
 	//// operator argument flags //// //NOTE these flags are mainly used to determine empty slots on operators
+	//TODO(delle) explain these better, i forgot what they do and why, seems to be mostly for rendering?
 	TermFlag_OpArgLeft   = (1 << 0),
 	TermFlag_OpArgRight  = (1 << 1),
 	TermFlag_OpArgTop    = (1 << 2),
@@ -263,18 +269,18 @@ static str8 OpTypeStrs(u32 type){
 	}
 }
 
-
 //term: generic base thing (literal, operator, variable, function call, etc)
 struct Term{
 	TermType  type;
 	TermFlags flags;
 	str8 raw;
+	
 	union{
 		OpType op_type;
 		f64 lit_value;
 		Function* func;
 		f64 log_base;
-		Variable variable;
+		Variable var;
 	};
 	
 	//syntax tree
@@ -293,30 +299,30 @@ struct Term{
 	Term* last_inside;
 };
 
-global void insert_after(Term* target, Term* term){
+global void ast_insert_after(Term* target, Term* term){
 	if(target->next) target->next->prev = term;
 	term->next = target->next;
 	term->prev = target;
 	target->next = term;
 }
 
-global void insert_before(Term* target, Term* term){
+global void ast_insert_before(Term* target, Term* term){
 	if(target->prev) target->prev->next = term;
 	term->prev = target->prev;
 	term->next = target;
 	target->prev = term;
 }
 
-global void remove_horizontally(Term* term){
+global void ast_remove_horizontally(Term* term){
 	if(term->next) term->next->prev = term->prev;
 	if(term->prev) term->prev->next = term->next;
 	term->next = term->prev = 0;
 }
 
-global void insert_last(Term* parent, Term* child){
+global void ast_insert_last(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
-		insert_after(parent->last_child, child);
+		ast_insert_after(parent->last_child, child);
 		parent->last_child = child;
 	}else{
 		parent->first_child = child;
@@ -325,10 +331,10 @@ global void insert_last(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global void insert_first(Term* parent, Term* child){
+global void ast_insert_first(Term* parent, Term* child){
 	child->parent = parent;
 	if(parent->first_child){
-		insert_before(parent->first_child, child);
+		ast_insert_before(parent->first_child, child);
 		parent->first_child = child;
 	}else{
 		parent->first_child = child;
@@ -337,7 +343,7 @@ global void insert_first(Term* parent, Term* child){
 	parent->child_count++;
 }
 
-global void remove_from_parent(Term* term){
+global void ast_remove_from_parent(Term* term){
 	if(term->parent == 0) return;
 	if(term->parent->child_count > 1){
 		if(term == term->parent->first_child) term->parent->first_child = term->next;
@@ -350,21 +356,21 @@ global void remove_from_parent(Term* term){
 	term->parent->child_count--;
 }
 
-global void change_parent_insert_last(Term* new_parent, Term* term){
+global void ast_change_parent_insert_last(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
-	remove_from_parent(term);
-	remove_horizontally(term);
-	insert_last(new_parent, term);
+	ast_remove_from_parent(term);
+	ast_remove_horizontally(term);
+	ast_insert_last(new_parent, term);
 }
 
-global void change_parent_insert_first(Term* new_parent, Term* term){
+global void ast_change_parent_insert_first(Term* new_parent, Term* term){
 	if(new_parent == term->parent) return;
-	remove_from_parent(term);
-	remove_horizontally(term);
-	insert_first(new_parent, term);
+	ast_remove_from_parent(term);
+	ast_remove_horizontally(term);
+	ast_insert_first(new_parent, term);
 }
 
-global void insert_left(Term* target, Term* term){
+global void linear_insert_left(Term* target, Term* term){
 	if(target->left) target->left->right = term;
 	term->right = target;
 	term->left  = target->left;
@@ -377,7 +383,7 @@ global void insert_left(Term* target, Term* term){
 	}
 }
 
-global void insert_right(Term* target, Term* term){
+global void linear_insert_right(Term* target, Term* term){
 	if(target->right) target->right->left = term;
 	term->left  = target;
 	term->right = target->right;
@@ -390,7 +396,7 @@ global void insert_right(Term* target, Term* term){
 	}
 }
 
-global void remove_linear(Term* term){
+global void linear_remove(Term* term){
 	if(term->right) term->right->left = term->left;
 	if(term->left)  term->left->right = term->right;
 	if(term->outside){
@@ -411,7 +417,7 @@ struct Expression{
 	
 	b32 changed;
 	Term term;
-	array<Term> terms; //NOTE temporary until expression arena
+	arrayT<Term> terms; //NOTE temporary until expression arena
 	Term* equals;
 	Term* rightmost;
 	
@@ -420,12 +426,29 @@ struct Expression{
 	b32 right_paren_cursor;
 	
 	b32 valid;
+	u32 unknown_vars;
 	f64 solution;
 };
-//TODO(sushi) remove this and usage of it since we can just use normal C casting
+
 #define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
 #define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
 
+global Expression* make_expression(){
+	Expression* expr = memory_allocT(Expression); //TODO expression arena
+	expr->term.type         = TermType_Expression;
+	expr->terms.allocator   = deshi_allocator;
+	expr->raw_cursor_start  = 0;
+	expr->term_cursor_start = &expr->term;
+	str8_builder_init(&expr->raw, str8{}, deshi_allocator);
+	return expr;
+}
 
+global Term* make_term(Expression* expr, str8 raw, TermType type){
+	expr->terms.add(Term{}); //TODO expression arena
+	Term* result = &expr->terms[expr->terms.count-1];
+	result->type = type;
+	result->raw  = raw;
+	return result;
+}
 
 #endif //SUUGU_TYPES_H

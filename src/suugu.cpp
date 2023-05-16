@@ -52,7 +52,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 //// kigu includes ////
 #include "kigu/profiling.h"
-#include "kigu/array.h"
+#include "kigu/arrayT.h"
 #include "kigu/array_utils.h"
 #include "kigu/common.h"
 #include "kigu/cstring.h"
@@ -65,7 +65,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/commands.h"
 #include "core/console.h"
 #include "core/file.h"
-#include "core/graphing.h"
 #include "core/input.h"
 #include "core/logger.h"
 #include "core/memory.h"
@@ -76,6 +75,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/ui.h"
 #include "core/ui2.h"
 #include "core/ui2_widgets.h"
+#include "core/ui2_graphing.h"
 #include "core/window.h"
 #include "math/math.h"
 
@@ -129,6 +129,10 @@ int main(int args_count, char** args){
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 	// Headless Solve Mode
 	if(solve_mode){
+		memory_init(Kilobytes(50), Kilobytes(50));
+		platform_init();
+		logger_init();
+		
 		Expression expr{};
 		expr.term.type = TermType_Expression;
 		expr.raw_cursor_start = 1;
@@ -138,17 +142,23 @@ int main(int args_count, char** args){
 		//debug_print_term(&expr.term);
 		
 		if(expr.equals){
-			if(expr.solution == MAX_F64){
-				printf("%*s ERROR\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
+			if(expr.unknown_vars){
+				//TODO assuming very simple, one-op equations for now (5 = 1 + x; 1 + x = 5)
+				//TODO hacky direct usage of solver vars
+				Logf("","%.*s = %g", (int)solver_unknown_variables[0]->raw.count, (const char*)solver_unknown_variables[0]->raw.str, expr.solution);
 			}else{
-				printf("%*s %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+				if(expr.solution == MAX_F64){
+					Logf("","%.*s ERROR", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
+				}else{
+					Logf("","%.*s %g", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+				}
 			}
 		}else if(expr.solution != MAX_F64){
-			printf("%*s = %g\n", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
+			Logf("","%.*s = %g", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str, expr.solution);
 		}
-		fflush(stdout);
 		
-		_Exit(0); //NOTE(delle) force exit without calling destructors
+		fflush(stdout);
+		_exit(solver_error_code); //NOTE(delle) force exit without calling destructors
 		return 0;
 	}
 	
@@ -214,11 +224,11 @@ int main(int args_count, char** args){
 	//init suugu
 	init_canvas();
 	init_suugu_commands();
-
-	mint a = mint_init(5);
-	mint b = mint_init(-1);
-
-
+	
+#if 0 //mint testing
+	mint a = mint_init(20);
+	mint b = mint_init(127);
+	
 	forI(0xffff){
 		mint_add(&a, b);
 		if     (a.count == 0) Log("", 0);
@@ -227,8 +237,8 @@ int main(int args_count, char** args){
 		else if(a.count == 3) Log("", *(u32*)&a.arr[0]);
 		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
 	}
-
-
+#endif
+	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
@@ -242,7 +252,7 @@ int main(int args_count, char** args){
 		logger_update();
 		memory_clear_temp();
 	}
-
+	
 	//cleanup deshi
 	render_cleanup();
 	logger_cleanup();
