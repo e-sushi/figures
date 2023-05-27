@@ -216,7 +216,7 @@ app_sources="src/suugu.cpp"
 
 #### Specifiy libs ####
 lib_paths=(
-  "${vulkan_folder}lib"
+  "${vulkan_folder}/lib"
 )
 libs=(
 
@@ -516,7 +516,7 @@ elif [ $builder_platform == "linux" ]; then
   # ClangBuildAnalyzer --stop /home/sushi/src/suugu/build/debug/ out
   exe $build_compiler++ $build_dir/${app_name}.o $build_dir/deshi.o $link_flags $link_libs -o"$build_dir/$app_name"
   if [ $build_time == 1 ]; then printf "time: %f seconds" $(awk "BEGIN {print $(date +%s.%3N) - $start_time}"); fi
-  ClangBuildAnalyzer --analyze out > ctimeanalysis
+  # ClangBuildAnalyzer --analyze out > ctimeanalysis
 else
   echo "Execute commands not setup for platform: $builder_platform"
 fi
