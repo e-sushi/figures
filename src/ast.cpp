@@ -76,108 +76,109 @@ void debug_print_term(Term* term){
 
 local b32 DEBUG_draw_term_simple_ = false;
 void debug_draw_term_simple(Term* term){
-#define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
-#define DDA_PrevLayer() layer -= 1;
-#define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
-	persist arrayT<f32> layers;
-	persist s32 font_height = 32;
-	persist s32 vertical_padding = 16;
-	persist s32 horizontal_padding = 16;
-	persist s32 layer = -1;
-	persist Expression* expr = 0;
+	FixMe;
+// #define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
+// #define DDA_PrevLayer() layer -= 1;
+// #define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
+// 	persist arrayT<f32> layers;
+// 	persist s32 font_height = 32;
+// 	persist s32 vertical_padding = 16;
+// 	persist s32 horizontal_padding = 16;
+// 	persist s32 layer = -1;
+// 	persist Expression* expr = 0;
 	
-	switch(term->type){
-		case TermType_Expression:{
-			expr = ExpressionFromTerm(term);
-			if(term->child_count){
-				layer = -1;
-				layers = arrayT<f32>(deshi_temp_allocator);
-				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
-				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
-				UI::TextOld(str8l(" "));
-				DDA_NextLayer();
-				for_node(term->first_child) debug_draw_term_simple(it);
-				DDA_PrevLayer();
-				UI::End();
-				UI::PopVar();
-			}
-		}break;
+// 	switch(term->type){
+// 		case TermType_Expression:{
+// 			expr = ExpressionFromTerm(term);
+// 			if(term->child_count){
+// 				layer = -1;
+// 				layers = arrayT<f32>(deshi_temp_allocator);
+// 				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
+// 				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
+// 				UI::TextOld(str8l(" "));
+// 				DDA_NextLayer();
+// 				for_node(term->first_child) debug_draw_term_simple(it);
+// 				DDA_PrevLayer();
+// 				UI::End();
+// 				UI::PopVar();
+// 			}
+// 		}break;
 		
-		case TermType_Operator:{
-			switch(term->op_type){
-				case OpType_Parentheses:           { DDA_AddToLayer(str8l("()")); }break;
-				case OpType_Exponential:           { DDA_AddToLayer(str8l("^")); }break;
-				case OpType_Negation:              { DDA_AddToLayer(str8l("-")); }break;
-				case OpType_ImplicitMultiplication:{ DDA_AddToLayer(str8l("*i")); }break;
-				case OpType_ExplicitMultiplication:{ DDA_AddToLayer(str8l("*e")); }break;
-				case OpType_Division:              { DDA_AddToLayer(str8l("/")); }break;
-				case OpType_Modulo:                { DDA_AddToLayer(str8l("%")); }break;
-				case OpType_Addition:              { DDA_AddToLayer(str8l("+")); }break;
-				case OpType_Subtraction:           { DDA_AddToLayer(str8l("−")); }break;
-				case OpType_ExpressionEquals:      { DDA_AddToLayer(str8l("=")); }break;
-				default:                           { DDA_AddToLayer(str8l("?")); }break;
-			}
-			if(expr->term_cursor_start == term){
-				UI::Rect(UI::GetLastItemPos(), UI::GetLastItemSize(), Color_Yellow);
-			}
+// 		case TermType_Operator:{
+// 			switch(term->op_type){
+// 				case OpType_Parentheses:           { DDA_AddToLayer(str8l("()")); }break;
+// 				case OpType_Exponential:           { DDA_AddToLayer(str8l("^")); }break;
+// 				case OpType_Negation:              { DDA_AddToLayer(str8l("-")); }break;
+// 				case OpType_ImplicitMultiplication:{ DDA_AddToLayer(str8l("*i")); }break;
+// 				case OpType_ExplicitMultiplication:{ DDA_AddToLayer(str8l("*e")); }break;
+// 				case OpType_Division:              { DDA_AddToLayer(str8l("/")); }break;
+// 				case OpType_Modulo:                { DDA_AddToLayer(str8l("%")); }break;
+// 				case OpType_Addition:              { DDA_AddToLayer(str8l("+")); }break;
+// 				case OpType_Subtraction:           { DDA_AddToLayer(str8l("−")); }break;
+// 				case OpType_ExpressionEquals:      { DDA_AddToLayer(str8l("=")); }break;
+// 				default:                           { DDA_AddToLayer(str8l("?")); }break;
+// 			}
+// 			if(expr->term_cursor_start == term){
+// 				UI::Rect(UI::GetLastItemPos(), UI::GetLastItemSize(), Color_Yellow);
+// 			}
 			
-			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-			if(term->child_count){
-				DDA_NextLayer();
-				for_node(term->first_child){
-					f32 pre_width = layers[layer];
-					debug_draw_term_simple(it);
-					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-				}
-				DDA_PrevLayer();
-			}
-		}break;
+// 			//draw children and lines to them
+// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+// 			if(term->child_count){
+// 				DDA_NextLayer();
+// 				for_node(term->first_child){
+// 					f32 pre_width = layers[layer];
+// 					debug_draw_term_simple(it);
+// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+// 				}
+// 				DDA_PrevLayer();
+// 			}
+// 		}break;
 		
-		case TermType_Literal:
-		case TermType_Variable:{
-			DDA_AddToLayer(term->raw);
-		}break;
+// 		case TermType_Literal:
+// 		case TermType_Variable:{
+// 			DDA_AddToLayer(term->raw);
+// 		}break;
 		
-		case TermType_FunctionCall:
-		case TermType_Logarithm:{
-			DDA_AddToLayer(term->raw);
+// 		case TermType_FunctionCall:
+// 		case TermType_Logarithm:{
+// 			DDA_AddToLayer(term->raw);
 			
-			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-			if(term->child_count){
-				DDA_NextLayer();
-				for_node(term->first_child){
-					f32 pre_width = layers[layer];
-					debug_draw_term_simple(it);
-					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-				}
-				DDA_PrevLayer();
-			}
-		}break;
+// 			//draw children and lines to them
+// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+// 			if(term->child_count){
+// 				DDA_NextLayer();
+// 				for_node(term->first_child){
+// 					f32 pre_width = layers[layer];
+// 					debug_draw_term_simple(it);
+// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+// 				}
+// 				DDA_PrevLayer();
+// 			}
+// 		}break;
 		
-		default:{ 
-			DDA_AddToLayer(str8l("?"));
+// 		default:{ 
+// 			DDA_AddToLayer(str8l("?"));
 			
-			//draw children and lines to them
-			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-			if(term->child_count){
-				DDA_NextLayer();
-				for_node(term->first_child){
-					f32 pre_width = layers[layer];
-					debug_draw_term_simple(it);
-					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-				}
-				DDA_PrevLayer();
-			}
-		}break;
-	}
-#undef DDA_NextLayer
-#undef DDA_PrevLayer
-#undef DDA_AddToLayer
+// 			//draw children and lines to them
+// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+// 			if(term->child_count){
+// 				DDA_NextLayer();
+// 				for_node(term->first_child){
+// 					f32 pre_width = layers[layer];
+// 					debug_draw_term_simple(it);
+// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+// 				}
+// 				DDA_PrevLayer();
+// 			}
+// 		}break;
+// 	}
+// #undef DDA_NextLayer
+// #undef DDA_PrevLayer
+// #undef DDA_AddToLayer
 }
 
 
@@ -194,8 +195,8 @@ b32 parse(Expression* expr){
 	Term* cursor = &expr->term;
 	while(stream && *stream.str != '\0'){
 		u8* token_start = stream.str;
-#define TOKEN_OFFSET (token_start - expr->raw.str)
-#define TOKEN_LENGTH (stream.str - token_start)
+#define TOKEN_OFFSET (s64)(token_start - expr->raw.str)
+#define TOKEN_LENGTH (s64)(stream.str - token_start)
 		
 		switch(*stream.str){
 			//-/////////////////////////////////////////////////////////////////////////////////////////////
@@ -421,7 +422,7 @@ b32 parse(Expression* expr){
 						term->var.name = term->raw;
 						//TODO variable unit
 						//TODO variable symbols
-						term->var.right_of_equals = (b32)expr->equals; //if there is already an equals term, we are to the right of it
+						term->var.right_of_equals = expr->equals != 0; //if there is already an equals term, we are to the right of it
 						
 						if      (cursor->type == TermType_Expression){
 							ast_insert_last(cursor, term);

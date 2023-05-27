@@ -52,7 +52,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 
 //// kigu includes ////
 #include "kigu/profiling.h"
-#include "kigu/arrayT.h"
 #include "kigu/array_utils.h"
 #include "kigu/common.h"
 #include "kigu/cstring.h"
@@ -60,7 +59,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "kigu/string.h"
 
 //// deshi includes ////
-#define DESHI_DISABLE_IMGUI
 #include "core/assets.h"
 #include "core/commands.h"
 #include "core/console.h"
@@ -73,9 +71,8 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "core/threading.h"
 #include "core/time.h"
 #include "core/ui.h"
-#include "core/ui2.h"
-#include "core/ui2_widgets.h"
-#include "core/ui2_graphing.h"
+#include "core/ui_widgets.h"
+#include "core/ui_graphing.h"
 #include "core/window.h"
 #include "math/math.h"
 
@@ -95,11 +92,13 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "solver.cpp"
 #include "canvas.cpp"
 #include "suugu_commands.cpp" //NOTE(delle) this should be the last include so it can reference .cpp vars
-
+#if DESHI_LINUX
+#  include "unistd.h" // _exit on linux
+#endif
 
 int main(int args_count, char** args){
 	profiler_init();
-	
+
 	//parse cmd line args
 	b32 solve_mode = false;
 	b32 interactive_mode = false;
@@ -168,7 +167,7 @@ int main(int args_count, char** args){
 		memory_init(Kilobytes(50), Kilobytes(50));
 		platform_init();
 		logger_init();
-		logger_expose()->auto_newline = false;
+		//logger_expose()->auto_newline = false; NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
 		Log("", "----- ", CyanFormat("suugu"), " -----\n");
 		
 		char buffer[255];
@@ -192,9 +191,9 @@ int main(int args_count, char** args){
 				expr.raw_cursor_start = 1;
 				str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
 				expr.valid = parse(&expr);
-				logger_expose()->auto_newline = 1;
+				// logger_expose()->auto_newline = 1;  NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
 				debug_print_term(&expr.term);
-				logger_expose()->auto_newline = 0;
+				// logger_expose()->auto_newline = 0;  NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
 				Log("",solve(&expr.term),"\n");
 			}
 			memory_clear_temp();
@@ -210,20 +209,19 @@ int main(int args_count, char** args){
 	platform_init();
 	logger_init();
 	window_create(str8l("suugu"));
-	render_init();
-	assets_init();
-	uiInit(g_memory,0);
-	UI::Init();
-	console_init();
-	cmd_init();
-	window_show(DeshWindow);
-	render_use_default_camera();
-	threader_init();
+	// render_init();
+	// assets_init();
+	// uiInit(g_memory,0);
+	// console_init();
+	// cmd_init();
+	// window_show(DeshWindow);
+	// render_use_default_camera();
+	// threader_init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
 	
 	//init suugu
-	init_canvas();
-	init_suugu_commands();
+	// init_canvas();
+	// init_suugu_commands();
 	
 #if 0 //mint testing
 	mint a = mint_init(20);
@@ -242,20 +240,19 @@ int main(int args_count, char** args){
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
-		update_canvas();
+		// update_canvas();
 		
-		//update deshi
-		console_update();
-		UI::Update();
-		uiUpdate();
-		render_update();
-		logger_update();
-		memory_clear_temp();
+		// //update deshi
+		// console_update();
+		// uiUpdate();
+		// render_update();
+		// logger_update();
+		// memory_clear_temp();
 	}
 	
 	//cleanup deshi
-	render_cleanup();
-	logger_cleanup();
-	memory_cleanup();
+	// render_cleanup();
+	// logger_cleanup();
+	// memory_cleanup();
 	return 0;
 }
