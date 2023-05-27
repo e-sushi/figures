@@ -41,12 +41,13 @@
 #                                           Builder Vars
 #_____________________________________________________________________________________________________
 #### Determine builder's OS ####
+
 builder_platform="unknown"
 builder_compiler="unknown"
 builder_linker="unknown"
-if [ "$OSTYPE" == "linux-gnu"* ]; then
+if [ "$OSTYPE" == "linux-gnu" ]; then
   builder_platform="linux"
-  builder_compiler="gcc"
+  builder_compiler="clang"
   builder_linker="ld"
 elif [ "$OSTYPE" == "darwin"* ]; then
   builder_platform="mac"
@@ -91,7 +92,6 @@ build_linker="$builder_linker"
 build_object=""
 vulkan_override=0
 
-
 skip_arg=0
 for (( i=1; i<=$#; i++)); do
   #### skip argument if already handled
@@ -104,10 +104,10 @@ for (( i=1; i<=$#; i++)); do
   if [ $i == 1 ]; then
     if [ "${!i}" == "compile" ]; then
       build_cmd="compile"
-      CONTINUE
+      continue
     elif [ "${!i}" == "link" ]; then
       build_cmd="link"
-      CONTINUE
+      continue
     elif [ "${!i}" == "one" ]; then
       build_cmd="one"
       skip_arg=1
@@ -216,20 +216,21 @@ app_sources="src/suugu.cpp"
 
 #### Specifiy libs ####
 lib_paths=(
-  $vulkan_folder/lib
+  "${vulkan_folder}lib"
 )
 libs=(
-  #win32 libs
-  gdi32
-  shell32
-  ws2_32
-  winmm
 
-  #graphics libs
-  opengl32
-  vulkan-1
-  shaderc_combined    #required for vulkan shader compilation at runtime
 )
+
+# TODO(sushi) setup loading libs only necessary for chosen renderer
+if [ $build_platform == "win32" ]; then
+  libs+=( gdi32 shell32 ws2_32 winmm opengl32 vulkan-1 shaderc_combined )
+elif [ $build_platform == "linux" ]; then
+  libs+=( vulkan shaderc_combined X11 )
+else
+  echo "Libs not setup for platform $build_platform"
+fi
+
 #_____________________________________________________________________________________________________
 #                                         Global Defines
 #_____________________________________________________________________________________________________
@@ -240,19 +241,18 @@ else
   defines_build="-DBUILD_INTERNAL=0 -DBUILD_SLOW=0 -DBUILD_RELEASE=1"
 fi
 
-
 defines_platform=""
 if [ $build_platform == "win32" ]; then
   defines_platform="-DDESHI_WINDOWS=1 -DDESHI_MAC=0 -DDESHI_LINUX=0"
 elif [ $build_platform == "mac" ]; then
   defines_platform="-DDESHI_WINDOWS=0 -DDESHI_MAC=1 -DDESHI_LINUX=0" 
 elif [ $build_platform == "linux" ]; then
+  clear
   defines_platform="-DDESHI_WINDOWS=0 -DDESHI_MAC=0 -DDESHI_LINUX=1"
 else
   echo "Platform defines not setup for platform: $build_platform"
   exit 1
 fi
-
 
 defines_graphics=""
 if [ $build_graphics == "vulkan" ]; then
@@ -268,9 +268,9 @@ fi
 
 defines_misc="-D_CRT_SECURE_NO_WARNINGS"
 if [ "$build_profiler" == "profile" ]; then
-  defines_misc="-DTRACY_ENABLE"
+  defines_misc="$defines_misc -DTRACY_ENABLE"
 elif [ "$build_profiler" == "wait and profile" ]; then
-  defines_misc="-DTRACY_ENABLE -DDESHI_WAIT_FOR_TRACY_CONNECTION"
+  defines_misc="$defines_misc -DTRACY_ENABLE -DDESHI_WAIT_FOR_TRACY_CONNECTION"
 fi
 
 defines_shared=""
@@ -359,12 +359,7 @@ elif [ $build_compiler == "gcc" ]; then #_______________________________________
     compile_flags="$compile_flags -fanalysis"
   fi
 elif [ $build_compiler == "clang" ]; then #__________________________________________________________________________clang
-  #### -std=c++17 (specifies to use the C++17 standard)
-  #### -fexceptions ()
-  #### -fcxx-exceptions ()
-  #### -finline-functions ()
-  #### -pipe ()
-  #### -msse3 ()
+
   compile_flags="$compile_flags 
     -std=c++17 
     -fexceptions 
@@ -387,13 +382,17 @@ elif [ $build_compiler == "clang" ]; then #_____________________________________
     -Wno-writable-strings 
     -Wno-unused-function 
     -Wno-unused-variable 
-    -Wno-undefined-inline"
+    -Wno-undefined-inline
+    -Wno-return-type-c-linkage"
+
+  compile_flags="$compile_flags"
+    # -fno-caret-diagnostics"
 
   if [ $build_release == 0 ]; then
     #### -ggdb3 (produces max debug info with extra stuff for gdb)
     #### -gcodeview ()
     #### -O0 ()
-    compile_flags="$compile_flags -ggdb3 -gcodeview -O0"
+    compile_flags="$compile_flags -ggdb3 -O0"
   else
     #### -O2 ()
     compile_flags="$compile_flags -O2"
@@ -462,7 +461,6 @@ exe(){
   fi
 }
 
-
 echo "`date +'%a, %h %d %Y, %H:%M:%S'` ($build_compiler/$build_dir/$build_graphics) [$app_name]"
 if [ ! -e $build_folder ]; then mkdir $build_folder; fi
 if [ ! -e $build_folder/$build_dir ]; then mkdir $build_folder/$build_dir; fi
@@ -505,7 +503,20 @@ if [ $builder_platform == "win32" ]; then
 elif [ $builder_platform == "mac" ]; then
   echo "Execute commands not setup for platform: $builder_platform"
 elif [ $builder_platform == "linux" ]; then
-  echo "Execute commands not setup for platform: $builder_platform"
+  if [ $build_time == 1 ]; then start_time=$(date +%s.%3N); fi
+  echo ---------------------------------
+  # attempting to run clang on both sources at the same time
+  # this doesn't seem to have much of an effect though.
+  # ClangBuildAnalyzer --start /home/sushi/src/suugu/build/debug/
+  exe $build_compiler++  -c $deshi_sources $includes $compile_flags $defines -o "$build_dir/deshi.o"\
+    && echo -e "  \033[0;32mdeshi\033[0m" || echo -e "\033[0;31mdeshi failed to build\033[0m" &
+  exe $build_compiler++ -c $app_sources $includes $compile_flags $defines -o "$build_dir/$app_name.o"\
+    && echo -e "  \033[0;32m$app_name\033[0m" || echo -e "\033[0;31m$app_name failed to build\033[0m" &
+  wait
+  # ClangBuildAnalyzer --stop /home/sushi/src/suugu/build/debug/ out
+  exe $build_compiler++ $build_dir/${app_name}.o $build_dir/deshi.o $link_flags $link_libs -o"$build_dir/$app_name"
+  if [ $build_time == 1 ]; then printf "time: %f seconds" $(awk "BEGIN {print $(date +%s.%3N) - $start_time}"); fi
+  ClangBuildAnalyzer --analyze out > ctimeanalysis
 else
   echo "Execute commands not setup for platform: $builder_platform"
 fi
