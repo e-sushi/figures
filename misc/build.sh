@@ -226,7 +226,7 @@ libs=(
 if [ $build_platform == "win32" ]; then
   libs+=( gdi32 shell32 ws2_32 winmm opengl32 vulkan-1 shaderc_combined )
 elif [ $build_platform == "linux" ]; then
-  libs+=( vulkan shaderc_combined X11 )
+  libs+=( vulkan shaderc_combined X11 GL )
 else
   echo "Libs not setup for platform $build_platform"
 fi
@@ -331,7 +331,7 @@ if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #_____
 
   if [ $build_static_analysis == 1 ]; then
     #### -analyze (enables static analysis)
-    compile_flags="$compile_flags -analyze"
+    compile_flags="$compile_flags --analyze --analyzer-outputhtml"
   fi
 elif [ $build_compiler == "gcc" ]; then #____________________________________________________________________________gcc
   #### -exceptions (enables exception handling)
@@ -396,6 +396,11 @@ elif [ $build_compiler == "clang" ]; then #_____________________________________
   else
     #### -O2 ()
     compile_flags="$compile_flags -O2"
+  fi
+
+  if [ $build_static_analysis == 1 ]; then
+    #### -analyze (enables static analysis)
+    compile_flags="$compile_flags --analyze"
   fi
 else
   echo "Compile flags not setup for compiler: $build_compiler"
@@ -508,9 +513,9 @@ elif [ $builder_platform == "linux" ]; then
   # attempting to run clang on both sources at the same time
   # this doesn't seem to have much of an effect though.
   # ClangBuildAnalyzer --start /home/sushi/src/suugu/build/debug/
-  exe $build_compiler++  -c $deshi_sources $includes $compile_flags $defines -o "$build_dir/deshi.o"\
+  exe $build_compiler++ -c -ftime-trace $deshi_sources $includes $compile_flags $defines -o "$build_dir/deshi.o"\
     && echo -e "  \033[0;32mdeshi\033[0m" || echo -e "\033[0;31mdeshi failed to build\033[0m" &
-  exe $build_compiler++ -c $app_sources $includes $compile_flags $defines -o "$build_dir/$app_name.o"\
+  exe $build_compiler++ -c -ftime-trace $app_sources $includes $compile_flags $defines -o "$build_dir/$app_name.o"\
     && echo -e "  \033[0;32m$app_name\033[0m" || echo -e "\033[0;31m$app_name failed to build\033[0m" &
   wait
   # ClangBuildAnalyzer --stop /home/sushi/src/suugu/build/debug/ out
