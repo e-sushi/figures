@@ -18,7 +18,6 @@ struct{
         str8* constants;
         str8* units;
     }tags;
-	
 }library;
 
 // loads a suugu library (.slib) into the global library

@@ -1069,19 +1069,22 @@ void init_canvas(){
 	elements.add(&default_graph.element);
 	
 	library_load(STR8("test.slib"));
-	
+
 #if 0
 	//debug testing ui
 	//maximized, this runs at around 500-600 fps
 	
-	const u32 n = 100;
+	const u32 n = 5;
 	static uiItem* items[n];
 	uiItem* inside;
 	
 	forI(n){
 		items[i] = uiItemB();
 		items[i]->style.sizing = size_auto;
-		items[i]->style.padding = {5,5,5,5};
+		items[i]->style.padding_left = 5;
+		items[i]->style.padding_right = 5;
+		items[i]->style.padding_top = 5;
+		items[i]->style.padding_bottom = 5;
 		items[i]->style.background_color = {100, 50, u8(255 * f32(i)/n), 255};
 		
 	}
@@ -1108,7 +1111,7 @@ void init_canvas(){
 }
 
 void update_canvas(){
-	FixMe;
+
 // 	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
 // 	UI::SetNextWindowSize(DeshWindow->width, DeshWindow->height);
 // 	UI::Begin(str8_lit("canvas"), vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
