@@ -32,7 +32,6 @@ struct Variable{
 	b32 right_of_equals;
 };
 
-
 struct Function{
 	str8  text;
 	void* ptr;
@@ -41,68 +40,7 @@ struct Function{
 typedef f64(*Function1Arg)(f64 a);
 
 
-//~////////////////////////////////////////////////////////////////////////////////////////////////
-//// @vec2f64
-union vec2f64{
-	f64 arr[2];
-	struct{ f64 x; f64 y; };
-	
-	static const vec2f64 ZERO;
-	static const vec2f64 ONE;
-	static const vec2f64 UP;
-	
-	static const vec2f64 DOWN;
-	static const vec2f64 LEFT;
-	static const vec2f64 RIGHT;
-	static const vec2f64 UNITX;
-	static const vec2f64 UNITY;
-	
-	inline void    operator= (vec2f64 rhs){x=rhs.x;y=rhs.y;}
-	inline vec2f64 operator- (vec2f64 rhs){return {x-rhs.x,y-rhs.y};}
-	inline void    operator-=(vec2f64 rhs){x-=rhs.x;y-=rhs.y;}
-	inline vec2f64 operator+ (vec2f64 rhs){return {x+rhs.x,y+rhs.y};}
-	inline void    operator+=(vec2f64 rhs){x+=rhs.x;y+=rhs.y;}
-	inline vec2f64 operator/ (vec2f64 rhs){return {x/rhs.x,y/rhs.y};}
-	inline vec2f64 operator* (f64 rhs){return {x*rhs,y*rhs};}
-	inline void    operator*=(f64 rhs){x*=rhs;y*=rhs;}
-	inline vec2f64 operator/ (f64 rhs){return {x/rhs,y/rhs};}
-	inline void    operator/=(f64 rhs){x/=rhs;y/=rhs;}
-	friend vec2f64 operator* (f64 lhs, vec2f64 rhs){return rhs * lhs;}
-};
 
-inline const vec2f64 vec2f64::ZERO  = vec2f64{ 0,  0};
-inline const vec2f64 vec2f64::ONE   = vec2f64{ 1,  1};
-inline const vec2f64 vec2f64::RIGHT = vec2f64{ 1,  0};
-inline const vec2f64 vec2f64::LEFT  = vec2f64{-1,  0};
-inline const vec2f64 vec2f64::UP    = vec2f64{ 0,  1};
-inline const vec2f64 vec2f64::DOWN  = vec2f64{ 0, -1};
-inline const vec2f64 vec2f64::UNITX = vec2f64{ 1,  0};
-inline const vec2f64 vec2f64::UNITY = vec2f64{ 0,  1};
-
-
-//~////////////////////////////////////////////////////////////////////////////////////////////////
-//// @element
-enum CoordinateSpace : u32{
-	//CoordinateSpace_World,
-	//CoordinateSpace_Screen,
-	//CoordinateSpace_Workspace, //TODO maybe add local to workspace
-};
-
-enum ElementType : u32{
-	ElementType_NULL,
-	ElementType_Expression,
-	//ElementType_Workspace,
-	ElementType_Graph,
-	//ElementType_Text,
-};
-
-//element: anything with position, size, coordinate space, and display info
-struct Element{
-	f64 x, y, z;
-	f64 width, height, depth;
-	//CoordinateSpace space;
-	ElementType type;
-};
 
 ////workspace: region of the canvas in which expressions are able to interact together  
 //struct Expression;
@@ -114,10 +52,10 @@ struct Element{
 //#define ElementToWorkspace(elem_ptr) ((Workspace*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Workspace, element))))
 
 ////graph: graphing grid with a local camera in which equations can be drawn
-struct GraphElement{
-	Element element;
-	uiGraphCartesian* cartesian_graph;
-};
+// struct GraphElement{
+// 	Element element;
+// 	uiGraphCartesian* cartesian_graph;
+// };
 //TODO(sushi) remove this and usage of it since we can just use normal C casting
 #define ElementToGraphElement(elem_ptr) ((GraphElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(GraphElement, element))))
 
@@ -130,6 +68,75 @@ struct GraphElement{
 //f32 rotation;
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
+
+/////////////////
+//// @pencil ////
+/////////////////
+struct PencilStroke{
+	f32   size;
+	color color;
+	vec2* pencil_points; // kigu array
+};
+
+////////////////
+//// @tools ////
+////////////////
+enum CanvasTool : u32{
+	CanvasTool_Navigation,
+	CanvasTool_Context,
+	CanvasTool_Expression,
+	CanvasTool_Pencil,
+};
+local const char* canvas_tool_strings[] = {
+	"Navigation", "Context", "Expression", "Pencil",
+};
+
+////////////////
+//// @binds ////
+////////////////
+enum CanvasBind_{ //TODO ideally support multiple keybinds per action
+	//[GLOBAL] SetTool
+	CanvasBind_SetTool_Navigation = Key_ESCAPE  | InputMod_Any,
+	CanvasBind_SetTool_Context    = Mouse_RIGHT | InputMod_AnyCtrl,
+	CanvasBind_SetTool_Expression = Key_E       | InputMod_AnyCtrl, //NOTE temp making this CTRL+E for simplicity
+	CanvasBind_SetTool_Pencil     = Key_P       | InputMod_AnyCtrl,
+	CanvasBind_SetTool_Graph      = Key_G       | InputMod_AnyCtrl,
+	CanvasBind_SetTool_Previous   = Mouse_4     | InputMod_None,
+	
+	//[GLOBAL] Camera 
+	CanvasBind_Camera_Pan = Mouse_MIDDLE | InputMod_None,
+	
+	//[LOCAL]  Navigation 
+	CanvasBind_Navigation_Pan       = Mouse_LEFT  | InputMod_Any,
+	CanvasBind_Navigation_ResetPos  = Key_NP0     | InputMod_None,
+	CanvasBind_Navigation_ResetZoom = Key_NP0     | InputMod_None,
+	
+	//[LOCAL]  Expression
+	CanvasBind_Expression_Select                = Mouse_LEFT    | InputMod_None,
+	CanvasBind_Expression_Create                = Mouse_RIGHT   | InputMod_None,
+	CanvasBind_Expression_CursorLeft            = Key_LEFT      | InputMod_None,
+	CanvasBind_Expression_CursorRight           = Key_RIGHT     | InputMod_None,
+	CanvasBind_Expression_CursorWordLeft        = Key_LEFT      | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorWordRight       = Key_RIGHT     | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorUp              = Key_UP        | InputMod_None,
+	CanvasBind_Expression_CursorDown            = Key_DOWN      | InputMod_None,
+	CanvasBind_Expression_CursorHome            = Key_HOME      | InputMod_None,
+	CanvasBind_Expression_CursorEnd             = Key_END       | InputMod_None,
+	CanvasBind_Expression_CursorDeleteLeft      = Key_BACKSPACE | InputMod_None,
+	CanvasBind_Expression_CursorDeleteRight     = Key_DELETE    | InputMod_None,
+	CanvasBind_Expression_CursorDeleteWordLeft  = Key_BACKSPACE | InputMod_AnyCtrl,
+	CanvasBind_Expression_CursorDeleteWordRight = Key_DELETE    | InputMod_AnyCtrl,
+	
+	//[LOCAL]  Pencil
+	CanvasBind_Pencil_Stroke             = Mouse_LEFT       | InputMod_Any,
+	CanvasBind_Pencil_DeletePrevious     = Key_Z            | InputMod_AnyCtrl,
+	CanvasBind_Pencil_DetailIncrementBy1 = Key_EQUALS       | InputMod_None,
+	CanvasBind_Pencil_DetailIncrementBy5 = Key_EQUALS       | InputMod_AnyShift,
+	CanvasBind_Pencil_DetailDecrementBy1 = Key_MINUS        | InputMod_None,
+	CanvasBind_Pencil_DetailDecrementBy5 = Key_MINUS        | InputMod_AnyShift,
+}; typedef KeyCode CanvasBind;
+
+
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
@@ -410,7 +417,7 @@ global void linear_remove(Term* term){
 //// @expression
 //expression: collection of terms in the form of a syntax tree
 struct Expression{
-	Element element;
+	Node node;
 	//Workspace* workspace;
 	
 	str8_builder raw;
@@ -430,17 +437,75 @@ struct Expression{
 	f64 solution;
 };
 
-#define ElementToExpression(elem_ptr) ((Expression*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(Expression, element))))
-#define ExpressionFromTerm(term_ptr) ((Expression*)((u8*)(term_ptr) - (upt)(OffsetOfMember(Expression, term))))
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+//// @element
+enum CoordinateSpace : u32{
+	//CoordinateSpace_World,
+	//CoordinateSpace_Screen,
+	//CoordinateSpace_Workspace, //TODO maybe add local to workspace
+};
 
-global Expression* make_expression(){
-	Expression* expr = memory_allocT(Expression); //TODO expression arena
-	expr->term.type         = TermType_Expression;
-	expr->terms.allocator   = deshi_allocator;
-	expr->raw_cursor_start  = 0;
-	expr->term_cursor_start = &expr->term;
-	str8_builder_init(&expr->raw, str8{}, deshi_allocator);
-	return expr;
+enum ElementType : u32{
+	ElementType_NULL,
+	ElementType_Expression,
+	//ElementType_Workspace,
+	ElementType_Graph,
+	//ElementType_Text,
+};
+
+// element: anything with position, size, coordinate space, and display info
+// tagged union/variant
+external struct Element{
+	union{
+		struct{f32 x,y,z;};
+		vec3 pos;
+	};
+	union{
+		struct{f32 width,height,depth;};
+		vec3 size;
+	};
+	//CoordinateSpace space;
+	ElementType type;
+	uiItem* item; // handle to the uiItem representing this Element
+
+	union{
+		Expression expression;
+		uiGraphCartesian cartesian_graph;
+	};
+};
+
+// NOTE(sushi) this compiles on clang, need to know if it compiles on MSVC as well
+const uiStyle element_default_style = {
+	.positioning = pos_relative,
+	.sizing = size_auto,
+	.background_color = Color_Black,
+	.border_style = border_solid,
+	.border_width = 1,
+	.text_wrap = text_wrap_none,
+};
+
+struct{
+	Arena* elements;
+	Node inactive_elements;
+	Arena* terms;
+	Node inactive_terms;
+}arenas;
+
+void memory_init() {
+	arenas.elements = memory_create_arena(500*sizeof(Element));
+	arenas.terms = memory_create_arena(5000*sizeof(Term));
+}
+
+global Element* make_element(){
+	Element* element;
+	if(arenas.inactive_elements.next){
+		element = (Element*)arenas.inactive_elements.next;
+		NodeRemove(arenas.inactive_elements.next);
+		ZeroMemory(element, sizeof(Element));
+	}else{
+		element = memory_allocT(Element);
+	}
+	return element;
 }
 
 global Term* make_term(Expression* expr, str8 raw, TermType type){
@@ -450,5 +515,6 @@ global Term* make_term(Expression* expr, str8 raw, TermType type){
 	result->raw  = raw;
 	return result;
 }
+
 
 #endif //SUUGU_TYPES_H

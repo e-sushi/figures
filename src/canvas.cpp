@@ -24,123 +24,81 @@
 @draw_canvas_info
 */
 
-////////////////
-//// @tools ////
-////////////////
-enum CanvasTool : u32{
-	CanvasTool_Navigation,
-	CanvasTool_Context,
-	CanvasTool_Expression,
-	CanvasTool_Pencil,
-};
-local const char* canvas_tool_strings[] = {
-	"Navigation", "Context", "Expression", "Pencil",
-};
-
-local CanvasTool active_tool   = CanvasTool_Navigation;
-local CanvasTool previous_tool = CanvasTool_Navigation;
-
-////////////////
-//// @binds ////
-////////////////
-enum CanvasBind_{ //TODO ideally support multiple keybinds per action
-	//[GLOBAL] SetTool
-	CanvasBind_SetTool_Navigation = Key_ESCAPE  | InputMod_Any,
-	CanvasBind_SetTool_Context    = Mouse_RIGHT | InputMod_AnyCtrl,
-	CanvasBind_SetTool_Expression = Key_E       | InputMod_AnyCtrl, //NOTE temp making this CTRL+E for simplicity
-	CanvasBind_SetTool_Pencil     = Key_P       | InputMod_AnyCtrl,
-	CanvasBind_SetTool_Graph      = Key_G       | InputMod_AnyCtrl,
-	CanvasBind_SetTool_Previous   = Mouse_4     | InputMod_None,
+// organized collection of data relating to suugu's canvas
+local struct{
 	
-	//[GLOBAL] Camera 
-	CanvasBind_Camera_Pan = Mouse_MIDDLE | InputMod_None,
-	
-	//[LOCAL]  Navigation 
-	CanvasBind_Navigation_Pan       = Mouse_LEFT  | InputMod_Any,
-	CanvasBind_Navigation_ResetPos  = Key_NP0     | InputMod_None,
-	CanvasBind_Navigation_ResetZoom = Key_NP0     | InputMod_None,
-	
-	//[LOCAL]  Expression
-	CanvasBind_Expression_Select                = Mouse_LEFT    | InputMod_None,
-	CanvasBind_Expression_Create                = Mouse_RIGHT   | InputMod_None,
-	CanvasBind_Expression_CursorLeft            = Key_LEFT      | InputMod_None,
-	CanvasBind_Expression_CursorRight           = Key_RIGHT     | InputMod_None,
-	CanvasBind_Expression_CursorWordLeft        = Key_LEFT      | InputMod_AnyCtrl,
-	CanvasBind_Expression_CursorWordRight       = Key_RIGHT     | InputMod_AnyCtrl,
-	CanvasBind_Expression_CursorUp              = Key_UP        | InputMod_None,
-	CanvasBind_Expression_CursorDown            = Key_DOWN      | InputMod_None,
-	CanvasBind_Expression_CursorHome            = Key_HOME      | InputMod_None,
-	CanvasBind_Expression_CursorEnd             = Key_END       | InputMod_None,
-	CanvasBind_Expression_CursorDeleteLeft      = Key_BACKSPACE | InputMod_None,
-	CanvasBind_Expression_CursorDeleteRight     = Key_DELETE    | InputMod_None,
-	CanvasBind_Expression_CursorDeleteWordLeft  = Key_BACKSPACE | InputMod_AnyCtrl,
-	CanvasBind_Expression_CursorDeleteWordRight = Key_DELETE    | InputMod_AnyCtrl,
-	
-	//[LOCAL]  Pencil
-	CanvasBind_Pencil_Stroke             = Mouse_LEFT       | InputMod_Any,
-	CanvasBind_Pencil_DeletePrevious     = Key_Z            | InputMod_AnyCtrl,
-	CanvasBind_Pencil_DetailIncrementBy1 = Key_EQUALS       | InputMod_None,
-	CanvasBind_Pencil_DetailIncrementBy5 = Key_EQUALS       | InputMod_AnyShift,
-	CanvasBind_Pencil_DetailDecrementBy1 = Key_MINUS        | InputMod_None,
-	CanvasBind_Pencil_DetailDecrementBy5 = Key_MINUS        | InputMod_AnyShift,
-}; typedef KeyCode CanvasBind;
+	struct{ // ui
+		uiItem* root; // item encompassing the entire space of the canvas
+		uiItem* debug; // debug panel which immediate info is drawn into
+		struct{ // font
+			Font* math;
+			Font* text;
+			Font* debug;
+		}font;
+	}ui;
 
+	struct{ // tool
+		CanvasTool active;
+		CanvasTool previous;
 
-/////////////////
-//// @pencil ////
-/////////////////
-struct PencilStroke{
-	f32   size;
-	color color;
-	arrayT<vec2f64> pencil_points;
-};
+		struct{// pencil
+			PencilStroke* strokes;
+			u32 skip_amount = 4;
+			struct{ // stroke
+				u32   idx  = 0;
+				f32   size = 1;
+				color color = PackColorU32(249,195,69,255);
+				vec2  start_pos;
+			}stroke;
+		}pencil;
+	}tool;
 
-local arrayT<PencilStroke> pencil_strokes;
-local u32     pencil_stroke_idx  = 0;
-local f32     pencil_stroke_size = 1;
-local color   pencil_stroke_color = PackColorU32(249,195,69,255);
-local vec2f64 pencil_stroke_start_pos;
-local u32     pencil_draw_skip_amount = 4;
+	struct{ // camera
+		vec2 pos{0,0};
+		f64  zoom = 1.0;
+		vec2 pan_start_pos;
+		vec2 pan_mouse_pos;
+		b32  pan_active = false;
+	}camera;
 
+	struct{ // world
+		vec2 mouse_pos;
+	}world;
 
-/////////////////
-//// @camera ////
-/////////////////
-local vec2f64 camera_pos{0,0};
-local f64     camera_zoom = 1.0;
-local vec2f64 camera_pan_start_pos;
-local vec2    camera_pan_mouse_pos;
-local b32     camera_pan_active = false;
+	struct{
+		Element** arr; // kigu array
+		Element* selected;
+	}element;
+}canvas; 
 
 local vec2 
-ToScreen(vec2f64 point){
-	point -= camera_pos;
-	point /= camera_zoom;
-	point.y *= -f64(DeshWindow->width) / f64(DeshWindow->height);
-	point += vec2f64{1.0, 1.0};
-	point.x *= f64(DeshWindow->dimensions.x); point.y *= f64(DeshWindow->dimensions.y);
+ToScreen(vec2 point){
+	point -= canvas.camera.pos;
+	point /= canvas.camera.zoom;
+	point.y *= -f64(canvas.ui.root->width) / f64(canvas.ui.root->height);
+	point += vec2{1.0, 1.0};
+	point.x *= f64(canvas.ui.root->width); point.y *= f64(canvas.ui.root->height);
 	point /= 2.0;
 	return Vec2(point.x, point.y);
-}FORCE_INLINE vec2 ToScreen(f64 x, f64 y){ return ToScreen({x,y}); }
+}FORCE_INLINE vec2 ToScreen(f32 x, f32 y){ return ToScreen({x,y}); }
 
-local vec2f64 
+local vec2
 ToWorld(vec2 _point){
-	vec2f64 point{_point.x, _point.y};
-	point.x /= f64(DeshWindow->dimensions.x); point.y /= f64(DeshWindow->dimensions.y);
+	vec2 point{_point.x, _point.y};
+	point.x /= f32(DeshWindow->dimensions.x); point.y /= f32(DeshWindow->dimensions.y);
 	point *= 2.0;
-	point -= vec2f64{1.0, 1.0};
-	point.y /= -f64(DeshWindow->width) / f64(DeshWindow->height);
-	point *= camera_zoom;
-	point += camera_pos;
+	point -= vec2{1.0, 1.0};
+	point.y /= -f32(DeshWindow->width) / f32(DeshWindow->height);
+	point *= canvas.camera.zoom;
+	point += canvas.camera.pos;
 	return point;
-}FORCE_INLINE vec2f64 ToWorld(f32 x, f32 y){ return ToWorld({x,y}); }
+}FORCE_INLINE vec2 ToWorld(f32 x, f32 y){ return ToWorld({x,y}); }
 
 //returns the width and height of the area in world space that the user can currently see as a vec2
 local vec2 
 WorldViewArea(){
-	return Vec2(2 * camera_zoom, 2 * camera_zoom * (float)DeshWindow->height / DeshWindow->width);
+	return Vec2(2 * canvas.camera.zoom, 2 * canvas.camera.zoom * (float)DeshWindow->height / DeshWindow->width);
 }
-
 
 //////////////////
 //// @context ////
@@ -857,218 +815,216 @@ local struct{
 	
 	struct{
 		int depth;
-		uiItem* item;
+		uiItem* root;
 	}**term_array; //sorted by deepest first
 }debug_draw_term_tree_context;
 
 void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
-#define ctx debug_draw_term_tree_context
-	auto highlight_border_when_focused = [](uiItem* item){
-		if(g_ui->active == item){
-			item->style.border_color = Color_Grey;
-		}else{
-			item->style.border_color = Color_VeryDarkGrey;
-		}
-	};
+	FixMe;
+// #define ctx debug_draw_term_tree_context
+// 	auto highlight_border_when_focused = [](uiItem* item){
+// 		if(g_ui->active == item){
+// 			item->style.border_color = Color_Grey;
+// 		}else{
+// 			item->style.border_color = Color_VeryDarkGrey;
+// 		}
+// 	};
 	
-	if(term == 0) return;
+// 	if(term == 0) return;
 	
-	str8 term_text{};
-	switch(term->type){
-		case TermType_Expression:{
-			//reset the context
-			ctx.depth = 0;
-			if(ctx.expression) uiItemR(ctx.expression);
+// 	str8 term_text{};
+// 	switch(term->type){
+// 		case TermType_Expression:{
+// 			//reset the context
+// 			ctx.depth = 0;
+// 			if(ctx.expression) uiItemR(ctx.expression);
 			
-			//fill the term style
-			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
-			ctx.term_style.margin        = Vec4(2,2,2,2);
-			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
-			ctx.term_style.font_height   = 12;
-			ctx.term_style.text_color    = Color_LightGrey;
-			ctx.term_style.content_align = Vec2(0.5f,0.5f);
+// 			//fill the term style
+// 			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
+// 			ctx.term_style.margin        = Vec4(2,2,2,2);
+// 			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
+// 			ctx.term_style.font_height   = 12;
+// 			ctx.term_style.text_color    = Color_LightGrey;
+// 			ctx.term_style.content_align = Vec2(0.5f,0.5f);
 			
-			//begin the expression container
-			ctx.expression = uiItemB();
-			ctx.expression->id = STR8("expression");
-			ctx.expression->style.positioning      = pos_draggable_absolute;
-			ctx.expression->style.anchor           = anchor_bottom_left;
-			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
-			ctx.expression->style.background_color = Color_DarkCyan;
-			ctx.expression->style.border_style     = border_solid;
-			ctx.expression->style.border_color     = Color_VeryDarkGrey;
-			ctx.expression->style.border_width     = 5;
-			ctx.expression->style.focus            = true;
-			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
-			ctx.expression->style.overflow         = overflow_scroll;
-			ctx.expression->action         = highlight_border_when_focused;
-			ctx.expression->action_trigger = action_act_always;
+// 			//begin the expression container
+// 			ctx.expression = uiItemB();
+// 			ctx.expression->id = STR8("expression");
+// 			ctx.expression->style.positioning      = pos_draggable_absolute;
+// 			ctx.expression->style.anchor           = anchor_bottom_left;
+// 			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
+// 			ctx.expression->style.background_color = Color_DarkCyan;
+// 			ctx.expression->style.border_style     = border_solid;
+// 			ctx.expression->style.border_color     = Color_VeryDarkGrey;
+// 			ctx.expression->style.border_width     = 5;
+// 			ctx.expression->style.focus            = true;
+// 			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
+// 			ctx.expression->style.overflow         = overflow_scroll;
+// 			ctx.expression->action         = highlight_border_when_focused;
+// 			ctx.expression->action_trigger = action_act_always;
 			
-			//gather the terms and their depths
-			arrsetlen(ctx.term_array, expr->terms.count);
-			Expression* expr = ExpressionFromTerm(term);
-			if(term->child_count){
-				ctx.depth += 1;
-				debug_draw_term_tree(expr, term->first_child);
-				for_node(term->first_child->next){
-					debug_draw_term_tree(expr, it);
-				}
-				ctx.depth -= 1;
-			}
+// 			//gather the terms and their depths
+// 			arrsetlen(ctx.term_array, expr->terms.count);
+// 			Expression* expr = ExpressionFromTerm(term);
+// 			if(term->child_count){
+// 				ctx.depth += 1;
+// 				debug_draw_term_tree(expr, term->first_child);
+// 				for_node(term->first_child->next){
+// 					debug_draw_term_tree(expr, it);
+// 				}
+// 				ctx.depth -= 1;
+// 			}
 			
-			//position the term items
-			
-			
-			//draw lines between terms and their parents
+// 			//position the term items
 			
 			
-			//end the expression container
-			uiItemE();
-		}break;
+// 			//draw lines between terms and their parents
+			
+			
+// 			//end the expression container
+// 			uiItemE();
+// 		}break;
 		
-		case TermType_Operator:{
-			switch(term->op_type){
-				case OpType_Parentheses:{
-					if(term->first_child){
-						ctx.depth += 1;
-						debug_draw_term_tree(expr, term->first_child);
-						for_node(term->first_child->next){
-							debug_draw_term_tree(expr, it);
-						}
-						ctx.depth -= 1;
-					}
-					term_text = STR8("(");
-				}break;
-				case OpType_Exponential:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("^");
-				}break;
-				case OpType_Negation:{
-					ctx.depth += 1;
-					debug_draw_term_tree(expr, term->first_child);
-					ctx.depth -= 1;
-					term_text = STR8("NEG");
-				}break;
-				case OpType_ImplicitMultiplication:{
-					ctx.depth += 1;
-					debug_draw_term_tree(expr, term->first_child);
-					debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("*i");
-				}break;
-				case OpType_ExplicitMultiplication:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("*e");
-				}break;
-				case OpType_Division:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("/");
-				}break;
-				case OpType_Modulo:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("%");
-				}break;
-				case OpType_Addition:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("+");
-				}break;
-				case OpType_Subtraction:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					ctx.depth -= 1;
-					term_text = STR8("-");
-				}break;
-				case OpType_ExpressionEquals:{
-					ctx.depth += 1;
-					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-					if(term->last_child) for_node(term->last_child->next) debug_draw_term_tree(expr, it);
-					ctx.depth -= 1;
-					term_text = STR8("=");
-				}break;
-				default: Assert(!"operator type drawing not setup"); break;
-			}
-		}break;
+// 		case TermType_Operator:{
+// 			switch(term->op_type){
+// 				case OpType_Parentheses:{
+// 					if(term->first_child){
+// 						ctx.depth += 1;
+// 						debug_draw_term_tree(expr, term->first_child);
+// 						for_node(term->first_child->next){
+// 							debug_draw_term_tree(expr, it);
+// 						}
+// 						ctx.depth -= 1;
+// 					}
+// 					term_text = STR8("(");
+// 				}break;
+// 				case OpType_Exponential:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("^");
+// 				}break;
+// 				case OpType_Negation:{
+// 					ctx.depth += 1;
+// 					debug_draw_term_tree(expr, term->first_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("NEG");
+// 				}break;
+// 				case OpType_ImplicitMultiplication:{
+// 					ctx.depth += 1;
+// 					debug_draw_term_tree(expr, term->first_child);
+// 					debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("*i");
+// 				}break;
+// 				case OpType_ExplicitMultiplication:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("*e");
+// 				}break;
+// 				case OpType_Division:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("/");
+// 				}break;
+// 				case OpType_Modulo:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("%");
+// 				}break;
+// 				case OpType_Addition:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("+");
+// 				}break;
+// 				case OpType_Subtraction:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("-");
+// 				}break;
+// 				case OpType_ExpressionEquals:{
+// 					ctx.depth += 1;
+// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
+// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(term->last_child) for_node(term->last_child->next) debug_draw_term_tree(expr, it);
+// 					ctx.depth -= 1;
+// 					term_text = STR8("=");
+// 				}break;
+// 				default: Assert(!"operator type drawing not setup"); break;
+// 			}
+// 		}break;
 		
-		case TermType_Literal:{
-			term_text = ToString8(deshi_temp_allocator, term->lit_value);
-		}break;
+// 		case TermType_Literal:{
+// 			term_text = ToString8(deshi_temp_allocator, term->lit_value);
+// 		}break;
 		
-		case TermType_Variable:{
-			term_text = term->raw;
-		}break;
+// 		case TermType_Variable:{
+// 			term_text = term->raw;
+// 		}break;
 		
-		case TermType_FunctionCall:{
-			ctx.depth += 1;
-			for_node(term->first_child) debug_draw_term_tree(expr, it);
-			ctx.depth -= 1;
-			term_text = term->func->text;
-		}break;
+// 		case TermType_FunctionCall:{
+// 			ctx.depth += 1;
+// 			for_node(term->first_child) debug_draw_term_tree(expr, it);
+// 			ctx.depth -= 1;
+// 			term_text = term->func->text;
+// 		}break;
 		
-		case TermType_Logarithm:{
-			ctx.depth += 1;
-			for_node(term->first_child) debug_draw_term_tree(expr, it);
-			ctx.depth -= 1;
-			term_text = ToString8(deshi_temp_allocator, STR8("log"), term->log_base);
-		}break;
+// 		case TermType_Logarithm:{
+// 			ctx.depth += 1;
+// 			for_node(term->first_child) debug_draw_term_tree(expr, it);
+// 			ctx.depth -= 1;
+// 			term_text = ToString8(deshi_temp_allocator, STR8("log"), term->log_base);
+// 		}break;
 		
-		default: Assert(!"term type drawing not setup"); break;
-	}
+// 		default: Assert(!"term type drawing not setup"); break;
+// 	}
 	
-	if(term_text){
-		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
-			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
-		}
+// 	if(term_text){
+// 		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+// 			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
+// 		}
 		
-		//create the term text item
-		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
-		term_item->id = STR8("HELLO!");
+// 		//create the term text item
+// 		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
+// 		term_item->id = STR8("HELLO!");
 		
-		//binary insertion sort
+// 		//binary insertion sort
 		
-	}
-#undef ctx
+// 	}
+// #undef ctx
 }
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @canvas
-local arrayT<Element*> elements(deshi_allocator);
-local Element* selected_element;
-local GraphElement* active_graph; //TODO remove this and use selected_element instead
-local vec2f64 mouse_pos_world;
-local Font* math_font;
-local GraphElement default_graph; //temp default graph
+
 
 void init_canvas(){
 	f32 world_height  = WorldViewArea().y;
-	default_graph.element.height  = world_height / 2.f;
-	default_graph.element.width   = world_height / 2.f;
-	default_graph.element.y       =  default_graph.element.height / 2.f;
-	default_graph.element.x       = -default_graph.element.width  / 2.f;
-	default_graph.element.type    = ElementType_Graph;
-	default_graph.cartesian_graph = ui_graph_make_cartesian();
-	default_graph.cartesian_graph->x_axis_label = str8_lit("x");
-	default_graph.cartesian_graph->y_axis_label = str8_lit("y");
-	elements.add(&default_graph.element);
+	// default_graph.element.height  = world_height / 2.f;
+	// default_graph.element.width   = world_height / 2.f;
+	// default_graph.element.y       =  default_graph.element.height / 2.f;
+	// default_graph.element.x       = -default_graph.element.width  / 2.f;
+	// default_graph.element.type    = ElementType_Graph;
+	// default_graph.cartesian_graph = ui_graph_make_cartesian();
+	// default_graph.cartesian_graph->x_axis_label = str8_lit("x");
+	// default_graph.cartesian_graph->y_axis_label = str8_lit("y");
+	// elements.add(&default_graph.element);
 	
-	library_load(STR8("test.slib"));
+	//library_load(STR8("test.slib"));
+
+	array_init(canvas.element.arr, 4, deshi_allocator);
 
 #if 0
 	//debug testing ui
@@ -1102,311 +1058,384 @@ void init_canvas(){
 	
 #endif
 	
-	math_font = assets_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
-	Assert(math_font != assets_font_null(), "Canvas math font failed to load");
+	canvas.ui.font.math = assets_font_create_from_file(str8_lit("STIXTwoMath-Regular.otf"), 100);
+	Assert(canvas.ui.font.math != assets_font_null(), "Canvas math font failed to load");
+	canvas.ui.font.debug = assets_font_create_from_file(str8l("gohufont-11.bdf"), 11);
+	Assert(canvas.ui.font.debug != assets_font_null(), "Canvas debug font failed to load");
+
+	canvas.ui.root = uiItemB();
+	canvas.ui.root->id = STR8("suugu.canvas");
+	canvas.ui.root->style.sizing = size_percent; // canvas is always the size of the window
+	canvas.ui.root->style.size = {100,100};
+
+	canvas.ui.debug = uiItemB();
+	canvas.ui.debug->id = str8l("suugu.canvas.debug");
+	{uiStyle* s = &canvas.ui.debug->style;
+		s->sizing = size_auto;
+		s->background_color = Color_Black;
+		s->font = canvas.ui.font.debug;
+		s->font_height = 11;
+		s->text_color = Color_White;
+		s->text_wrap = text_wrap_word;
+		s->border_style = border_solid;
+		s->border_color = Color_White;
+		s->border_width = 1;
+		s->padding_left = 5;
+		s->padding_top = 5;
+		s->padding_right = 5;
+		s->padding_bottom = 5;
+		//s->padding = {5,5,5,5};
+		s->positioning = pos_draggable_relative;
+		s->display = display_horizontal;
+	}
+	uiItemE(); // debug
+	uiItemE(); // root
 }
 
 void update_canvas(){
+ 	//-///////////////////////////////////////////////////////////////////////////////////////////////
+ 	//// @input
+ 	canvas.world.mouse_pos = ToWorld(input_mouse_position());
+	
+	//// @input_tool ////
+	if      (key_pressed(CanvasBind_SetTool_Navigation) && canvas.tool.active != CanvasTool_Navigation){
+		canvas.tool.previous = canvas.tool.active;
+		canvas.tool.active   = CanvasTool_Navigation;
+	}else if(key_pressed(CanvasBind_SetTool_Context)    && canvas.tool.active != CanvasTool_Context){
+		canvas.tool.previous = canvas.tool.active;
+		canvas.tool.active   = CanvasTool_Context;
+	}else if(key_pressed(CanvasBind_SetTool_Expression) && canvas.tool.active != CanvasTool_Expression){
+		canvas.tool.previous = canvas.tool.active;
+		canvas.tool.active   = CanvasTool_Expression;
+	}else if(key_pressed(CanvasBind_SetTool_Pencil)     && canvas.tool.active != CanvasTool_Pencil){
+		canvas.tool.previous = canvas.tool.active;
+		canvas.tool.active   = CanvasTool_Pencil;
+	}else if(key_pressed(CanvasBind_SetTool_Graph)){
+		FixMe;
+		//active_graph   = (active_graph) ? 0 : &default_graph;
+	}else if(key_pressed(CanvasBind_SetTool_Previous)){
+		Swap(canvas.tool.previous, canvas.tool.active);
+	}
+	
+	//// @input_camera ////
+	if(key_pressed(CanvasBind_Camera_Pan)){
+		canvas.camera.pan_active = true;
+		canvas.camera.pan_mouse_pos = input_mouse_position();
+		canvas.camera.pan_start_pos = canvas.camera.pos;
+	}
+	if(key_down(CanvasBind_Camera_Pan)){
+		canvas.camera.pos = canvas.camera.pan_start_pos + (ToWorld(canvas.camera.pan_mouse_pos) - canvas.world.mouse_pos);
+	}
+	if(key_released(CanvasBind_Camera_Pan)){
+		canvas.camera.pan_active = false;
+	}
+	if(DeshInput->scrollY != 0 && input_mods_down(InputMod_None) && g_ui->hovered == canvas.ui.root){
+		//if(!active_graph){
+			canvas.camera.zoom -= canvas.camera.zoom / 10.0 * DeshInput->scrollY;
+			canvas.camera.zoom = Clamp(canvas.camera.zoom, 1e-37, 1e37);
+		//}else{
+			//active_graph->cartesian_graph->camera_zoom -= 0.2 * active_graph->cartesian_graph->camera_zoom * DeshInput->scrollY;
+		//}
+	}
+	
+#if 1 //NOTE temp ui
+	
+	if(canvas.tool.active == CanvasTool_Pencil){
+		uiImmediateBP(canvas.ui.debug); {
+			uiItem* item = uiItemB();
+			item->id = str8l("suugu.canvas.debug.pencil");
+			item->style.sizing = size_auto;
+			item->style.border_color = Color_White;
+			item->style.border_style = border_solid;
+			item->style.border_width = 1;
+			{
+				uiText* text = uiGetText(uiTextML(""));
+				str8 out = ToString8(deshi_temp_allocator, 
+					"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
+					"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
+					"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
+					"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
+					"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
+				);
+				text_insert_string(&text->text, out);
+				if(canvas.tool.pencil.stroke.idx) {
+					out = ToString8(deshi_temp_allocator, 
+						"stroke points: ", array_count(array_last(canvas.tool.pencil.strokes)->pencil_points)
+					);
+					text_insert_string(&text->text, out);
+				}
+				u32 total_points = 0;
+				forX_array(stroke, canvas.tool.pencil.strokes){
+					total_points += array_count(stroke->pencil_points);
+				}
+				out = ToString8(deshi_temp_allocator,
+					"total points: ", total_points
+				);
+				text_insert_string(&text->text, out);
+			}
+			uiItemE();
+		}uiImmediateE();
+	}
+	if(canvas.tool.active == CanvasTool_Expression){
+		uiImmediateBP(canvas.ui.debug); {
+			uiItem* item = uiItemB();
+			item->id = str8l("suugu.canvas.debug.expression");
+			item->style.sizing = size_auto;
+			item->style.border_color = Color_Grey;
+			item->style.border_style = border_solid;
+			item->style.border_width = 1;
+			item->style.padding = {5,5,5,5};
 
-// 	UI::PushVar(UIStyleVar_WindowMargins, vec2::ZERO);
-// 	UI::SetNextWindowSize(DeshWindow->width, DeshWindow->height);
-// 	UI::Begin(str8_lit("canvas"), vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
-	
-	
+			uiTextM(ToString8(deshi_temp_allocator, "elements: ", array_count(canvas.element.arr)));
+			if(canvas.element.selected) {
+				uiTextM(ToString8(deshi_temp_allocator,
+					"selected: ", canvas.element.selected, "\n",
+					"position: ", canvas.element.selected->pos, "\n",
+					"size:     ", canvas.element.selected->size, "\n"
+				));
+			}
+			uiItemE();
+		}uiImmediateE();	
 
-// 	//-///////////////////////////////////////////////////////////////////////////////////////////////
-// 	//// @input
-// 	mouse_pos_world = ToWorld(input_mouse_position());
+		// UI::Begin(str8_lit("expression_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		// UI::TextF(str8_lit("Elements: %d"), elements.count);
+		// if(selected_element){
+		// 	UI::TextF(str8_lit("Selected: %#x"), selected_element);
+		// 	UI::TextF(str8_lit("Position: (%g,%g)"), selected_element->x,selected_element->y);
+		// 	UI::TextF(str8_lit("Size:     (%g,%g)"), selected_element->width,selected_element->height);
+		// 	UI::TextF(str8_lit("Cursor:   %d"), (selected_element) ? ((Expression*)selected_element)->raw_cursor_start : 0);
+		// }
+		// UI::End();
+	}
+	//if(active_graph){
+		// UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+		// UI::TextOld(str8_lit("Graph Info"));
+		// UI::TextF(str8_lit("Element Pos:   (%g,%g)"), active_graph->element.x,active_graph->element.y);
+		// UI::TextF(str8_lit("Element Size:  (%g,%g)"), active_graph->element.width,active_graph->element.height);
+		// UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), active_graph->cartesian_graph->camera_position.x,active_graph->cartesian_graph->camera_position.y);
+		// UI::TextF(str8_lit("Camera Zoom:   %g"),      active_graph->cartesian_graph->camera_zoom);
+		// UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), active_graph->cartesian_graph->unit_length.x,active_graph->cartesian_graph->unit_length.y);
+		// UI::End();
+	//}
+#endif
 	
-// 	//// @input_tool ////
-// 	if      (key_pressed(CanvasBind_SetTool_Navigation) && active_tool != CanvasTool_Navigation){
-// 		previous_tool = active_tool;
-// 		active_tool   = CanvasTool_Navigation;
-// 	}else if(key_pressed(CanvasBind_SetTool_Context)    && active_tool != CanvasTool_Context){
-// 		previous_tool = active_tool;
-// 		active_tool   = CanvasTool_Context;
-// 	}else if(key_pressed(CanvasBind_SetTool_Expression) && active_tool != CanvasTool_Expression){
-// 		previous_tool = active_tool;
-// 		active_tool   = CanvasTool_Expression;
-// 	}else if(key_pressed(CanvasBind_SetTool_Pencil)     && active_tool != CanvasTool_Pencil){
-// 		previous_tool = active_tool;
-// 		active_tool   = CanvasTool_Pencil;
-// 	}else if(key_pressed(CanvasBind_SetTool_Graph)){
-// 		active_graph   = (active_graph) ? 0 : &default_graph;
-// 	}else if(key_pressed(CanvasBind_SetTool_Previous)){
-// 		Swap(previous_tool, active_tool);
-// 	}
-	
-// 	//// @input_camera ////
-// 	if(key_pressed(CanvasBind_Camera_Pan)){
-// 		camera_pan_active = true;
-// 		camera_pan_mouse_pos = input_mouse_position();
-// 		camera_pan_start_pos = camera_pos;
-// 	}
-// 	if(key_down(CanvasBind_Camera_Pan)){
-// 		camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-// 	}
-// 	if(key_released(CanvasBind_Camera_Pan)){
-// 		camera_pan_active = false;
-// 	}
-// 	if(DeshInput->scrollY != 0 && input_mods_down(InputMod_None) && !UI::AnyWinHovered()){
-// 		if(!active_graph){
-// 			camera_zoom -= camera_zoom / 10.0 * DeshInput->scrollY;
-// 			camera_zoom = Clamp(camera_zoom, 1e-37, 1e37);
-// 		}else{
-// 			active_graph->cartesian_graph->camera_zoom -= 0.2 * active_graph->cartesian_graph->camera_zoom * DeshInput->scrollY;
-// 		}
-// 	}
-	
-// #if 1 //NOTE temp ui
-// 	if(active_tool == CanvasTool_Pencil){
-// 		UI::Begin(str8_lit("pencil_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-// 		UI::TextF(str8_lit("Stroke Size:   %f"), pencil_stroke_size);
-// 		UI::TextF(str8_lit("Stroke Color:  %x"), pencil_stroke_color.rgba);
-// 		UI::TextF(str8_lit("Stroke Start:  (%g,%g)"), pencil_stroke_start_pos.x, pencil_stroke_start_pos.y);
-// 		UI::TextF(str8_lit("Stroke Index:  %d"), pencil_stroke_idx);
-// 		UI::TextF(str8_lit("Stroke Skip:   %d"), pencil_draw_skip_amount);
-// 		if(pencil_stroke_idx > 0) UI::TextF(str8_lit("Stroke Points: %d"), pencil_strokes[pencil_stroke_idx-1].pencil_points.count);
-// 		u32 total_stroke_points = 0;
-// 		forE(pencil_strokes) total_stroke_points += it->pencil_points.count;
-// 		UI::TextF(str8_lit("Total Points:  %d"), total_stroke_points);
-// 		UI::End();
-// 	}
-// 	if(active_tool == CanvasTool_Expression){
-// 		UI::Begin(str8_lit("expression_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-// 		UI::TextF(str8_lit("Elements: %d"), elements.count);
-// 		if(selected_element){
-// 			UI::TextF(str8_lit("Selected: %#x"), selected_element);
-// 			UI::TextF(str8_lit("Position: (%g,%g)"), selected_element->x,selected_element->y);
-// 			UI::TextF(str8_lit("Size:     (%g,%g)"), selected_element->width,selected_element->height);
-// 			UI::TextF(str8_lit("Cursor:   %d"), (selected_element) ? ((Expression*)selected_element)->raw_cursor_start : 0);
-// 		}
-// 		UI::End();
-// 	}
-// 	if(active_graph){
-// 		UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-// 		UI::TextOld(str8_lit("Graph Info"));
-// 		UI::TextF(str8_lit("Element Pos:   (%g,%g)"), active_graph->element.x,active_graph->element.y);
-// 		UI::TextF(str8_lit("Element Size:  (%g,%g)"), active_graph->element.width,active_graph->element.height);
-// 		UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), active_graph->cartesian_graph->camera_position.x,active_graph->cartesian_graph->camera_position.y);
-// 		UI::TextF(str8_lit("Camera Zoom:   %g"),      active_graph->cartesian_graph->camera_zoom);
-// 		UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), active_graph->cartesian_graph->unit_length.x,active_graph->cartesian_graph->unit_length.y);
-// 		UI::End();
-// 	}
-// #endif
-	
-// 	switch(active_tool){
-// 		//// @input_navigation ////
-// 		case CanvasTool_Navigation: if(!UI::AnyWinHovered()){
-// 			if(key_pressed(CanvasBind_Navigation_Pan)){
-// 				camera_pan_active = true;
-// 				camera_pan_mouse_pos = input_mouse_position();
-// 				if(!active_graph){
-// 					camera_pan_start_pos = camera_pos;
-// 				}else{
-// 					camera_pan_start_pos = vec2f64{active_graph->cartesian_graph->camera_position.x, active_graph->cartesian_graph->camera_position.y};
-// 				}
-// 			}
-// 			if(key_down(CanvasBind_Navigation_Pan)){
-// 				if(!active_graph){
-// 					camera_pos = camera_pan_start_pos + (ToWorld(camera_pan_mouse_pos) - mouse_pos_world);
-// 				}else{
-// 					active_graph->cartesian_graph->camera_position.x = (camera_pan_start_pos.x + (camera_pan_mouse_pos.x - DeshInput->mouseX) / active_graph->cartesian_graph->unit_length.x);
-// 					active_graph->cartesian_graph->camera_position.y = (camera_pan_start_pos.y + (camera_pan_mouse_pos.y - DeshInput->mouseY) / active_graph->cartesian_graph->unit_length.y);
-// 				}
-// 			}
-// 			if(key_released(CanvasBind_Navigation_Pan)){
-// 				camera_pan_active = false;
-// 			}
-// 			if(key_pressed(CanvasBind_Navigation_ResetPos)){
-// 				if(!active_graph){
-// 					camera_pos = {0,0};
-// 				}else{
-// 					active_graph->cartesian_graph->camera_position = vec2g{0,0};
-// 				}
-// 			}
-// 			if(key_pressed(CanvasBind_Navigation_ResetZoom)){
-// 				if(!active_graph){
-// 					camera_zoom = 1.0;
-// 				}else{
-// 					active_graph->cartesian_graph->camera_zoom = 5.0;
-// 				}
-// 			}
-// 		}break;
+	switch(canvas.tool.active){
+		//// @input_navigation ////
+		case CanvasTool_Navigation: if(g_ui->hovered == canvas.ui.root){
+			if(key_pressed(CanvasBind_Navigation_Pan)){
+				canvas.camera.pan_active = true;
+				canvas.camera.pan_mouse_pos = input_mouse_position();
+				// if(!active_graph){
+				 	canvas.camera.pan_start_pos = canvas.camera.pos;
+				// }else{
+				//	canvas.camera.pan_start_pos = vec2f64{active_graph->cartesian_graph->camera_position.x, active_graph->cartesian_graph->camera_position.y};
+				//}
+			}
+			if(key_down(CanvasBind_Navigation_Pan)){
+				//if(!active_graph){
+					canvas.camera.pos = canvas.camera.pan_start_pos + (ToWorld(canvas.camera.pan_mouse_pos) - canvas.world.mouse_pos);
+				// }else{
+				// 	active_graph->cartesian_graph->camera_position.x = (canvas.camera.pan_start_pos.x + (canvas.camera.pan_mouse_pos.x - DeshInput->mouseX) / active_graph->cartesian_graph->unit_length.x);
+				// 	active_graph->cartesian_graph->camera_position.y = (canvas.camera.pan_start_pos.y + (canvas.camera.pan_mouse_pos.y - DeshInput->mouseY) / active_graph->cartesian_graph->unit_length.y);
+				// }
+			}
+			if(key_released(CanvasBind_Navigation_Pan)){
+				canvas.camera.pan_active = false;
+			}
+			if(key_pressed(CanvasBind_Navigation_ResetPos)){
+				//if(!active_graph){
+					canvas.camera.pos = {0,0};
+				// }else{
+				// 	active_graph->cartesian_graph->camera_position = vec2g{0,0};
+				// }
+			}
+			if(key_pressed(CanvasBind_Navigation_ResetZoom)){
+				//if(!active_graph){
+					canvas.camera.zoom = 1.0;
+				// }else{
+				// 	active_graph->cartesian_graph->camera_zoom = 5.0;
+				// }
+			}
+		}break;
 		
-// 		//// @input_context ////
-// 		case CanvasTool_Context:{
-// 			//if(UI::BeginContextMenu("canvas_context_menu")){
-// 			//UI::EndContextMenu();
-// 			//}
-// 		}break;
+		//// @input_context ////
+		case CanvasTool_Context:{
+			NotImplemented;
+			//if(UI::BeginContextMenu("canvas_context_menu")){
+			//UI::EndContextMenu();
+			//}
+		}break;
 		
-// 		//// @input_expression ////
-// 		case CanvasTool_Expression: if(!UI::AnyWinHovered()){
-// 			if(key_pressed(CanvasBind_Expression_Select)){
-// 				selected_element = 0;
-// 				//TODO inverse the space transformation here since mouse pos is screen space, which is less precise being
-// 				//  elevated to higher precision, instead of higher precision world space getting transformed to screen space
-// 				for(Element* it : elements){
-// 					if(   mouse_pos_world.x >= it->x
-// 					   && mouse_pos_world.y >= it->y
-// 					   && mouse_pos_world.x <= it->x + it->width
-// 					   && mouse_pos_world.y <= it->y + it->height){
-// 						selected_element = it;
-// 						break;
-// 					}
-// 				}
-// 			}
+		//// @input_expression ////
+		case CanvasTool_Expression: {
+			if(key_pressed(CanvasBind_Expression_Select)){
+				canvas.element.selected = 0;
+				//TODO inverse the space transformation here since mouse pos is screen space, which is less precise being
+				//  elevated to higher precision, instead of higher precision world space getting transformed to screen space
+				for_array(canvas.element.arr){
+					Element* element = *it;
+					if(Math::PointInRectangle(canvas.world.mouse_pos, element->pos.toVec2(), element->size.toVec2())){
+						canvas.element.selected = element;
+						break;
+					}
+				}
+			}
 			
-// 			if(key_pressed(CanvasBind_Expression_Create)){
-// 				Expression* expr = make_expression();
-// 				expr->element.x         = mouse_pos_world.x;
-// 				expr->element.y         = mouse_pos_world.y;
-// 				expr->element.height    = (320*camera_zoom) / (f32)DeshWindow->width;
-// 				expr->element.width     = expr->element.height / 2.0;
-// 				expr->element.type      = ElementType_Expression;
-// 				expr->term_cursor_start = &expr->term;
-// 				expr->raw_cursor_start  = 1;
-// 				str8_builder_append(&expr->raw, str8_lit(" "));
+			if(key_pressed(CanvasBind_Expression_Create)){
+				Element* element = make_element();
+				*array_push(canvas.element.arr) = element;
+				element->type = ElementType_Expression;
+				element->x         = canvas.world.mouse_pos.x;
+				element->y         = canvas.world.mouse_pos.y;
+				element->height    = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
+				element->width     = element->height / 2.0;
+				element->type      = ElementType_Expression;
+				element->item = uiItemM();
+				element->item->id = ToString8(deshi_allocator, "suugu.canvas.expression", array_count(canvas.element.arr));
+				element->item->style = element_default_style;
+				element->expression.term_cursor_start = &element->expression.term;
+				element->expression.raw_cursor_start  = 1;
+				str8_builder_init(&element->expression.raw, str8l(" "), deshi_allocator);
 				
-// 				elements.add(&expr->element);
-// 				selected_element = &expr->element;
-// 			}
+				*array_push(canvas.element.arr) = element;
+				canvas.element.selected = element;
+			}
 			
-// 			if(selected_element && selected_element->type == ElementType_Expression){
-// 				Expression* expr = ElementToExpression(selected_element);
-// 				expr->changed = false;
+			if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
+				Expression* expr = &canvas.element.selected->expression;
+				expr->changed = false;
 				
-// 				//// @input_expression_cursor ////
+				//// @input_expression_cursor ////
 				
-// 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
-// 					expr->raw_cursor_start -= 1;
-// 				}
-// 				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
-// 					expr->raw_cursor_start += 1;
-// 				}
-// 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
-// 					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
-// 						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
-// 							expr->raw_cursor_start -= 1;
-// 						}
-// 						if(*(expr->raw.str+expr->raw_cursor_start-1) == '(') expr->raw_cursor_start -= 1;
-// 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
-// 						expr->raw_cursor_start -= 1;
-// 					}else{
-// 						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
-// 							expr->raw_cursor_start -= 1;
-// 						}
-// 					}
-// 				}
-// 				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
-// 					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
-// 						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
-// 							expr->raw_cursor_start += 1;
-// 						}
-// 						if(*(expr->raw.str+expr->raw_cursor_start) == ')') expr->raw_cursor_start += 1;
-// 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
-// 						expr->raw_cursor_start += 1;
-// 					}else{
-// 						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
-// 							expr->raw_cursor_start += 1;
-// 						}
-// 					}
-// 				}
-// 				if(key_pressed(CanvasBind_Expression_CursorHome)){
-// 					expr->raw_cursor_start = 1;
-// 				}
-// 				if(key_pressed(CanvasBind_Expression_CursorEnd)){
-// 					expr->raw_cursor_start = expr->raw.count;
-// 				}
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
+					expr->raw_cursor_start -= 1;
+				}
+				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
+					expr->raw_cursor_start += 1;
+				}
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
+					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+							expr->raw_cursor_start -= 1;
+						}
+						if(*(expr->raw.str+expr->raw_cursor_start-1) == '(') expr->raw_cursor_start -= 1;
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+						expr->raw_cursor_start -= 1;
+					}else{
+						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+							expr->raw_cursor_start -= 1;
+						}
+					}
+				}
+				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
+					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+							expr->raw_cursor_start += 1;
+						}
+						if(*(expr->raw.str+expr->raw_cursor_start) == ')') expr->raw_cursor_start += 1;
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+						expr->raw_cursor_start += 1;
+					}else{
+						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+							expr->raw_cursor_start += 1;
+						}
+					}
+				}
+				if(key_pressed(CanvasBind_Expression_CursorHome)){
+					expr->raw_cursor_start = 1;
+				}
+				if(key_pressed(CanvasBind_Expression_CursorEnd)){
+					expr->raw_cursor_start = expr->raw.count;
+				}
 				
 				
-// 				/*
-// 				if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
-// 					expr->term_cursor_start    = expr->term_cursor_start->left;
-// 					expr->raw_cursor_start     = expr->term_cursor_start->raw.str - expr->raw.str;
-// 					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
-// 						expr->raw_cursor_start  += 1;
-// 						expr->right_paren_cursor = true;
-// 					}else{
-// 						expr->right_paren_cursor = false;
-// 					}
-// 				}
-// 				if(key_pressed(CanvasBind_Expression_CursorRight)){
-// 					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
-// 						expr->raw_cursor_start  += 1;
-// 						expr->right_paren_cursor = true;
-// 					}else if(expr->term_cursor_start->right){
-// 						expr->term_cursor_start  = expr->term_cursor_start->right;
-// 						expr->raw_cursor_start   = expr->term_cursor_start->raw.str - expr->raw.str;
-// 						expr->right_paren_cursor = false;
-// 					}
-// 				}
-// 				*/
+				/*
+				if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
+					expr->term_cursor_start    = expr->term_cursor_start->left;
+					expr->raw_cursor_start     = expr->term_cursor_start->raw.str - expr->raw.str;
+					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+						expr->raw_cursor_start  += 1;
+						expr->right_paren_cursor = true;
+					}else{
+						expr->right_paren_cursor = false;
+					}
+				}
+				if(key_pressed(CanvasBind_Expression_CursorRight)){
+					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+						expr->raw_cursor_start  += 1;
+						expr->right_paren_cursor = true;
+					}else if(expr->term_cursor_start->right){
+						expr->term_cursor_start  = expr->term_cursor_start->right;
+						expr->raw_cursor_start   = expr->term_cursor_start->raw.str - expr->raw.str;
+						expr->right_paren_cursor = false;
+					}
+				}
+				*/
 				
-// 				//character based input (letters, numbers, symbols)
-// 				//// @input_expression_insertion ////
-// 				if(DeshInput->charCount){
-// 					expr->changed = true;
-// 					str8_builder_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
-// 					expr->raw_cursor_start += DeshInput->charCount;
-// 				}
+				//character based input (letters, numbers, symbols)
+				//// @input_expression_insertion ////
+				if(DeshInput->charCount){
+					expr->changed = true;
+					str8_builder_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
+					expr->raw_cursor_start += DeshInput->charCount;
+				}
 				
-// 				//// @input_expression_deletion ////
-// 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
-// 					expr->changed = true;
-// 					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-// 					expr->raw_cursor_start -= 1;
-// 				}
-// 				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
-// 					expr->changed = true;
-// 					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-// 				}
-// 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
-// 					expr->changed = true;
-// 					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
-// 						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
-// 							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-// 							expr->raw_cursor_start -= 1;
-// 						}
-// 						if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
-// 							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-// 							expr->raw_cursor_start -= 1;
-// 						}
-// 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
-// 						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-// 						expr->raw_cursor_start -= 1;
-// 					}else{
-// 						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
-// 							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-// 							expr->raw_cursor_start -= 1;
-// 						}
-// 					}
-// 				}
-// 				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
-// 					expr->changed = true;
-// 					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
-// 						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
-// 							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-// 						}
-// 						if(*(expr->raw.str+expr->raw_cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-// 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
-// 						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-// 					}else{
-// 						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
-// 							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-// 						}
-// 					}
-// 				}
+				//// @input_expression_deletion ////
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
+					expr->changed = true;
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+					expr->raw_cursor_start -= 1;
+				}
+				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
+					expr->changed = true;
+					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+				}
+				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
+					expr->changed = true;
+					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
+						}
+						if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
+						}
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+						expr->raw_cursor_start -= 1;
+					}else{
+						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							expr->raw_cursor_start -= 1;
+						}
+					}
+				}
+				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
+					expr->changed = true;
+					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+						}
+						if(*(expr->raw.str+expr->raw_cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+					}else{
+						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+						}
+					}
+				}
 				
-// 				if(expr->changed){
-// 					expr->valid = parse(expr);
-// 					solve(&expr->term);
-// 					debug_draw_term_tree(expr, &expr->term);
-// 					debug_print_term(&expr->term);
-// 				}
-// 			}
-// 		}break;
+				if(expr->changed){
+					expr->valid = parse(expr);
+					solve(&expr->term);
+					debug_draw_term_tree(expr, &expr->term);
+					debug_print_term(&expr->term);
+				}
+			}
+		}break;
+	}
 		
 // 		////////////////////////////////////////////////////////////////////////////////////////////////
 // 		//// @input_pencil
@@ -1545,7 +1574,7 @@ void update_canvas(){
 	
 // 	//// @draw_canvas_info ////
 // 	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->deltaTime / 1000)));
-// 	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[active_tool]);
+// 	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[canvas.tool.active]);
 // 	UI::TextF(str8_lit("Previous Tool: %s"), canvas_tool_strings[previous_tool]);
 // 	UI::TextF(str8_lit("Selected Element: %d"), u64(selected_element));
 // 	UI::TextF(str8_lit("campos:  (%g, %g)"),camera_pos.x,camera_pos.y);

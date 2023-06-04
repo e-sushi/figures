@@ -18,60 +18,61 @@
 
 local b32 DEBUG_print_term_ = false;
 void debug_print_term(Term* term){
-	if(!DEBUG_print_term_) return;
+	FixMe;
+	// if(!DEBUG_print_term_) return;
 	
-	persist s32 print_indent = -1;
-	persist Expression* expr = 0;
-	print_indent++;
-	string indent(deshi_temp_allocator); forI(print_indent) indent += "  ";
-	const char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
-		: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? "  R"
-		: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
-		: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
-		: "   ";
-	const char* cursor = (expr && expr->term_cursor_start == term) ? " C " : "   ";
+	// persist s32 print_indent = -1;
+	// persist Expression* expr = 0;
+	// print_indent++;
+	// string indent(deshi_temp_allocator); forI(print_indent) indent += "  ";
+	// const char* arg = (HasFlag(term->flags, TermFlag_OpArgLeft)) ? "  L"
+	// 	: (HasFlag(term->flags, TermFlag_OpArgRight) ) ? "  R"
+	// 	: (HasFlag(term->flags, TermFlag_OpArgTop)   ) ? "  T"
+	// 	: (HasFlag(term->flags, TermFlag_OpArgBottom)) ? "  B"
+	// 	: "   ";
+	// const char* cursor = (expr && expr->term_cursor_start == term) ? " C " : "   ";
 	
-	switch(term->type){
-		case TermType_Expression:{
-			expr = ExpressionFromTerm(term);
-			Log("ast",str8_builder_peek(&expr->raw), cursor);
-			for_node(term->first_child) debug_print_term(it);
-			if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg, cursor);
-			Log("ast","---------------------------------");
-			expr = 0;
-		}break;
+	// switch(term->type){
+	// 	case TermType_Expression:{
+	// 		expr = ExpressionFromTerm(term);
+	// 		Log("ast",str8_builder_peek(&expr->raw), cursor);
+	// 		for_node(term->first_child) debug_print_term(it);
+	// 		if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg, cursor);
+	// 		Log("ast","---------------------------------");
+	// 		expr = 0;
+	// 	}break;
 		
-		case TermType_Operator:{
-			switch(term->op_type){
-				case OpType_Parentheses:           { Log("ast", indent, "()", arg); }break;
-				case OpType_Exponential:           { Log("ast", indent, "^",  arg); }break;
-				case OpType_Negation:              { Log("ast", indent, "-",  arg); }break;
-				case OpType_ImplicitMultiplication:{ Log("ast", indent, "*i",  arg); }break;
-				case OpType_ExplicitMultiplication:{ Log("ast", indent, "*e",  arg); }break;
-				case OpType_Division:              { Log("ast", indent, "/",  arg); }break;
-				case OpType_Modulo:                { Log("ast", indent, "%",  arg); }break;
-				case OpType_Addition:              { Log("ast", indent, "+",  arg); }break;
-				case OpType_Subtraction:           { Log("ast", indent, "-",  arg); }break;
-				case OpType_ExpressionEquals:      { Log("ast", indent, "=",  arg); }break;
-				default:                           { Log("ast", indent, "?",  arg); }break;
-			}
-			for_node(term->first_child) debug_print_term(it);
-		}break;
+	// 	case TermType_Operator:{
+	// 		switch(term->op_type){
+	// 			case OpType_Parentheses:           { Log("ast", indent, "()", arg); }break;
+	// 			case OpType_Exponential:           { Log("ast", indent, "^",  arg); }break;
+	// 			case OpType_Negation:              { Log("ast", indent, "-",  arg); }break;
+	// 			case OpType_ImplicitMultiplication:{ Log("ast", indent, "*i",  arg); }break;
+	// 			case OpType_ExplicitMultiplication:{ Log("ast", indent, "*e",  arg); }break;
+	// 			case OpType_Division:              { Log("ast", indent, "/",  arg); }break;
+	// 			case OpType_Modulo:                { Log("ast", indent, "%",  arg); }break;
+	// 			case OpType_Addition:              { Log("ast", indent, "+",  arg); }break;
+	// 			case OpType_Subtraction:           { Log("ast", indent, "-",  arg); }break;
+	// 			case OpType_ExpressionEquals:      { Log("ast", indent, "=",  arg); }break;
+	// 			default:                           { Log("ast", indent, "?",  arg); }break;
+	// 		}
+	// 		for_node(term->first_child) debug_print_term(it);
+	// 	}break;
 		
-		case TermType_Literal: case TermType_Variable:{
-			Log("ast", indent, term->raw, arg, cursor);
-		}break;
+	// 	case TermType_Literal: case TermType_Variable:{
+	// 		Log("ast", indent, term->raw, arg, cursor);
+	// 	}break;
 		
-		case TermType_FunctionCall:
-		case TermType_Logarithm:{
-			Log("ast", indent, term->raw, arg, cursor);
-			for_node(term->first_child) debug_print_term(it);
-		}break;
+	// 	case TermType_FunctionCall:
+	// 	case TermType_Logarithm:{
+	// 		Log("ast", indent, term->raw, arg, cursor);
+	// 		for_node(term->first_child) debug_print_term(it);
+	// 	}break;
 		
-		default:{ Log("ast", indent, "?",  arg, cursor); }break;
-	}
+	// 	default:{ Log("ast", indent, "?",  arg, cursor); }break;
+	// }
 	
-	print_indent--;
+	// print_indent--;
 }
 
 local b32 DEBUG_draw_term_simple_ = false;
