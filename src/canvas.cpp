@@ -1081,12 +1081,8 @@ void init_canvas(){
 	forI(n){
 		items[i] = uiItemB();
 		items[i]->style.sizing = size_auto;
-		items[i]->style.padding_left = 5;
-		items[i]->style.padding_right = 5;
-		items[i]->style.padding_top = 5;
-		items[i]->style.padding_bottom = 5;
+		items[i]->style.padding = {5,5,5,5};
 		items[i]->style.background_color = {100, 50, u8(255 * f32(i)/n), 255};
-		
 	}
 	
 	inside = uiItemM();
@@ -1116,6 +1112,8 @@ void update_canvas(){
 // 	UI::SetNextWindowSize(DeshWindow->width, DeshWindow->height);
 // 	UI::Begin(str8_lit("canvas"), vec2::ZERO, vec2::ZERO, UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
 	
+	
+
 // 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 // 	//// @input
 // 	mouse_pos_world = ToWorld(input_mouse_position());

@@ -12,12 +12,12 @@
 #
 # Arguments:
 #   --v    Echo build commands to the console
-#   --time Time the script (this relies on GNU awk)
 #   --d    Build with    debug info and without optimization (default)
 #   --r    Build without debug info and with    optimization
 #   --p    Enable Tracy profiling
 #   --pw   Enable Tracy profiling and force the program to wait for a connection to start running
 #   --sa   Enable static analysis
+#   --ba   Enable build analysis (currently only works with clang with ClangBuildAnalyzer installed)
 #
 #   -platform <win32,mac,linux>           Build for specified OS: win32, mac, linux (default: builder's OS)
 #   -graphics <vulkan,opengl,directx>     Build for specified Graphics API (default: vulkan)
@@ -37,6 +37,7 @@ config = {
     "buildmode": "debug",
     "profiling": "off", # "off", "on", "on and wait"
     "static_analysis": False,
+    "build_analysis": False,
 
     "platform": "unknown",
     "compiler": "unknown",
@@ -71,6 +72,7 @@ while i < len(sys.argv):
         case "--p":    config["profiling"] = "on"
         case "--pw":   config["profiling"] = "on and wait"
         case "--sa":   config["static_analysis"] = True
+        case "--ba":   config["build_analysis"] = True
 
         case "-platform":
             if i != len(sys.argv) - 1:
@@ -135,7 +137,7 @@ compatibility = {
 # this assumes that the build script is in a misc folder that is in the root of the repo
 folders = {}
 folders["misc"] = os.path.dirname(__file__)
-folders["root"] = f"{folders['misc']}/.."
+folders["root"] = os.path.abspath(f"{folders['misc']}/..")
 folders["build"] = f"{folders['root']}/build/{config['buildmode']}"
 
 os.chdir(folders["root"])
@@ -159,15 +161,8 @@ sources = {
 }
 
 parts = {
-
-    "gdbinit sources":[
-        f"{folders['root']}/deshi/src/deshigdb.py",
-        f"{folders['root']}/deshi/src/kigu/kigugdb.py",
-        f"{folders['root']}/misc/debug/debug.py"
-    ],
-
-    "link":{
-        "win32": {
+    "link":{ # various things handed to the linker
+        "win32": { 
             "always": ["gdi32", "shell32", "ws2_32", "winmm"],
             "vulkan": ["vulkan-1", "shaderc_combined"],
             "opengl": ["opengl32"],
@@ -200,7 +195,7 @@ parts = {
     },
 
 
-    "defines":{
+    "defines":{ 
         "buildmode": {
             "release": "-DBUILD_INTERNAL=0 -DBUILD_SLOW=0 -DBUILD_RELEASE=1 ",
             "debug": "-DBUILD_INTERNAL=1 -DBUILD_SLOW=1 -DBUILD_RELEASE=0 ",
@@ -309,7 +304,11 @@ parts = {
                 "-fdebug-macro " # output macro information
                 "-ggdb3 " # output debug information for gdb
                 "-O0 " # disable optimization completely
-            )
+            ),
+            "analyze": {
+                True: "--analyze ",
+                False: ""
+            }
         }
     }
 }
@@ -321,6 +320,16 @@ if config["compiler"] not in compatibility[config["platform"]]["compiler"]:
 if config["linker"] not in compatibility[config["platform"]]["linker"]: 
     print(f"linker {config['linker']} is not compatible with the platform {config['platform']}")
     quit()
+
+if config["build_analysis"]:
+    if config["compiler"] != "clang++":
+        print("Build analysis (--ba) is only available with clang.")
+        quit()
+    import shutil
+    if shutil.which("ClangBuildAnalyzer") is None:
+        print("Build analysis (--ba) is enabled, but ClangBuildAnalyzer is not installed.")
+        quit()
+    parts["compiler_flags"]["clang++"]["always"] += "-ftime-trace"
 
 #
 #  construct compiler commands
@@ -374,23 +383,23 @@ pathprefix = parts['link']['prefix'][config['linker']]['path']
 for lp in link_paths:
     link["paths"] += f"{pathprefix}{lp} "
 
-full_deshi = (
-    f'{config["compiler"]} -c '
-    f'{sources["deshi"]} '
+shared = (
     f'{defines} '
     f'{includes} '
     f'{parts["compiler_flags"][config["compiler"]]["always"]} '
     f'{parts["compiler_flags"][config["compiler"]][config["buildmode"]]} '
-    f'-o {folders["build"]}/deshi.o'
+    f'{parts["compiler_flags"][config["compiler"]]["analyze"][config["static_analysis"]]} '
 )
+
+full_deshi = (
+    f'{config["compiler"]} -c '
+    f'{sources["deshi"]} ' + shared + 
+    f'-o {folders["build"]}/deshi.o'
+) 
 
 full_app = (
     f'{config["compiler"]} -c '
-    f'{sources["app"]} '
-    f'{defines} '
-    f'{includes} '
-    f'{parts["compiler_flags"][config["compiler"]]["always"]} '
-    f'{parts["compiler_flags"][config["compiler"]][config["buildmode"]]} '
+    f'{sources["app"]} ' + shared +
     f'-o {folders["build"]}/{app_name}.o' 
 )
 
@@ -426,10 +435,24 @@ def run_proc(name, cmd):
 start = time.time()
 dproc = Thread(target=run_proc, args=("deshi", full_deshi))
 aproc = Thread(target=run_proc, args=(app_name, full_app))
+
+baproc = None
+if config["build_analysis"]:
+    subprocess.Popen(f"ClangBuildAnalyzer --start {folders['build']}/".split(' '), stdout=subprocess.PIPE).wait()
+
 dproc.start()
 aproc.start()
 dproc.join()
 aproc.join()
+
+if config["build_analysis"]:
+    subprocess.Popen(f"ClangBuildAnalyzer --stop {folders['build']}/ {folders['build']}/out".split(' '), stdout=subprocess.PIPE).wait()
+    proc = subprocess.Popen(f"ClangBuildAnalyzer --analyze {folders['build']}/out".split(' '), stdout=subprocess.PIPE)
+    analysis = proc.communicate()[0].decode()
+    file = open(f"{folders['build']}/ctimeanalysis", "w")
+    file.write(analysis)
+    file.close()
+
 
 lproc = Thread(target=run_proc, args=("exe", full_link))
 lproc.start()

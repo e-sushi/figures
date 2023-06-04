@@ -96,14 +96,8 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #  include "unistd.h" // _exit on linux
 #endif
 
-struct test{
-	int a,b;
-};
-
 int main(int args_count, char** args){
 	profiler_init();
-
-	test t = {1,2};
 
 	//parse cmd line args
 	b32 solve_mode = false;
@@ -206,6 +200,9 @@ int main(int args_count, char** args){
 		}
 		return 0;
 	}
+
+	
+
 	
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 	// Regular Mode
@@ -218,8 +215,8 @@ int main(int args_count, char** args){
 	render_init();
 	assets_init();
 	uiInit(g_memory,0);
-	// console_init();
-	// cmd_init();
+	//console_init();
+	cmd_init();
 	// window_show(DeshWindow);
 	render_use_default_camera();
 	// threader_init();
@@ -229,7 +226,6 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 
-	
 #if 0 //mint testing
 	mint a = mint_init(20);
 	mint b = mint_init(127);
