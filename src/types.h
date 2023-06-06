@@ -475,6 +475,7 @@ external struct Element{
 };
 
 // NOTE(sushi) this compiles on clang, need to know if it compiles on MSVC as well
+/*
 const uiStyle element_default_style = {
 	.positioning = pos_relative,
 	.sizing = size_auto,
@@ -482,6 +483,35 @@ const uiStyle element_default_style = {
 	.border_style = border_solid,
 	.border_width = 1,
 	.text_wrap = text_wrap_none,
+};
+*/
+const uiStyle element_default_style = {
+	/*positioning*/ pos_relative,
+	/*anchor*/ anchor_top_left,
+	/*sizing*/ size_auto,
+	/*pos*/ {0,0},
+	/*size*/ {0,0},
+	/*min_size*/ {0,0},
+	/*max_size*/ {0,0},
+	/*margin*/ {0,0,0,0},
+	/*padding*/ {0,0,0,0},
+	/*scale*/ {0,0},
+	/*scroll*/ {0,0},
+	/*background_color*/ Color_Black,
+	/*background_image*/ 0,
+	/*border_style*/ border_solid,
+	/*border_color*/ Color_NONE,
+	/*border_width*/ 1,
+	/*font*/ 0,
+	/*font_height*/ 0,
+	/*text_wrap*/ text_wrap_none,
+	/*text_color*/ Color_NONE,
+	/*tab_spaces*/ 0,
+	/*focus*/ 0,
+	/*display*/ display_vertical,
+	/*overflow*/ overflow_scroll,
+	/*content_align*/ {0,0},
+	/*hover_passthrough*/ false,
 };
 
 struct{

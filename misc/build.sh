@@ -218,15 +218,27 @@ app_sources="src/suugu.cpp"
 lib_paths=(
   "${vulkan_folder}/lib"
 )
-libs=(
-
-)
+libs=()
 
 # TODO(sushi) setup loading libs only necessary for chosen renderer
 if [ $build_platform == "win32" ]; then
-  libs+=( gdi32 shell32 ws2_32 winmm opengl32 vulkan-1 shaderc_combined )
+  libs+=(
+    user32
+    gdi32
+    shell32
+    ws2_32
+    winmm
+    opengl32
+    vulkan-1
+    shaderc_combined #required for vulkan shader compilation at runtime
+  )
 elif [ $build_platform == "linux" ]; then
-  libs+=( vulkan shaderc_combined X11 GL )
+  libs+=(
+    X11
+    GL
+    vulkan
+    shaderc_combined #required for vulkan shader compilation at runtime
+  )
 else
   echo "Libs not setup for platform $build_platform"
 fi
