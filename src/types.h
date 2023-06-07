@@ -455,13 +455,11 @@ enum ElementType : u32{
 
 // element: anything with position, size, coordinate space, and display info
 // tagged union/variant
-external struct Element{
-	union{
-		struct{f32 x,y,z;};
+struct Element{
+	union{struct{f32 x,y,z;};
 		vec3 pos;
 	};
-	union{
-		struct{f32 width,height,depth;};
+	union{struct{f32 width,height,depth;};
 		vec3 size;
 	};
 	//CoordinateSpace space;
@@ -484,6 +482,19 @@ const uiStyle element_default_style = {
 	.text_wrap = text_wrap_none,
 };
 
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+// @node_render
+struct Visible {
+	TNode node;
+	Term* term; // the term this visual represents
+
+};
+
+
+
+
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+// @memory
 struct{
 	Arena* elements;
 	Node inactive_elements;

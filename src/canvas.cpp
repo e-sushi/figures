@@ -1306,7 +1306,6 @@ void update_canvas(){
 				expr->changed = false;
 				
 				//// @input_expression_cursor ////
-				
 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
 					expr->raw_cursor_start -= 1;
 				}
@@ -1378,6 +1377,7 @@ void update_canvas(){
 					expr->changed = true;
 					str8_builder_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
 					expr->raw_cursor_start += DeshInput->charCount;
+					Log("", expr->raw.fin);
 				}
 				
 				//// @input_expression_deletion ////
@@ -1427,7 +1427,8 @@ void update_canvas(){
 					}
 				}
 				
-				if(expr->changed){
+
+				if(0 && expr->changed){
 					expr->valid = parse(expr);
 					solve(&expr->term);
 					debug_draw_term_tree(expr, &expr->term);
