@@ -1,0 +1,26 @@
+addition: MathObject {
+    for: Space;
+    // This document, and any that imports this definition, may refer to 'addition' as '+'. Of course, this needs to be unique and is equivalent to defining a symbol in just the same way as we define the symbol 'addition'. The shorthand may be any arbitrary string that does NOT include the characters ';' '.' '{' '}' '(' ')' '[' ']' or '"'.  
+    shorthand: +; 
+    type: Operator {
+        // the tree form of this Operator, specified with TML (s-expressions)
+        form: (+ a b);
+        // a list of manipulations applicable with this operator at the root
+        manipulations: [
+            /* commutativity */ (+ a b) = (+ b a);
+            /*  associativiy */ (+ (+ a b) c) = (+ a (+ b c));
+            // because 'addition' has been declared an Operator, it is expected to be used in a Space which defines a 'Null' element. If it does not, then this manipulation does not exist for that instance of addition
+            /*      identity */ (+ a ::Null) = (a);
+
+        ]
+        visual: {
+            base: "+";
+        }
+    }
+}
+
+integer: MathObject {
+    type: Space {
+        
+    }
+}
