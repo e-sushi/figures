@@ -49,6 +49,8 @@ u32 solver_unknown_variables_count_right = 0;
 void solve_unknowns(Expression* expr);
 
 f64 solve(Term* term){
+	FixMe; // removed terms array from Expression
+	
 	// if(solver_error_code != SolverError_None) return SOLVER_ERROR_VALUE;
 	
 	// switch(term->type){
@@ -189,160 +191,163 @@ f64 solve(Term* term){
 //TODO rather than solve_unknowns, this should be solve_for with a specific variable to solve for rather than assuming numeric single solve or multivariable solve
 //     (figure out how multivariable solving fits into solve_for, i dont even remember how to do multivariable atm)
 void solve_unknowns(Expression* expr){
-	Assert(expr->equals, "the expression must have an equals operator in order to solve for unknowns");
+	FixMe; // removed terms array from Expression
+
+
+	// Assert(expr->equals, "the expression must have an equals operator in order to solve for unknowns");
 	
-	//deep copy the expression so it can be reordered for solving without affecting the original expression
-	//NOTE one extra term as an empty slot for easier reordering
-	Term* terms = (Term*)memory_talloc((expr->terms.count + 1) * sizeof(Term));
-	Term* equals = &terms[expr->equals - expr->terms.data];
-	Term* extra = terms + expr->terms.count;
-	CopyMemory(terms, expr->terms.data, expr->terms.count * sizeof(Term));
-	forI(expr->terms.count){
-		terms[i].prev        = (expr->terms[i].prev)        ? &terms[expr->terms[i].prev        - expr->terms.data] : 0;
-		terms[i].next        = (expr->terms[i].next)        ? &terms[expr->terms[i].next        - expr->terms.data] : 0;
-		terms[i].parent      = (expr->terms[i].parent)      ? &terms[expr->terms[i].parent      - expr->terms.data] : 0;
-		terms[i].first_child = (expr->terms[i].first_child) ? &terms[expr->terms[i].first_child - expr->terms.data] : 0;
-		terms[i].last_child  = (expr->terms[i].last_child)  ? &terms[expr->terms[i].last_child  - expr->terms.data] : 0;
-	}
+	// //deep copy the expression so it can be reordered for solving without affecting the original expression
+	// //NOTE one extra term as an empty slot for easier reordering
+	// Term* terms = (Term*)memory_talloc((expr->terms.count + 1) * sizeof(Term));
+	// Term* equals = &terms[expr->equals - expr->terms.data];
+	// Term* extra = terms + expr->terms.count;
+	// CopyMemory(terms, expr->terms.data, expr->terms.count * sizeof(Term));
+	// forI(expr->terms.count){
+	// 	terms[i].prev        = (expr->terms[i].prev)        ? &terms[expr->terms[i].prev        - expr->terms.data] : 0;
+	// 	terms[i].next        = (expr->terms[i].next)        ? &terms[expr->terms[i].next        - expr->terms.data] : 0;
+	// 	terms[i].parent      = (expr->terms[i].parent)      ? &terms[expr->terms[i].parent      - expr->terms.data] : 0;
+	// 	terms[i].first_child = (expr->terms[i].first_child) ? &terms[expr->terms[i].first_child - expr->terms.data] : 0;
+	// 	terms[i].last_child  = (expr->terms[i].last_child)  ? &terms[expr->terms[i].last_child  - expr->terms.data] : 0;
+	// }
 	
-	//reset unknown vars array
-	if(solver_unknown_variables && (solver_unknown_variables_count_left + solver_unknown_variables_count_right >= expr->unknown_vars)){
-		ZeroMemory(solver_unknown_variables, expr->unknown_vars*sizeof(Term*));
-	}else{
-		memory_zfree(solver_unknown_variables);
-		solver_unknown_variables = (Term**)memory_alloc(expr->unknown_vars*sizeof(Term*));
-	}
-	solver_unknown_variables_count_left = 0;
-	solver_unknown_variables_count_right = 0;
+	// //reset unknown vars array
+	// if(solver_unknown_variables && (solver_unknown_variables_count_left + solver_unknown_variables_count_right >= expr->unknown_vars)){
+	// 	ZeroMemory(solver_unknown_variables, expr->unknown_vars*sizeof(Term*));
+	// }else{
+	// 	memory_zfree(solver_unknown_variables);
+	// 	solver_unknown_variables = (Term**)memory_alloc(expr->unknown_vars*sizeof(Term*));
+	// }
+	// solver_unknown_variables_count_left = 0;
+	// solver_unknown_variables_count_right = 0;
 	
-	//collect all unknown vars and track which side they are on
-	u32 tracked_unknown_count = 0;
-	For(terms,expr->terms.count){
-		if(it->type == TermType_Variable && it->var.expr == 0){
-			solver_unknown_variables[tracked_unknown_count] = it;
-			if(it->var.right_of_equals){
-				solver_unknown_variables_count_right += 1;
-			}else{
-				solver_unknown_variables_count_left += 1;
-			}
-			tracked_unknown_count += 1;
-		}
-	}
+	// //collect all unknown vars and track which side they are on
+	// u32 tracked_unknown_count = 0;
+	// For(terms,expr->terms.count){
+	// 	if(it->type == TermType_Variable && it->var.expr == 0){
+	// 		solver_unknown_variables[tracked_unknown_count] = it;
+	// 		if(it->var.right_of_equals){
+	// 			solver_unknown_variables_count_right += 1;
+	// 		}else{
+	// 			solver_unknown_variables_count_left += 1;
+	// 		}
+	// 		tracked_unknown_count += 1;
+	// 	}
+	// }
 	
-	//TODO assuming very simple, one-op equations for now
-	if(expr->unknown_vars == 1){
-		//single variable solve by isolating the unknown variable on one side of the equals
-		Term* unknown = solver_unknown_variables[0];
+	// //TODO assuming very simple, one-op equations for now
+	// if(expr->unknown_vars == 1){
+	// 	//single variable solve by isolating the unknown variable on one side of the equals
+	// 	Term* unknown = solver_unknown_variables[0];
 		
-		if(unknown == equals->first_child){
-			expr->solution = solve(equals->last_child);
-		}else if(unknown == equals->last_child){
-			expr->solution = solve(equals->first_child);
-		}else{
-			//TODO heuristic for choosing which side of the equation to isolate the unknown (opposite of side which is more complex?)
-			Term* op = (unknown->var.right_of_equals) ? equals->last_child : equals->first_child;
-			switch(op->op_type){
-				case OpType_Addition:{
-					//5 = 1 + x    1 + x = 5
+	// 	if(unknown == equals->first_child){
+	// 		expr->solution = solve(equals->last_child);
+	// 	}else if(unknown == equals->last_child){
+	// 		expr->solution = solve(equals->first_child);
+	// 	}else{
+	// 		//TODO heuristic for choosing which side of the equation to isolate the unknown (opposite of side which is more complex?)
+	// 		Term* op = (unknown->var.right_of_equals) ? equals->last_child : equals->first_child;
+	// 		switch(op->op_type){
+	// 			case OpType_Addition:{
+	// 				//5 = 1 + x    1 + x = 5
 					
-					//create a subtraction operator as the parent on the other side
-					//5 - = 1 + x    1 + x = 5 -
-					ZeroMemory(extra, sizeof(Term));
-					extra->type = TermType_Operator;
-					extra->raw = str8_lit("-");
-					extra->op_type = OpType_Subtraction;
-					if(unknown->var.right_of_equals){
-						ast_change_parent_insert_first(extra, equals->first_child);
-						ast_insert_first(equals, extra);
-					}else{
-						ast_change_parent_insert_first(extra, equals->last_child);
-						ast_insert_last(equals, extra);
-					}
+	// 				//create a subtraction operator as the parent on the other side
+	// 				//5 - = 1 + x    1 + x = 5 -
+	// 				ZeroMemory(extra, sizeof(Term));
+	// 				extra->type = TermType_Operator;
+	// 				extra->raw = str8_lit("-");
+	// 				extra->op_type = OpType_Subtraction;
+	// 				if(unknown->var.right_of_equals){
+	// 					ast_change_parent_insert_first(extra, equals->first_child);
+	// 					ast_insert_first(equals, extra);
+	// 				}else{
+	// 					ast_change_parent_insert_first(extra, equals->last_child);
+	// 					ast_insert_last(equals, extra);
+	// 				}
 					
-					//change parent of the unknown's sibling to the subtraction operator
-					//5 - 1 = + x    + x = 5 - 1
-					if(unknown == op->first_child){
-						ast_change_parent_insert_last(extra, op->last_child);
-					}else{
-						ast_change_parent_insert_last(extra, op->first_child);
-					}
+	// 				//change parent of the unknown's sibling to the subtraction operator
+	// 				//5 - 1 = + x    + x = 5 - 1
+	// 				if(unknown == op->first_child){
+	// 					ast_change_parent_insert_last(extra, op->last_child);
+	// 				}else{
+	// 					ast_change_parent_insert_last(extra, op->first_child);
+	// 				}
 					
-					//elevate the unknown to be a child of the equals
-					//5 - 1 = x_+    +_x = 5 - 1
-					if(unknown->var.right_of_equals){
-						ast_change_parent_insert_last(equals, unknown);
-					}else{
-						ast_change_parent_insert_first(equals, unknown);
-					}
+	// 				//elevate the unknown to be a child of the equals
+	// 				//5 - 1 = x_+    +_x = 5 - 1
+	// 				if(unknown->var.right_of_equals){
+	// 					ast_change_parent_insert_last(equals, unknown);
+	// 				}else{
+	// 					ast_change_parent_insert_first(equals, unknown);
+	// 				}
 					
-					//convert the addition operator to be the extra for later reuse
-					//5 - 1 = x     x = 5 - 1
-					ast_remove_from_parent(op);
-					ast_remove_horizontally(op);
-					Swap(extra, op);
-				}break;
+	// 				//convert the addition operator to be the extra for later reuse
+	// 				//5 - 1 = x     x = 5 - 1
+	// 				ast_remove_from_parent(op);
+	// 				ast_remove_horizontally(op);
+	// 				Swap(extra, op);
+	// 			}break;
 				
-				case OpType_Subtraction:{
-					if(unknown == op->first_child){
-						//5 = x - 1    x - 1 = 5
+	// 			case OpType_Subtraction:{
+	// 				if(unknown == op->first_child){
+	// 					//5 = x - 1    x - 1 = 5
 						
-						//create an addition operator as the parent on the other side
-						//5 + = x - 1    x - 1 = 5 +
-						ZeroMemory(extra, sizeof(Term));
-						extra->type = TermType_Operator;
-						extra->raw = str8_lit("+");
-						extra->op_type = OpType_Addition;
-						if(unknown->var.right_of_equals){
-							ast_change_parent_insert_first(extra, equals->first_child);
-							ast_insert_first(equals, extra);
-						}else{
-							ast_change_parent_insert_first(extra, equals->last_child);
-							ast_insert_last(equals, extra);
-						}
+	// 					//create an addition operator as the parent on the other side
+	// 					//5 + = x - 1    x - 1 = 5 +
+	// 					ZeroMemory(extra, sizeof(Term));
+	// 					extra->type = TermType_Operator;
+	// 					extra->raw = str8_lit("+");
+	// 					extra->op_type = OpType_Addition;
+	// 					if(unknown->var.right_of_equals){
+	// 						ast_change_parent_insert_first(extra, equals->first_child);
+	// 						ast_insert_first(equals, extra);
+	// 					}else{
+	// 						ast_change_parent_insert_first(extra, equals->last_child);
+	// 						ast_insert_last(equals, extra);
+	// 					}
 						
-						//change parent of the unknown's sibling to the new addition operator
-						//5 + 1 = x -    x - = 5 + 1
-						ast_change_parent_insert_last(extra, op->last_child);
+	// 					//change parent of the unknown's sibling to the new addition operator
+	// 					//5 + 1 = x -    x - = 5 + 1
+	// 					ast_change_parent_insert_last(extra, op->last_child);
 						
-						//elevate the unknown to be a child of the equals
-						//5 + 1 = x_-    x_- = 5 + 1
-						if(unknown->var.right_of_equals){
-							ast_change_parent_insert_last(equals, unknown);
-						}else{
-							ast_change_parent_insert_first(equals, unknown);
-						}
+	// 					//elevate the unknown to be a child of the equals
+	// 					//5 + 1 = x_-    x_- = 5 + 1
+	// 					if(unknown->var.right_of_equals){
+	// 						ast_change_parent_insert_last(equals, unknown);
+	// 					}else{
+	// 						ast_change_parent_insert_first(equals, unknown);
+	// 					}
 						
-						//convert the original subtraction operator to be the extra for later reuse
-						//5 + 1 = x    x = 5 + 1
-						ast_remove_from_parent(op);
-						ast_remove_horizontally(op);
-						Swap(extra, op);
-					}else{
-						//5 = 1 - x    1 - x = 5
-						Term* other_side = (unknown->var.right_of_equals) ? equals->first_child : equals->last_child;
+	// 					//convert the original subtraction operator to be the extra for later reuse
+	// 					//5 + 1 = x    x = 5 + 1
+	// 					ast_remove_from_parent(op);
+	// 					ast_remove_horizontally(op);
+	// 					Swap(extra, op);
+	// 				}else{
+	// 					//5 = 1 - x    1 - x = 5
+	// 					Term* other_side = (unknown->var.right_of_equals) ? equals->first_child : equals->last_child;
 						
-						//elevate the unknown to be a child of the equals on the other side
-						//5_x = 1 -    1 - = 5_x
-						ast_change_parent_insert_last(equals, unknown);
+	// 					//elevate the unknown to be a child of the equals on the other side
+	// 					//5_x = 1 -    1 - = 5_x
+	// 					ast_change_parent_insert_last(equals, unknown);
 						
-						//change parent of the the other side to the original subtraction
-						//x = 1 - 5    1 - 5 = x
-						ast_change_parent_insert_last(op, other_side);
-					}
-				}break;
+	// 					//change parent of the the other side to the original subtraction
+	// 					//x = 1 - 5    1 - 5 = x
+	// 					ast_change_parent_insert_last(op, other_side);
+	// 				}
+	// 			}break;
 				
-				default:{
-					Assert(!"unknown solving no setup yet for this operator");
-				}break;
-			}
+	// 			default:{
+	// 				Assert(!"unknown solving no setup yet for this operator");
+	// 			}break;
+	// 		}
 			
-			expr->solution = solve(op);
-		}
-		debug_print_term(equals);
-	}else{
-		//TODO multi variable solve
+	// 		expr->solution = solve(op);
+	// 	}
+	// 	debug_print_term(equals);
+	// }else{
+	// 	//TODO multi variable solve
 		
-		LogE("suugu-solver", "Solving for multiple variables not implemented yet.");
-		Assert(!"solving for multiple variables not implemented yet");
-	}
+	// 	LogE("suugu-solver", "Solving for multiple variables not implemented yet.");
+	// 	Assert(!"solving for multiple variables not implemented yet");
+	// }
 }

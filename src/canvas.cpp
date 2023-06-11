@@ -151,11 +151,11 @@ struct{
 //NOTE(delle): the cursor is drawn to the right of the character it represents
 //TODO(sushi) remove the expr arg and make it part of drawinfo
 //TODO(sushi) copy how an empty expression looks from draw_term_old()
-DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
+DrawContext draw_term(Expression* expr, Term* mathobj){DPZoneScoped;
 	FixMe;
 	// using namespace UI;
 	// DPTracyDynMessage(toStr("initialized: ", drawinfo.initialized));
-	// if(term == 0) return DrawContext();
+	// if(mathobj == 0) return DrawContext();
 	// if(!drawinfo.initialized) return DrawContext();
 	// //initializing internally has some issues so for now drawinfo must be initialized before calling this function
 	// //if(!drawinfo.initialized){
@@ -207,9 +207,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 	CustomItem_DCMakeLine(drawCmd, start, end, 1, Color_Cyan);
 	// };
 	
-	// switch(term->type){
+	// switch(mathobj->type){
 	// 	case TermType_Expression:{
-	// 		Expression* expr = ExpressionFromTerm(term);
+	// 		Expression* expr = ExpressionFromTerm(mathobj);
 	// 		vec2 mmbbx = vec2::ZERO; //expression bounding box
 			
 	// 		//draw leading space
@@ -219,7 +219,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 		mmbbx.y  = Max(mmbbx.y, spaceSize.y);
 			
 	// 		//draw right paren if its the cursor character
-	// 		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+	// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 	// 			str8 rightParen = str8l(")");
 	// 			vec2 rightParenSize = CalcTextSize(rightParen);
 	// 			check_drawcmd(4,6);
@@ -233,9 +233,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			mmbbx.y  = Max(mmbbx.y, rightParenSize.y);
 	// 		}
 			
-	// 		if(term->child_count){
-	// 			//draw first term
-	// 			drawContext = draw_term(expr, term->first_child);
+	// 		if(mathobj->child_count){
+	// 			//draw first mathobj
+	// 			drawContext = draw_term(expr, mathobj->first_child);
 	// 			forI(drawContext.vcount){
 	// 				(drawContext.vstart + i)->pos.x += mmbbx.x;
 	// 			}
@@ -243,7 +243,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
 				
 	// 			//draw other terms separated by spaces if the expression is invalid
-	// 			for_node(term->first_child->next){
+	// 			for_node(mathobj->first_child->next){
 	// 				check_drawcmd(4,6);
 	// 				CustomItem_DCMakeText(drawCmd, str8l(" "), vec2::ZERO, textColor, textScale);
 	// 				mmbbx.x += spaceSize.x;
@@ -277,7 +277,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 	}break;
 		
 	// 	case TermType_Operator:{
-	// 		switch(term->op_type){
+	// 		switch(mathobj->op_type){
 	// 			case OpType_Parentheses:{
 	// 				str8 syml = str8_lit("(");
 	// 				str8 symr = str8_lit(")");
@@ -285,8 +285,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 				vec2 symsize = CalcTextSize(syml); // i sure hope theres no font with different sizes for these
 	// 				drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
 	// 				drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
-	// 				if(term->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, term->first_child);
+	// 				if(mathobj->child_count == 1){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 					ratio = ret.bbx.y / symsize.y;
 	// 					forI(ret.vcount){
 	// 						(ret.vstart + i)->pos.x += symsize.x;
@@ -297,7 +297,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					drawContext.icount = ret.icount+12;
 	// 					check_drawcmd(8,12);
 	// 					CustomItem_DCMakeText(drawCmd, syml, Vec2(0, 0), textColor, Vec2(1, ratio) * textScale);
-	// 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 					if(HasFlag(mathobj->flags, TermFlag_LeftParenHasMatchingRightParen)){
 	// 						CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x + ret.bbx.x, 0), textColor, Vec2(1, ratio) * textScale);
 	// 					}
 	// 					else{
@@ -305,7 +305,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					}
 	// 					drawContext.midline = ret.midline;
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					drawContext.bbx.x = symsize.x*2;
 	// 					drawContext.bbx.y = symsize.y;
 	// 					drawContext.vcount = 8;
@@ -322,9 +322,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			}break;
 				
 	// 			case OpType_Exponential:{
-	// 				if(term->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, term->first_child);
-	// 					DrawContext retr = draw_term(expr, term->last_child);
+	// 				if(mathobj->child_count == 2){
+	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
+	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
 	// 					retr.bbx *= drawcfg.exponential_scaling;
 	// 					forI(retr.vcount){
 	// 						(retr.vstart + i)->pos.x *= drawcfg.exponential_scaling;
@@ -339,10 +339,10 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					drawContext.vcount = retl.vcount + retr.vcount;
 	// 					drawContext.midline = retl.bbx.y/2 + retr.bbx.y + drawcfg.exponential_offset.y;
 	// 				}
-	// 				else if(term->child_count == 1){
+	// 				else if(mathobj->child_count == 1){
 	// 					vec2 size = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
-	// 					DrawContext ret = draw_term(expr, term->first_child);
-	// 					if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
+	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
 	// 						forI(ret.vcount){
 	// 							(ret.vstart + i)->pos.y += size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
 	// 						}
@@ -353,12 +353,12 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 						drawContext.bbx.y = ret.bbx.y + size.y * drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
 	// 						drawContext.midline = ret.bbx.y/2 + size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y; 
 	// 					}
-	// 					else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
-	// 						Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid term");
+	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
+	// 						Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid mathobj");
 	// 					}
 						
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					Assert(!"why did this happen");
 	// 				}
 	// 			}break;
@@ -366,8 +366,8 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			case OpType_Negation:{
 	// 				str8 sym = str8_lit("-");
 	// 				vec2 symsize = CalcTextSize(sym);
-	// 				if(term->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, term->first_child);
+	// 				if(mathobj->child_count == 1){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 					forI(ret.vcount){
 	// 						(ret.vstart + i)->pos.x += symsize.x;
 	// 					}
@@ -377,7 +377,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					check_drawcmd(4,6);
 	// 					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					drawContext.bbx = symsize;
 	// 					drawContext.vcount = 4;
 	// 					check_drawcmd(4,6);
@@ -388,9 +388,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			}break;
 				
 	// 			case OpType_ImplicitMultiplication:{
-	// 				if(term->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, term->first_child);
-	// 					DrawContext retr = draw_term(expr, term->last_child);
+	// 				if(mathobj->child_count == 2){
+	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
+	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
 	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
 	// 					forI(retl.vcount){
 	// 						(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
@@ -410,9 +410,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				
 	// 			case OpType_ExplicitMultiplication:{
 	// 				f32 radius = 4;
-	// 				if(term->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, term->first_child);
-	// 					DrawContext retr = draw_term(expr, term->last_child);
+	// 				if(mathobj->child_count == 2){
+	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
+	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
 	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
 	// 					forI(retl.vcount){
 	// 						(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
@@ -427,14 +427,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
 	// 					CustomItem_DCMakeFilledCircle(drawCmd, Vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor); 
 	// 				}
-	// 				else if(term->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, term->first_child);
+	// 				else if(mathobj->child_count == 1){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 					drawContext.bbx = Vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
-	// 					if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
 	// 						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
 	// 						CustomItem_DCMakeFilledCircle(drawCmd, Vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
 	// 					}
-	// 					else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
 	// 						forI(ret.vcount){
 	// 							(ret.vstart + i)->pos.x += radius*2+drawcfg.additive_padding*2;
 	// 						}
@@ -443,7 +443,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					}
 	// 					drawContext.vcount = ret.vcount + render_make_circle_counts(15).x;
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
 	// 					check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
 	// 					drawContext.vcount = render_make_circle_counts(15).x;
@@ -452,9 +452,9 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			}break;
 				
 	// 			case OpType_Division:{
-	// 				if(term->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, term->first_child);
-	// 					DrawContext retr = draw_term(expr, term->last_child);
+	// 				if(mathobj->child_count == 2){
+	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
+	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
 	// 					retl.bbx *= drawcfg.division_scale;
 	// 					retr.bbx *= drawcfg.division_scale; 
 	// 					vec2 refbbx = Max(retl.bbx, retr.bbx);
@@ -477,19 +477,19 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					drawContext.midline = liney;
 	// 					CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),  Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 	// 				}
-	// 				else if(term->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, term->first_child);
+	// 				else if(mathobj->child_count == 1){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 					drawContext.bbx = Vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
 	// 					f32 liney = (drawContext.bbx.y-drawcfg.division_line_thickness)/2;
 	// 					drawContext.midline = liney;
-	// 					if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
 	// 						forI(ret.vcount){
 	// 							(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 	// 						}
 	// 						check_drawcmd(4,6);
 	// 						CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
 	// 					}
-	// 					else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
 	// 						forI(ret.vcount){
 	// 							(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
 	// 							(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
@@ -500,7 +500,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					drawContext.vcount = ret.vcount + 4;
 	// 					drawContext.icount = ret.icount + 6;
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
 	// 					drawContext.vcount = 4;
 	// 					drawContext.icount = 6;
@@ -514,16 +514,16 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 			case OpType_Addition:
 	// 			case OpType_Subtraction:{
 	// 				str8 sym;
-	// 				if(term->op_type == OpType_Addition)         sym = STR8("+");
-	// 				else if(term->op_type == OpType_Subtraction) sym = STR8("−");
-	// 				else if(term->op_type == OpType_Modulo)      sym = STR8("%");
+	// 				if(mathobj->op_type == OpType_Addition)         sym = STR8("+");
+	// 				else if(mathobj->op_type == OpType_Subtraction) sym = STR8("−");
+	// 				else if(mathobj->op_type == OpType_Modulo)      sym = STR8("%");
 	// 				vec2 symsize = CalcTextSize(sym);
 					
 	// 				//this can maybe be a switch
 	// 				//both children exist so proceed normally
-	// 				if(term->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, term->first_child);
-	// 					DrawContext retr = draw_term(expr, term->last_child);
+	// 				if(mathobj->child_count == 2){
+	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
+	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
 	// 					b32 leftdominant = retl.midline > retr.midline;
 	// 					f32 maxmidl = (leftdominant ? retl.midline : retr.midline);
 	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
@@ -553,14 +553,14 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					CustomItem_DCMakeText(drawCmd, sym, Vec2(retl.bbx.x+drawcfg.additive_padding, maxmidl - symsize.y/2), textColor, textScale);
 	// 				}
 	// 				//operator has a first child but it isnt followed by anything
-	// 				else if(term->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, term->first_child);
+	// 				else if(mathobj->child_count == 1){
+	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 					drawContext.bbx = Vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
-	// 					if(HasFlag(term->first_child->flags, TermFlag_OpArgLeft)){
+	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
 	// 						check_drawcmd(4,6);
 	// 						CustomItem_DCMakeText(drawCmd, sym, Vec2(ret.bbx.x+drawcfg.additive_padding, ret.midline - symsize.y/2), textColor, textScale);
 	// 					}
-	// 					else if(HasFlag(term->first_child->flags, TermFlag_OpArgRight)){
+	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
 	// 						forI(ret.vcount){
 	// 							(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
 	// 						}
@@ -570,7 +570,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 	// 					drawContext.vcount = ret.vcount + 4;
 	// 					drawContext.icount = ret.icount + 6;
 	// 				}
-	// 				else if(!term->child_count){
+	// 				else if(!mathobj->child_count){
 	// 					drawContext.bbx = symsize;
 	// 					drawContext.vcount = 4;
 	// 					drawContext.icount = 6;
@@ -587,35 +587,35 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 				
 	// 			default: Assert(!"operator type drawing not setup"); break;
 	// 		}
-	// 		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+	// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 				
 	// 		}
 	// 	}break;
 		
 	// 	case TermType_Literal:
 	// 	case TermType_Variable:{
-	// 		s64 term_raw_length = str8_length(term->raw);
-	// 		drawContext.bbx = CalcTextSize(term->raw);
+	// 		s64 term_raw_length = str8_length(mathobj->raw);
+	// 		drawContext.bbx = CalcTextSize(mathobj->raw);
 	// 		drawContext.vcount = term_raw_length * 4;
 	// 		drawContext.icount = term_raw_length * 6;
 	// 		drawContext.midline = drawContext.bbx.y / 2;
 	// 		check_drawcmd(drawContext.vcount,drawContext.icount);
-	// 		CustomItem_DCMakeText(drawCmd, term->raw, vec2::ZERO, textColor, textScale);
+	// 		CustomItem_DCMakeText(drawCmd, mathobj->raw, vec2::ZERO, textColor, textScale);
 	// 	}break;
 		
 	// 	case TermType_FunctionCall:{
 	// 		//TODO(sushi) support multi arg functions when implemented
-	// 		if(term->first_child){
-	// 			s64 term_raw_length = str8_length(term->raw);
-	// 			DrawContext ret = draw_term(expr, term->first_child);
+	// 		if(mathobj->first_child){
+	// 			s64 term_raw_length = str8_length(mathobj->raw);
+	// 			DrawContext ret = draw_term(expr, mathobj->first_child);
 	// 			drawContext.vcount = term_raw_length * 4 + ret.vcount;
 	// 			drawContext.icount = term_raw_length * 6 + ret.icount;
 	// 			check_drawcmd(drawContext.vcount, drawContext.icount);
-	// 			vec2 tsize = UI::CalcTextSize(term->raw);
+	// 			vec2 tsize = UI::CalcTextSize(mathobj->raw);
 	// 			forI(ret.vcount){
 	// 				(ret.vstart + i)->pos.x += tsize.x;
 	// 			}
-	// 			CustomItem_DCMakeText(drawCmd, term->raw, Vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
+	// 			CustomItem_DCMakeText(drawCmd, mathobj->raw, Vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
 	// 			drawContext.bbx.x = tsize.x + ret.bbx.x;
 	// 			drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
 	// 			drawContext.midline = drawContext.bbx.y / 2;
@@ -629,7 +629,7 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 			
 	// 	}break;
 		
-	// 	default: LogE("exrend", "Custom rendering does not support term type:", OpTypeStrs(term->type)); break;//Assert(!"term type drawing not setup"); break;
+	// 	default: LogE("exrend", "Custom rendering does not support mathobj type:", OpTypeStrs(mathobj->type)); break;//Assert(!"mathobj type drawing not setup"); break;
 	// }
 	////debug_rect(vec2::ZERO, drawContext.bbx);
 	////debug_line(Vec2(0, drawContext.midline), Vec2(drawContext.bbx.x, drawContext.midline));
@@ -638,24 +638,24 @@ DrawContext draw_term(Expression* expr, Term* term){DPZoneScoped;
 }
 
 //NOTE(delle) raw cursor is drawn to the left of the character
-//NOTE(delle) term cursor is drawn to the right of the term
-void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor_y){
+//NOTE(delle) mathobj cursor is drawn to the right of the mathobj
+void draw_term_old(Expression* expr, Term* mathobj, vec2& cursor_start, f32& cursor_y){
 	FixMe;
 // #define CursorAfterLastItem() (cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(), cursor_y = -UI::GetLastItemSize().y)
 // #define CursorBeforeLastItem() (cursor_start = UI::GetLastItemPos(), cursor_y = UI::GetLastItemSize().y)
 	
-// 	if(term == 0) return;
-// 	switch(term->type){
+// 	if(mathobj == 0) return;
+// 	switch(mathobj->type){
 // 		case TermType_Expression:{
-// 			Expression* expr = ExpressionFromTerm(term);
+// 			Expression* expr = ExpressionFromTerm(mathobj);
 // 			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
-// 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 // 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
 // 				if(expr->raw_cursor_start == 1) CursorBeforeLastItem();
 // 			}
-// 			if(term->child_count){
-// 				draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-// 				for_node(term->first_child->next){
+// 			if(mathobj->child_count){
+// 				draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+// 				for_node(mathobj->first_child->next){
 // 					UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 // 					draw_term_old(expr, it, cursor_start, cursor_y);
 // 				}
@@ -683,122 +683,122 @@ void draw_term_old(Expression* expr, Term* term, vec2& cursor_start, f32& cursor
 // 		}break;
 		
 // 		case TermType_Operator:{
-// 			switch(term->op_type){
+// 			switch(mathobj->op_type){
 // 				case OpType_Parentheses:{
 // 					UI::TextOld(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->first_child){
-// 						draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-// 						for_node(term->first_child->next){
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->first_child){
+// 						draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+// 						for_node(mathobj->first_child->next){
 // 							UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
 // 							draw_term_old(expr, it, cursor_start, cursor_y);
 // 						}
 // 					}
-// 					if(HasFlag(term->flags, TermFlag_LeftParenHasMatchingRightParen)){
+// 					if(HasFlag(mathobj->flags, TermFlag_LeftParenHasMatchingRightParen)){
 // 						UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 						if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
+// 						if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
 // 					}
 // 				}break;
 				
 // 				case OpType_Exponential:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 				
 // 				case OpType_Negation:{
 // 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 				}break;
 				
 // 				case OpType_ImplicitMultiplication:{
-// 					draw_term_old(expr, term->first_child, cursor_start, cursor_y);
-// 					draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+// 					draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 				
 // 				case OpType_ExplicitMultiplication:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 // 				case OpType_Division:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 // 				case OpType_Modulo:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 				
 // 				case OpType_Addition:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 // 				case OpType_Subtraction:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
 // 				}break;
 				
 // 				case OpType_ExpressionEquals:{
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, term->first_child, cursor_start, cursor_y);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
 // 					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == term->raw.str) CursorBeforeLastItem();
-// 					if(term->last_child && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, term->last_child, cursor_start, cursor_y);
-// 					if(term->last_child) for_node(term->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
+// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+// 					if(mathobj->last_child) for_node(mathobj->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
 // 				}break;
 				
 // 				default: Assert(!"operator type drawing not setup"); break;
 // 			}
-// 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 // 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count) CursorBeforeLastItem();
+// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
 // 			}
 // 		}break;
 		
 // 		case TermType_Literal:
 // 		case TermType_Variable:{
 // 			//TODO italics for variables (make this an option)
-// 			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
+// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
 // 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 // 			}
-// 			if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 // 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 				if(expr->raw.str + expr->raw_cursor_start == term->raw.str + term->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
 // 			}
 // 		}break;
 		
 // 		case TermType_FunctionCall:{
-// 			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
+// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
 // 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 // 			}
-// 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
+// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
 // 		}break;
 		
 // 		case TermType_Logarithm:{
-// 			UI::TextOld(str8{(u8*)term->raw.str, (s64)term->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((term->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < term->raw.str + term->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)term->raw.str, s64(expr->raw.str + expr->raw_cursor_start - term->raw.str)}).x;
+// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
 // 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
 // 			}
-// 			for_node(term->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
+// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
 // 		}break;
 		
-// 		default: Assert(!"term type drawing not setup"); break;
+// 		default: Assert(!"mathobj type drawing not setup"); break;
 // 	}
 // #undef CursorAfterLastItem
 // #undef CursorBeforeLastItem
@@ -819,7 +819,7 @@ local struct{
 	}**term_array; //sorted by deepest first
 }debug_draw_term_tree_context;
 
-void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
+void debug_draw_term_tree(Expression* expr, Term* mathobj){DPZoneScoped;
 	FixMe;
 // #define ctx debug_draw_term_tree_context
 // 	auto highlight_border_when_focused = [](uiItem* item){
@@ -830,16 +830,16 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 // 		}
 // 	};
 	
-// 	if(term == 0) return;
+// 	if(mathobj == 0) return;
 	
 // 	str8 term_text{};
-// 	switch(term->type){
+// 	switch(mathobj->type){
 // 		case TermType_Expression:{
 // 			//reset the context
 // 			ctx.depth = 0;
 // 			if(ctx.expression) uiItemR(ctx.expression);
 			
-// 			//fill the term style
+// 			//fill the mathobj style
 // 			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
 // 			ctx.term_style.margin        = Vec4(2,2,2,2);
 // 			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
@@ -865,17 +865,17 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 			
 // 			//gather the terms and their depths
 // 			arrsetlen(ctx.term_array, expr->terms.count);
-// 			Expression* expr = ExpressionFromTerm(term);
-// 			if(term->child_count){
+// 			Expression* expr = ExpressionFromTerm(mathobj);
+// 			if(mathobj->child_count){
 // 				ctx.depth += 1;
-// 				debug_draw_term_tree(expr, term->first_child);
-// 				for_node(term->first_child->next){
+// 				debug_draw_term_tree(expr, mathobj->first_child);
+// 				for_node(mathobj->first_child->next){
 // 					debug_draw_term_tree(expr, it);
 // 				}
 // 				ctx.depth -= 1;
 // 			}
 			
-// 			//position the term items
+// 			//position the mathobj items
 			
 			
 // 			//draw lines between terms and their parents
@@ -886,12 +886,12 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 // 		}break;
 		
 // 		case TermType_Operator:{
-// 			switch(term->op_type){
+// 			switch(mathobj->op_type){
 // 				case OpType_Parentheses:{
-// 					if(term->first_child){
+// 					if(mathobj->first_child){
 // 						ctx.depth += 1;
-// 						debug_draw_term_tree(expr, term->first_child);
-// 						for_node(term->first_child->next){
+// 						debug_draw_term_tree(expr, mathobj->first_child);
+// 						for_node(mathobj->first_child->next){
 // 							debug_draw_term_tree(expr, it);
 // 						}
 // 						ctx.depth -= 1;
@@ -900,64 +900,64 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 // 				}break;
 // 				case OpType_Exponential:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("^");
 // 				}break;
 // 				case OpType_Negation:{
 // 					ctx.depth += 1;
-// 					debug_draw_term_tree(expr, term->first_child);
+// 					debug_draw_term_tree(expr, mathobj->first_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("NEG");
 // 				}break;
 // 				case OpType_ImplicitMultiplication:{
 // 					ctx.depth += 1;
-// 					debug_draw_term_tree(expr, term->first_child);
-// 					debug_draw_term_tree(expr, term->last_child);
+// 					debug_draw_term_tree(expr, mathobj->first_child);
+// 					debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("*i");
 // 				}break;
 // 				case OpType_ExplicitMultiplication:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("*e");
 // 				}break;
 // 				case OpType_Division:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("/");
 // 				}break;
 // 				case OpType_Modulo:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("%");
 // 				}break;
 // 				case OpType_Addition:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("+");
 // 				}break;
 // 				case OpType_Subtraction:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("-");
 // 				}break;
 // 				case OpType_ExpressionEquals:{
 // 					ctx.depth += 1;
-// 					if(term->first_child && HasFlag(term->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, term->first_child);
-// 					if(term->last_child  && HasFlag(term->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, term->last_child);
-// 					if(term->last_child) for_node(term->last_child->next) debug_draw_term_tree(expr, it);
+// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+// 					if(mathobj->last_child) for_node(mathobj->last_child->next) debug_draw_term_tree(expr, it);
 // 					ctx.depth -= 1;
 // 					term_text = STR8("=");
 // 				}break;
@@ -966,36 +966,36 @@ void debug_draw_term_tree(Expression* expr, Term* term){DPZoneScoped;
 // 		}break;
 		
 // 		case TermType_Literal:{
-// 			term_text = ToString8(deshi_temp_allocator, term->lit_value);
+// 			term_text = ToString8(deshi_temp_allocator, mathobj->lit_value);
 // 		}break;
 		
 // 		case TermType_Variable:{
-// 			term_text = term->raw;
+// 			term_text = mathobj->raw;
 // 		}break;
 		
 // 		case TermType_FunctionCall:{
 // 			ctx.depth += 1;
-// 			for_node(term->first_child) debug_draw_term_tree(expr, it);
+// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
 // 			ctx.depth -= 1;
-// 			term_text = term->func->text;
+// 			term_text = mathobj->func->text;
 // 		}break;
 		
 // 		case TermType_Logarithm:{
 // 			ctx.depth += 1;
-// 			for_node(term->first_child) debug_draw_term_tree(expr, it);
+// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
 // 			ctx.depth -= 1;
-// 			term_text = ToString8(deshi_temp_allocator, STR8("log"), term->log_base);
+// 			term_text = ToString8(deshi_temp_allocator, STR8("log"), mathobj->log_base);
 // 		}break;
 		
-// 		default: Assert(!"term type drawing not setup"); break;
+// 		default: Assert(!"mathobj type drawing not setup"); break;
 // 	}
 	
 // 	if(term_text){
-// 		if(HasFlag(term->flags, TermFlag_DanglingClosingParenToRight)){
+// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
 // 			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
 // 		}
 		
-// 		//create the term text item
+// 		//create the mathobj text item
 // 		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
 // 		term_item->id = STR8("HELLO!");
 		
@@ -1293,7 +1293,7 @@ void update_canvas(){
 				element->item = uiItemM();
 				element->item->id = ToString8(deshi_allocator, "suugu.canvas.expression", array_count(canvas.element.arr));
 				element->item->style = element_default_style;
-				element->expression.term_cursor_start = &element->expression.term;
+				element->expression.term_cursor_start = &element->expression.root;
 				element->expression.raw_cursor_start  = 1;
 				str8_builder_init(&element->expression.raw, str8l(" "), deshi_allocator);
 				
@@ -1428,11 +1428,11 @@ void update_canvas(){
 				}
 				
 
-				if(0 && expr->changed){
+				if(expr->changed){
 					expr->valid = parse(expr);
-					solve(&expr->term);
-					debug_draw_term_tree(expr, &expr->term);
-					debug_print_term(&expr->term);
+					solve(&expr->root);
+					debug_draw_term_tree(expr, &expr->root);
+					debug_print_term(&expr->root);
 				}
 			}
 		}break;
@@ -1495,14 +1495,14 @@ void update_canvas(){
 // 					persist b32 tog = 0;
 // 					if(key_pressed(Key_UP)) ToggleBool(tog);
 // 					if(tog){
-// 						draw_term_old(expr, &expr->term, cursor_start, cursor_y);
+// 						draw_term_old(expr, &expr->mathobj, cursor_start, cursor_y);
 // 					}else{
 // 						//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
 // 						//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
 // 						drawinfo.drawCmd     = UIDrawCmd();
 // 						drawinfo.initialized = true;
 // 						drawinfo.item        = UI::BeginCustomItem();
-// 						draw_term(expr, &expr->term);
+// 						draw_term(expr, &expr->mathobj);
 // 						UI::EndCustomItem();
 // 						drawinfo.initialized = false;
 // 						//if(expr->raw.str){
@@ -1523,7 +1523,7 @@ void update_canvas(){
 // 				//draw AST
 // 				if(selected_element == el && DEBUG_draw_term_simple_){
 // 					UI::SetNextWindowPos(window->x, window->y + window->height);
-// 					debug_draw_term_simple(&expr->term);
+// 					debug_draw_term_simple(&expr->mathobj);
 // 				}
 // 				UI::PopScale();
 // 				UI::PopFont();

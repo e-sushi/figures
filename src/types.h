@@ -276,12 +276,15 @@ static str8 OpTypeStrs(u32 type){
 	}
 }
 
+struct MathObject;
+
 //term: generic base thing (literal, operator, variable, function call, etc)
 struct Term{
 	TermType  type;
 	TermFlags flags;
 	str8 raw;
-	
+	MathObject* mathobj; // the MathObject containing information about the type of this Term
+
 	union{
 		OpType op_type;
 		f64 lit_value;
@@ -423,8 +426,7 @@ struct Expression{
 	str8_builder raw;
 	
 	b32 changed;
-	Term term;
-	arrayT<Term> terms; //NOTE temporary until expression arena
+	Term root;
 	Term* equals;
 	Term* rightmost;
 	
@@ -454,7 +456,6 @@ enum ElementType : u32{
 };
 
 // element: anything with position, size, coordinate space, and display info
-// tagged union/variant
 struct Element{
 	union{struct{f32 x,y,z;};
 		vec3 pos;
@@ -498,12 +499,12 @@ const uiStyle element_default_style = {
 	/*background_color*/ Color_Black,
 	/*background_image*/ 0,
 	/*border_style*/ border_solid,
-	/*border_color*/ Color_NONE,
+	/*border_color*/ Color_White,
 	/*border_width*/ 1,
 	/*font*/ 0,
 	/*font_height*/ 0,
 	/*text_wrap*/ text_wrap_none,
-	/*text_color*/ Color_NONE,
+	/*text_color*/ Color_White,
 	/*tab_spaces*/ 0,
 	/*focus*/ 0,
 	/*display*/ display_vertical,
@@ -512,50 +513,164 @@ const uiStyle element_default_style = {
 	/*hover_passthrough*/ false,
 };
 
-//~////////////////////////////////////////////////////////////////////////////////////////////////
-// @node_render
-struct Visible {
-	TNode node;
-	Term* term; // the term this visual represents
 
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+// @Display
+
+// TODO(sushi) return to this idea later
+//             I would really like to allow the user to define custom mathematical objects 
+//             as deeply as possible, and this requires allowing them to define how to draw them
+//             I underestimated how complex drawing somethings are even in normal math, so 
+//             for now I am just going to use function pointers, but I do not want a user to have 
+//             to write C code to do this.
+ 
+// typedef Type DisplayInstructionAnchor; enum {
+// 	DisplayInstructionAnchor_TopLeft,
+// 	DisplayInstructionAnchor_TopRight,
+// 	DisplayInstructionAnchor_BottomRight,
+// 	DisplayInstructionAnchor_BottomLeft,
+// };
+
+// typedef Type DisplayInstructionRelative; enum {
+// 	// this instruction will draw relative to the first glyph placed
+// 	DisplayInstructionRelative_ToBaseGlyph,
+// 	// the instruction will draw relative to the last glyph placed
+// 	DisplayInstructionRelative_ToLastGlyph,
+// 	// the instruction will draw relative to the bounding box of all glyphs before this one
+// 	DisplayInstructionRelative_ToTotalBoundingBox,
+// };
+
+// // a single instruction for the renderer
+// // an array of these are defined by the Term being rendered
+// // and is used when the display type is set to DisplayType_Rendered
+// struct DisplayInstruction {
+// 	DisplayInstructionAnchor anchor : 2;
+// 	DisplayInstructionRelative relative : 2;
+// 	// offset of the glyph about to be drawn from the specified anchor
+// 	vec2 offset;
+// 	// how to scale the glyph to be drawn
+// 	vec2 scaling;
+// 	// currently, an instruction may specify a glyph or, in the case of
+// 	// functions and numbers, a series of glyphs. all symbols used here must
+// 	// exist in the currently used math font.
+// 	str8 glyph;
+// };
+
+typedef Type DisplayType; enum{
+	DisplayType_Text,
+	DisplayType_Rendered,
 };
 
+struct DisplayContext {
+	vec2 bbx;
+	f32 baseline;
+	Vertex2* vertex_start; // kigu array
+	u32* index_start; // kigu array
+};
 
+// type containing data needed for displaying math in some way
+struct Display {
+	TNode node;
+	Term* obj; // the Term this display represents
 
+	str8 text; // data used when displaying as text
+	DisplayContext (*__draw)(Term* term); // pointer to a function that draws this term when we are rendering it 
+};
+
+//~////////////////////////////////////////////////////////////////////////////////////////////////
+// @MathObject
+
+enum{
+	MathObject_Function,
+	MathObject_Constant,
+	MathObject_Unit,
+};
+
+// Base object of all mathematical things in suugu, such as operators,
+// functions, constants, units, etc. This contains information such as its name and
+// data regarding how to display it.
+struct MathObject {
+	str8 name;
+	str8 description;
+	Type type;
+	Display display; // how to display this MathObject in various ways.
+};
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @memory
+// TODO(sushi) chunked arenas (pools?) so that we can grow
 struct{
 	Arena* elements;
 	Node inactive_elements;
 	Arena* terms;
 	Node inactive_terms;
+	Arena* math_objects;
+	Node inactive_math_objects;
 }arenas;
 
-void memory_init() {
+void suugu_memory_init() {
 	arenas.elements = memory_create_arena(500*sizeof(Element));
 	arenas.terms = memory_create_arena(5000*sizeof(Term));
+	arenas.math_objects = memory_create_arena(5000*sizeof(MathObject));
 }
 
-global Element* make_element(){
+global Element* 
+make_element(){
 	Element* element;
 	if(arenas.inactive_elements.next){
 		element = (Element*)arenas.inactive_elements.next;
 		NodeRemove(arenas.inactive_elements.next);
 		ZeroMemory(element, sizeof(Element));
 	}else{
-		element = memory_allocT(Element);
+		if(arenas.elements->used + sizeof(Element) > arenas.elements->size) {
+			LogE("suugu_memory", "ran out of memory when allocating an Element, allocated size is ", arenas.elements->size/bytesDivisor(arenas.elements->size), " ", bytesUnit(arenas.elements->size));
+			return 0;
+		}
+		element = (Element*)arenas.elements->cursor;
+		arenas.elements->cursor += sizeof(Element);
+		arenas.elements->used += sizeof(Element);
 	}
 	return element;
 }
 
-global Term* make_term(Expression* expr, str8 raw, TermType type){
-	expr->terms.add(Term{}); //TODO expression arena
-	Term* result = &expr->terms[expr->terms.count-1];
+global Term* 
+make_term(Expression* expr, str8 raw, TermType type){
+	Term* result;
+	if(arenas.inactive_terms.next){
+		result = (Term*)arenas.inactive_terms.next;
+		NodeRemove(arenas.inactive_terms.next);
+		ZeroMemory(result, sizeof(Term));
+	}else{
+		if(arenas.terms->used + sizeof(Term) > arenas.terms->size) {
+			LogE("suugu_memory", "ran out of memory when allocating a Term, allocated size is ", arenas.terms->size/bytesDivisor(arenas.terms->size), " ", bytesUnit(arenas.terms->size));
+			return 0;
+		}
+		result = (Term*)arenas.terms->cursor;
+		arenas.terms->cursor += sizeof(Term);
+		arenas.terms->used += sizeof(Term);
+	}
 	result->type = type;
 	result->raw  = raw;
 	return result;
 }
 
+global MathObject* 
+make_math_object() {
+	MathObject* result;
+	if(arenas.inactive_math_objects.next){ // this probably shouldn't happen
+		result = (MathObject*)arenas.inactive_math_objects.next;
+		NodeRemove(arenas.inactive_math_objects.next);
+		ZeroMemory(result, sizeof(MathObject));
+	}else{
+		if(arenas.math_objects->used + sizeof(MathObject) > arenas.math_objects->size) {
+			LogE("suugu_memory", "ran out of memory when allocating a MathObject, allocated size is ", arenas.math_objects->size/bytesDivisor(arenas.math_objects->size), " ", bytesUnit(arenas.math_objects->size));
+			return 0;
+		}
+		result = (MathObject*)arenas.math_objects->cursor;
+		arenas.math_objects->cursor += sizeof(MathObject);
+		arenas.math_objects->used += sizeof(MathObject);
+	}
+	return result;
+}
 
 #endif //SUUGU_TYPES_H

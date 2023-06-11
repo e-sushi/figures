@@ -21,7 +21,7 @@ thousand separator: space vs comma vs point vs apostrophe
 add a simulator that reads in a file/string of inputs and adds an expression from it (for testing and rough raw text input)
 copy/paste expressions
 implicit right parenthesis (like desmos)
-expression term selection with keybinds and mouse
+expression mathobj selection with keybinds and mouse
 
 `Parser`
 --------
@@ -97,8 +97,11 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #  include "unistd.h" // _exit on linux
 #endif
 
+#include "mocompiler.cpp"
+
 int main(int args_count, char** args){
 	profiler_init();
+
 
 	//parse cmd line args
 	b32 solve_mode = false;
@@ -134,12 +137,12 @@ int main(int args_count, char** args){
 		logger_init();
 		
 		Expression expr{};
-		expr.term.type = TermType_Expression;
+		expr.root.type = TermType_Expression;
 		expr.raw_cursor_start = 1;
 		expr.raw = cmdline_solve_input;
 		expr.valid = parse(&expr);
-		solve(&expr.term);
-		//debug_print_term(&expr.term);
+		solve(&expr.root);
+		//debug_print_term(&expr.mathobj);
 		
 		if(expr.equals){
 			if(expr.unknown_vars){
@@ -188,23 +191,20 @@ int main(int args_count, char** args){
 				platform_exit();
 			}else{
 				Expression expr{};
-				expr.term.type = TermType_Expression;
+				expr.root.type = TermType_Expression;
 				expr.raw_cursor_start = 1;
 				str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
 				expr.valid = parse(&expr);
 				// logger_expose()->auto_newline = 1;  NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
-				debug_print_term(&expr.term);
+				debug_print_term(&expr.root);
 				// logger_expose()->auto_newline = 0;  NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
-				Log("",solve(&expr.term),"\n");
+				Log("",solve(&expr.root),"\n");
 			}
 			memory_clear_temp();
 		}
 		return 0;
 	}
 
-	
-
-	
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 	// Regular Mode
 	//init deshi
@@ -212,6 +212,10 @@ int main(int args_count, char** args){
 	memory_init(Gigabytes(4), Gigabytes(1));
 	platform_init();
 	logger_init();
+
+	suugu_memory_init();
+	compile_math_objects(str8l("scratch"));
+	
 	window_create(str8l("suugu"));
 	render_init();
 	assets_init();
@@ -226,6 +230,7 @@ int main(int args_count, char** args){
 	//init suugu
 	init_canvas();
 	init_suugu_commands();
+
 
 #if 0 //mint testing
 	mint a = mint_init(20);

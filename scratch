@@ -1,26 +1,61 @@
-addition: MathObject {
-    for: Space;
-    // This document, and any that imports this definition, may refer to 'addition' as '+'. Of course, this needs to be unique and is equivalent to defining a symbol in just the same way as we define the symbol 'addition'. The shorthand may be any arbitrary string that does NOT include the characters ';' '.' '{' '}' '(' ')' '[' ']' or '"'.  
-    shorthand: +; 
-    type: Operator {
-        // the tree form of this Operator, specified with TML (s-expressions)
-        form: (+ a b);
-        // a list of manipulations applicable with this operator at the root
-        manipulations: [
-            /* commutativity */ (+ a b) = (+ b a);
-            /*  associativiy */ (+ (+ a b) c) = (+ a (+ b c));
-            // because 'addition' has been declared an Operator, it is expected to be used in a Space which defines a 'Null' element. If it does not, then this manipulation does not exist for that instance of addition
-            /*      identity */ (+ a ::Null) = (a);
+MathObject 
+addition,add,+ is Operation {
+    // the tree form of this Operator, specified with TML (s-expressions)
+    form: (+ a b);
 
+    // a list of manipulations applicable with this operator at the root
+    manipulations: [
+        /* commutativity */ (+ a b) = (+ b a);
+        /*  associativiy */ (+ (+ a b) c) = (+ a (+ b c));
+    ]
+
+    visual: {
+        // when a string is given as the base glyph of a visual, the glyph used will be loaded from the selected math font.
+        text: "$1+$2";
+        instructions: [
+            lhs: $1;
+            rhs: $2;
+            plus: glyph "+";
+            align lhs.baseline to plus.center;
+            align lhs.edge.right to plus.edge.left;
+            align rhs.baseline to plus.center;
+            align rhs.edge.left to plus.edge.right;
         ]
-        visual: {
-            base: "+";
+    }
+}
+
+MathObject 
+exponential,exp,^ is Function {
+    form: (exp x);
+
+    visual: {
+        text: "$1^$2";
+        render:{
+            instructions: {
+                base: $1;
+                exponent: $2;
+                scale exponent.y 0.9;
+                align exponent.anchor.bottom_left to base.anchor.top_right;
+            }
         }
     }
 }
 
-integer: MathObject {
-    type: Space {
-        
+MathObject
+sine,sin is Function {
+    form: (sin x);
+    
+    visual: {
+        text: "sin($1)";
+        instructions:[
+            base: glyph "sin";
+            lparen: glyph "(";
+            rparen: glyph ")";
+            operand: $1;
+            align base.center to lparen.center;
+            scale lparen.y relative to operand.y;
+            scale rparen.y relative to operand.y;
+            position lparen.anchor.top_right at operand.anchor.top_left;
+        ]
     }
 }
