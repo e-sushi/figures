@@ -18,6 +18,7 @@
 #   --pw   Enable Tracy profiling and force the program to wait for a connection to start running
 #   --sa   Enable static analysis
 #   --ba   Enable build analysis (currently only works with clang with ClangBuildAnalyzer installed)
+#   --nd   Disable building deshi's sources
 #
 #   -platform <win32,mac,linux>           Build for specified OS: win32, mac, linux (default: builder's OS)
 #   -graphics <vulkan,opengl,directx>     Build for specified Graphics API (default: vulkan)
@@ -38,6 +39,7 @@ config = {
     "profiling": "off", # "off", "on", "on and wait"
     "static_analysis": False,
     "build_analysis": False,
+    "build_deshi": True,
 
     "platform": "unknown",
     "compiler": "unknown",
@@ -73,6 +75,7 @@ while i < len(sys.argv):
         case "--pw":   config["profiling"] = "on and wait"
         case "--sa":   config["static_analysis"] = True
         case "--ba":   config["build_analysis"] = True
+        case "--nd":   config["build_deshi"] = False
 
         case "-platform":
             if i != len(sys.argv) - 1:
@@ -440,9 +443,14 @@ baproc = None
 if config["build_analysis"]:
     subprocess.Popen(f"ClangBuildAnalyzer --start {folders['build']}/".split(' '), stdout=subprocess.PIPE).wait()
 
-dproc.start()
+if config["build_deshi"]: 
+    dproc.start()
+
 aproc.start()
-dproc.join()
+
+if config["build_deshi"]: 
+    dproc.join()
+
 aproc.join()
 
 if config["build_analysis"]:
