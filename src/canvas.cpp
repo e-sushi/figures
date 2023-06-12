@@ -1063,12 +1063,12 @@ void init_canvas(){
 	canvas.ui.font.debug = assets_font_create_from_file(str8l("gohufont-11.bdf"), 11);
 	Assert(canvas.ui.font.debug != assets_font_null(), "Canvas debug font failed to load");
 
-	canvas.ui.root = uiItemB();
+	canvas.ui.root = ui_begin_item(0);
 	canvas.ui.root->id = STR8("suugu.canvas");
 	canvas.ui.root->style.sizing = size_percent; // canvas is always the size of the window
 	canvas.ui.root->style.size = {100,100};
 
-	canvas.ui.debug = uiItemB();
+	canvas.ui.debug = ui_begin_item(0);
 	canvas.ui.debug->id = str8l("suugu.canvas.debug");
 	{uiStyle* s = &canvas.ui.debug->style;
 		s->sizing = size_auto;
@@ -1088,8 +1088,8 @@ void init_canvas(){
 		s->positioning = pos_draggable_relative;
 		s->display = display_horizontal;
 	}
-	uiItemE(); // debug
-	uiItemE(); // root
+	ui_end_item(); // debug
+	ui_end_item(); // root
 }
 
 void update_canvas(){
@@ -1141,8 +1141,8 @@ void update_canvas(){
 #if 1 //NOTE temp ui
 	
 	if(canvas.tool.active == CanvasTool_Pencil){
-		uiImmediateBP(canvas.ui.debug); {
-			uiItem* item = uiItemB();
+		ui_begin_immediate_branch(canvas.ui.debug); {
+			uiItem* item = ui_begin_item(0);
 			item->id = str8l("suugu.canvas.debug.pencil");
 			item->style.sizing = size_auto;
 			item->style.border_color = Color_White;
@@ -1150,7 +1150,7 @@ void update_canvas(){
 			item->style.border_width = 1;
 			{
 				FixMe;
-				uiText* text = uiGetText(uiTextML(""));
+				uiText* text = (uiText*)ui_make_text(str8null, 0);
 				// text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
 				// 	"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
 				// 	"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
@@ -1171,12 +1171,12 @@ void update_canvas(){
 					"total points: ", total_points
 				).fin);
 			}
-			uiItemE();
-		}uiImmediateE();
+			ui_end_item();
+		}ui_end_immediate_branch();
 	}
 	if(canvas.tool.active == CanvasTool_Expression){
-		uiImmediateBP(canvas.ui.debug); {
-			uiItem* item = uiItemB();
+		ui_begin_immediate_branch(canvas.ui.debug); {
+			uiItem* item = ui_begin_item(0);
 			item->id = str8l("suugu.canvas.debug.expression");
 			item->style.sizing = size_auto;
 			item->style.border_color = Color_Grey;
@@ -1184,7 +1184,7 @@ void update_canvas(){
 			item->style.border_width = 1;
 			item->style.padding = {5,5,5,5};
 
-			uiTextM(to_dstr8v(deshi_temp_allocator, "elements: ", array_count(canvas.element.arr)).fin);
+			ui_make_text(to_dstr8v(deshi_ui_allocator, "elements: ", array_count(canvas.element.arr)).fin, 0);
 			if(canvas.element.selected) {
 				FixMe;
 				// uiTextM(to_dstr8v(deshi_temp_allocator,
@@ -1193,8 +1193,8 @@ void update_canvas(){
 				// 	"size:     ", canvas.element.selected->size, "\n"
 				// ).fin);
 			}
-			uiItemE();
-		}uiImmediateE();	
+			ui_end_item();
+		}ui_end_immediate_branch();	
 
 		// UI::Begin(str8_lit("expression_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
 		// UI::TextF(str8_lit("Elements: %d"), elements.count);
@@ -1289,8 +1289,7 @@ void update_canvas(){
 				element->height    = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
 				element->width     = element->height / 2.0;
 				element->type      = ElementType_Expression;
-				element->item = uiItemM();
-				// TODO(sushi) implement and use the ui allocator here
+				element->item = ui_make_item(0);
 				element->item->id = to_dstr8v(deshi_ui_allocator, "suugu.canvas.expression", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
 				element->expression.term_cursor_start = &element->expression.root;

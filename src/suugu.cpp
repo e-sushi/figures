@@ -220,7 +220,7 @@ int main(int args_count, char** args){
 	window_create(str8l("suugu"));
 	render_init();
 	assets_init();
-	uiInit(g_memory,0);
+	ui_init();
 	//console_init();
 	cmd_init();
 	// window_show(DeshWindow);
@@ -254,7 +254,7 @@ int main(int args_count, char** args){
 
 		// //update deshi
 		// console_update();
-		uiUpdate();
+		ui_update();
 		render_update();
 		logger_update();
 		memory_clear_temp();

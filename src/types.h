@@ -576,22 +576,55 @@ struct Symbol {
     };
 };
 
-str8
-to_dstr8(const Symbol& symbol, Allocator* a = deshi_allocator) {
-	dstr8 s; dstr8_init(&s, {}, a);
-	switch(symbol.type) {
-		case SymbolType_Child:{
-			// dstr8_append(&s, str8l("Symbol<Child>("))
-			// const char* str = "Symbol<Child>(name: %s, hash: %lld, line: %lld, column: %lld, child_idx: %d)";
-			// s.count = snprintf(0, 0, str, symbol.name.str, symbol.hash, symbol.line, symbol.column, symbol.child_idx);
-			// s.str   = (u8*)s.allocator->reserve(s.count+1); Assert(s.str, "Failed to allocate memory");
-			// s.allocator->commit(s.str, s.count+1);
-			// s.space = s.count+1;
-			// snprintf((char*)s.str, s.count+1, "(%g, %g)", x.x, x.y);
+typedef Symbol* SymbolTable;
 
-		}break;
-	}
+
+pair<spt,b32> symbol_table_find(SymbolTable* table, u64 key){
+    spt index = -1, middle = -1;
+    spt left = 0;
+    spt right = array_count(*table)-1;
+    while(left <= right){
+        middle = left+((right-left)/2);
+        if((*table)[middle].hash == key){
+            index = middle;
+            break;
+        }
+        if((*table)[middle].hash < key){
+            left = middle+1;
+            middle = left+((right-left)/2);
+        }else{
+            right = middle-1;
+        }
+    }
+    return {middle, index != -1};
 }
+
+pair<Symbol*, b32> symbol_table_add(SymbolTable* table, str8 name, Type type) {
+    u64 hash = str8_hash64(name);
+    
+    auto [idx,found] = symbol_table_find(table, hash);
+    if(found) return {&(*table)[idx], 1};
+    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
+    
+    Symbol* s = array_insert(*table, idx);
+    s->type = type;
+    s->hash = hash;
+    s->name = name;
+
+    return {s, 0};
+}
+
+b32 symbol_table_remove(SymbolTable* table, str8 name) {
+    u64 hash = str8_hash64(name);
+
+    auto [idx,found] = symbol_table_find(table, hash);
+    if(!found) return 0;
+
+    array_remove_ordered(*table, idx);
+    return 1;
+}
+
+
 
 enum {
 	AlignType_Null,
@@ -636,13 +669,7 @@ struct AlignInstruction {
 	}lhs, rhs;
 };
 
-str8
-to_dstr8(const AlignInstruction& instr, Allocator* a = deshi_allocator) {
-	const char* str = "AlignInstruction(lhs:(type: %s, symbol: %s), rhs: (type: %s, symbol: %s))";
-	str8 out;
-	out.count = snprintf(0, 0, str, AlignTypeStrings[instr.lhs.align_type], to_dstr8(*instr.lhs.symbol), AlignTypeStrings[instr.rhs.align_type], to_dstr8(*instr.rhs.symbol));
 
-}
 
 enum{
 	InstructionType_Align,
@@ -659,18 +686,30 @@ struct Instruction {
 	};
 };
 
-dstr8 
+dstr8
 to_dstr8(const Instruction& instr, Allocator* a = deshi_allocator) {
-	// const char* str = "Instruction(type: %s, )";
-	// s.count = snprintf(nullptr, 0, "(%g, %g)", x.x, x.y);
-	// s.str   = (u8*)s.allocator->reserve(s.count+1); Assert(s.str, "Failed to allocate memory");
-	// s.allocator->commit(s.str, s.count+1);
-	// s.space = s.count+1;
-	// snprintf((char*)s.str, s.count+1, "(%g, %g)", x.x, x.y);
-	
-	// return to_dstr8v(a, );
-	return {};
+	dstr8 s; dstr8_init(&s, {}, a);
+	switch(instr.type) {
+		case InstructionType_Align:{
+			AlignInstruction align = instr.align;
+			dstr8_append(&s, "AlignInstruction(lhs: ");
+			switch(align.lhs.symbol->type) {
+				case SymbolType_Child: dstr8_append(&s, "$", align.lhs.symbol->child_idx, " "); break;
+				case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.lhs.symbol->glyph, ") "); break;
+				case SymbolType_MathObject: Assert(0); // this should never happen as MathObjects cannot be used as parameters of instructions
+			}
+			dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ", rhs: ");
+			switch(align.rhs.symbol->type) {
+				case SymbolType_Child: dstr8_append(&s, "$", align.rhs.symbol->child_idx, " "); break;
+				case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.rhs.symbol->glyph, ") "); break;
+				case SymbolType_MathObject: Assert(0); // this should never happen as MathObjects cannot be used as parameters of instructions
+			}
+			dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ")");
+		}break;
+	}
+	return s;
 }
+
 
 typedef Type DisplayType; enum{
 	DisplayType_Text,
@@ -691,7 +730,7 @@ struct Display {
 	Term* obj; // the Term this display represents
 
 	str8 text; // data used when displaying as text
-	Symbol* symbols; // a collection of symbols we need in rendering
+	SymbolTable symbols; // a collection of symbols we need in rendering
 	Instruction* instructions; // kigu array of instructions used when rendering
 };
 
@@ -704,6 +743,12 @@ enum{
 	MathObject_Unit,
 };
 
+const str8 MathObjectTypeStrings[] = {
+	str8l("Function"),
+	str8l("Constant"),
+	str8l("Unit"),
+};
+
 // Base object of all mathematical things in suugu, such as operators,
 // functions, constants, units, etc. This contains information such as its name and
 // data regarding how to display it.
@@ -712,8 +757,8 @@ struct MathObject {
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
-
 };
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @memory

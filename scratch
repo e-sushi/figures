@@ -3,6 +3,9 @@ addition,add,+ is Function {
     // the tree form of this Operator, specified with TML (s-expressions)
     form: (+ a b);
 
+    // the string representation of the key that is pressed to create this MathObject in suugu.
+    key: Plus;
+
     // a list of manipulations applicable with this operator at the root
     manipulations: [
         /* commutativity */ (+ a b) = (+ b a);
@@ -24,38 +27,38 @@ addition,add,+ is Function {
     }
 }
 
-MathObject 
-exponential,exp,^ is Function {
-    form: (exp x);
+// MathObject 
+// exponential,exp,^ is Function {
+//     form: (exp x);
 
-    visual: {
-        text: "$1^$2";
-        render:{
-            instructions: {
-                base: $1;
-                exponent: $2;
-                scale exponent.y 0.9;
-                align exponent.anchor.bottom_left to base.anchor.top_right;
-            }
-        }
-    }
-}
+//     visual: {
+//         text: "$1^$2";
+//         render:{
+//             instructions: {
+//                 base: $1;
+//                 exponent: $2;
+//                 scale exponent.y 0.9;
+//                 align exponent.anchor.bottom_left to base.anchor.top_right;
+//             }
+//         }
+//     }
+// }
 
-MathObject
-sine,sin is Function {
-    form: (sin x);
+// MathObject
+// sine,sin is Function {
+//     form: (sin x);
     
-    visual: {
-        text: "sin($1)";
-        instructions:[
-            base: glyph "sin";
-            lparen: glyph "(";
-            rparen: glyph ")";
-            operand: $1;
-            align base.center to lparen.center;
-            scale lparen.y relative to operand.y;
-            scale rparen.y relative to operand.y;
-            position lparen.anchor.top_right at operand.anchor.top_left;
-        ]
-    }
-}
+//     visual: {
+//         text: "sin($1)";
+//         instructions:[
+//             base: glyph "sin";
+//             lparen: glyph "(";
+//             rparen: glyph ")";
+//             operand: $1;
+//             align base.center to lparen.center;
+//             scale lparen.y relative to operand.y;
+//             scale rparen.y relative to operand.y;
+//             position lparen.anchor.top_right at operand.anchor.top_left;
+//         ]
+//     }
+// }

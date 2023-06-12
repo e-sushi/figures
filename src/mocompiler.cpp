@@ -146,7 +146,7 @@ struct Token {
 };
 
 struct{ // compiler
-    Symbol* symbol_table;
+    SymbolTable symbol_table;
 
     File* file;
     u64 line;
@@ -182,51 +182,6 @@ void print_symbols(Symbol** table) {
             }break;
         }
     }
-}
-
-pair<spt,b32> symbol_table_find(Symbol** table, u64 key){
-    spt index = -1, middle = -1;
-    spt left = 0;
-    spt right = array_count(*table)-1;
-    while(left <= right){
-        middle = left+((right-left)/2);
-        if((*table)[middle].hash == key){
-            index = middle;
-            break;
-        }
-        if((*table)[middle].hash < key){
-            left = middle+1;
-            middle = left+((right-left)/2);
-        }else{
-            right = middle-1;
-        }
-    }
-    return {middle, index != -1};
-}
-
-pair<Symbol*, b32> symbol_table_add(Symbol** table, str8 name, Type type) {
-    u64 hash = str8_hash64(name);
-    
-    auto [idx,found] = symbol_table_find(table, hash);
-    if(found) return {&(*table)[idx], 1};
-    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
-    
-    Symbol* s = array_insert(*table, idx);
-    s->type = type;
-    s->hash = hash;
-    s->name = name;
-
-    return {s, 0};
-}
-
-b32 symbol_table_remove(Symbol** table, str8 name) {
-    u64 hash = str8_hash64(name);
-
-    auto [idx,found] = symbol_table_find(table, hash);
-    if(!found) return 0;
-
-    array_remove_ordered(*table, idx);
-    return 1;
 }
 
 b32 is_digit(u32 codepoint){
@@ -344,7 +299,7 @@ b32 compile_parse_instructions() {
                     return 0;
                 }
 
-                instr.lhs.symbol = compiler.symbol_table + idx;
+                instr.lhs.symbol = curmo->display.symbols + idx;
                 
                 compiler.curt++;
                 if(compiler.curt->type == Token_Keyword_to) {
@@ -373,12 +328,13 @@ b32 compile_parse_instructions() {
                     return 0;
                 }
 
-                instr.rhs.symbol = compiler.symbol_table + idx;
-                compiler.curt++;
+                instr.rhs.symbol = curmo->display.symbols + idx;
 
                 // TODO(sushi) this is a poor check for this error
+                compiler.curt++;
                 if(compiler.curt->type == Token_Semicolon) {
                     ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
+                    return 0;
                 }
 
                 instr.rhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
@@ -387,10 +343,17 @@ b32 compile_parse_instructions() {
                     return 0;
                 }
 
-
                 Instruction* out = array_push(compiler.current_mathobj->display.instructions);
                 out->type = InstructionType_Align;
                 out->align = instr;
+
+                compiler.curt++;
+                if(compiler.curt->type != Token_Semicolon) {
+                    ErrorMessage("expected ';' after align instruction.");
+                    return 0;
+                }
+
+                compiler.curt++;
             }break;
         }
         if(compiler.curt->type == Token_CloseBracket) break;
@@ -415,9 +378,9 @@ b32 compile_parse() {
             continue;
         }
         symbol->mathobj = make_math_object();
-        symbol->line = compiler.curt->line;
+        symbol->name   = compiler.curt->raw;
+        symbol->line   = compiler.curt->line;
         symbol->column = compiler.curt->column;
-        symbol->name = compiler.curt->raw;
         compiler.current_mathobj = symbol->mathobj;
         while((compiler.curt+1)->type == Token_Comma) {
             compiler.curt += 2;
@@ -464,6 +427,7 @@ b32 compile_parse() {
 
         *array_push(compiler.returns) = compiler.curt - compiler.tokens;
         *array_push(compiler.return_mathobj) = compiler.current_mathobj;
+
 
 subcontinue0:;
     }
@@ -616,7 +580,7 @@ case c: {                                   \
                 
                 // possibly a comment
                 if(*(compiler.stream.str+1) == '/') {
-                    while(*compiler.stream.str != '\n') advance_stream();
+                    while(compiler.stream && *compiler.stream.str != '\n') advance_stream();
                     advance_stream();
                 } else if (*(compiler.stream.str+1) == '*') {
                     while(!(*compiler.stream.str == '*' && *(compiler.stream.str+1) == '/')) advance_stream();
@@ -657,7 +621,10 @@ case c: {                                   \
     return 1;
 }
 
-b32 compile_math_objects(str8 path) {
+// returns an array of symbols pertaining to MathObjects
+// the array is really a map from identifiers to MathObjects,
+// so symbol_table_ functions should be used to interact with it.
+SymbolTable compile_math_objects(str8 path) {
     compiler.line = compiler.column = 1;
     compiler.file = file_init(path, FileAccess_Write);
     compiler.buffer = file_read_alloc(compiler.file, compiler.file->bytes, deshi_allocator);
@@ -688,9 +655,20 @@ b32 compile_math_objects(str8 path) {
     compiler.curt = compiler.tokens;
     if(!compile_parse()) return 0;
 
-    
+    forI(array_count(compiler.symbol_table)){
+        Symbol s = compiler.symbol_table[i];
+        if(s.type == SymbolType_MathObject){ 
+            Log("", "Symbol ", s.name, ":");
+            MathObject* mo = s.mathobj;
+            Instruction* instr = mo->display.instructions;
+            if(!instr) continue;
+            forI(array_count(instr)) {
+                Log("", instr[i]);
+            }
+        }
+    }
 
-    return 1;
+    return compiler.symbol_table;
 }
 
 #undef ErrorMessage
