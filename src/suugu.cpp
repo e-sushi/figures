@@ -106,7 +106,7 @@ int main(int args_count, char** args){
 	//parse cmd line args
 	b32 solve_mode = false;
 	b32 interactive_mode = false;
-	str8_builder cmdline_solve_input;
+	dstr8 cmdline_solve_input;
 	if(args_count > 1){
 		for(int arg_index = 1; arg_index < args_count; arg_index += 1){
 			//solve without creating a window
@@ -117,9 +117,9 @@ int main(int args_count, char** args){
 				}
 				
 				solve_mode = true;
-				str8_builder_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
+				dstr8_init(&cmdline_solve_input, str8{(u8*)args[arg_index+1], (s64)strlen(args[arg_index+1])});
 				for(arg_index = arg_index+2; arg_index < args_count; arg_index += 1){
-					str8_builder_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
+					dstr8_append(&cmdline_solve_input, str8{(u8*)args[arg_index], (s64)strlen(args[arg_index])});
 				}
 				break;
 			}else if(!strcmp("-console", args[arg_index])){
@@ -193,7 +193,7 @@ int main(int args_count, char** args){
 				Expression expr{};
 				expr.root.type = TermType_Expression;
 				expr.raw_cursor_start = 1;
-				str8_builder_init(&expr.raw, buffer, deshi_temp_allocator);
+				dstr8_init(&expr.raw, buffer, deshi_temp_allocator);
 				expr.valid = parse(&expr);
 				// logger_expose()->auto_newline = 1;  NOTE(sushi) for some reason clang won't link to this function here, I'll figure it out later
 				debug_print_term(&expr.root);
@@ -213,6 +213,7 @@ int main(int args_count, char** args){
 	platform_init();
 	logger_init();
 
+	Log("", "\n\n\n\n\n\n-------------------------------------");
 	suugu_memory_init();
 	compile_math_objects(str8l("scratch"));
 	

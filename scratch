@@ -1,5 +1,5 @@
 MathObject 
-addition,add,+ is Operation {
+addition,add,+ is Function {
     // the tree form of this Operator, specified with TML (s-expressions)
     form: (+ a b);
 
@@ -13,13 +13,13 @@ addition,add,+ is Operation {
         // when a string is given as the base glyph of a visual, the glyph used will be loaded from the selected math font.
         text: "$1+$2";
         instructions: [
-            lhs: $1;
-            rhs: $2;
-            plus: glyph "+";
-            align lhs.baseline to plus.center;
-            align lhs.edge.right to plus.edge.left;
-            align rhs.baseline to plus.center;
-            align rhs.edge.left to plus.edge.right;
+            lhs is $1;
+            rhs is $2;
+            plus is glyph "+";
+            align lhs origin_y to plus center_y;
+            align lhs right to plus left;
+            align rhs origin_y to plus center_y;
+            align rhs left to plus right;
         ]
     }
 }

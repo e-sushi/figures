@@ -1149,29 +1149,27 @@ void update_canvas(){
 			item->style.border_style = border_solid;
 			item->style.border_width = 1;
 			{
+				FixMe;
 				uiText* text = uiGetText(uiTextML(""));
-				str8 out = ToString8(deshi_temp_allocator, 
-					"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
-					"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
-					"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
-					"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
-					"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
-				);
-				text_insert_string(&text->text, out);
+				// text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
+				// 	"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
+				// 	"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
+				// 	"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
+				// 	"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
+				// 	"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
+				// ).fin);
 				if(canvas.tool.pencil.stroke.idx) {
-					out = ToString8(deshi_temp_allocator, 
+					text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
 						"stroke points: ", array_count(array_last(canvas.tool.pencil.strokes)->pencil_points)
-					);
-					text_insert_string(&text->text, out);
+					).fin);
 				}
 				u32 total_points = 0;
 				forX_array(stroke, canvas.tool.pencil.strokes){
 					total_points += array_count(stroke->pencil_points);
 				}
-				out = ToString8(deshi_temp_allocator,
+				text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator,
 					"total points: ", total_points
-				);
-				text_insert_string(&text->text, out);
+				).fin);
 			}
 			uiItemE();
 		}uiImmediateE();
@@ -1186,13 +1184,14 @@ void update_canvas(){
 			item->style.border_width = 1;
 			item->style.padding = {5,5,5,5};
 
-			uiTextM(ToString8(deshi_temp_allocator, "elements: ", array_count(canvas.element.arr)));
+			uiTextM(to_dstr8v(deshi_temp_allocator, "elements: ", array_count(canvas.element.arr)).fin);
 			if(canvas.element.selected) {
-				uiTextM(ToString8(deshi_temp_allocator,
-					"selected: ", canvas.element.selected, "\n",
-					"position: ", canvas.element.selected->pos, "\n",
-					"size:     ", canvas.element.selected->size, "\n"
-				));
+				FixMe;
+				// uiTextM(to_dstr8v(deshi_temp_allocator,
+				// 	"selected: ", canvas.element.selected, "\n",
+				// 	"position: ", canvas.element.selected->pos, "\n",
+				// 	"size:     ", canvas.element.selected->size, "\n"
+				// ).fin);
 			}
 			uiItemE();
 		}uiImmediateE();	
@@ -1291,11 +1290,12 @@ void update_canvas(){
 				element->width     = element->height / 2.0;
 				element->type      = ElementType_Expression;
 				element->item = uiItemM();
-				element->item->id = ToString8(deshi_allocator, "suugu.canvas.expression", array_count(canvas.element.arr));
+				// TODO(sushi) implement and use the ui allocator here
+				element->item->id = to_dstr8v(deshi_ui_allocator, "suugu.canvas.expression", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
 				element->expression.term_cursor_start = &element->expression.root;
 				element->expression.raw_cursor_start  = 1;
-				str8_builder_init(&element->expression.raw, str8l(" "), deshi_allocator);
+				dstr8_init(&element->expression.raw, str8l(" "), deshi_allocator);
 				
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
@@ -1375,7 +1375,7 @@ void update_canvas(){
 				//// @input_expression_insertion ////
 				if(DeshInput->charCount){
 					expr->changed = true;
-					str8_builder_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
+					dstr8_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
 					expr->raw_cursor_start += DeshInput->charCount;
 					Log("", expr->raw.fin);
 				}
@@ -1383,30 +1383,30 @@ void update_canvas(){
 				//// @input_expression_deletion ////
 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
 					expr->changed = true;
-					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+					dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
 					expr->raw_cursor_start -= 1;
 				}
 				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
 					expr->changed = true;
-					str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+					dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 				}
 				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
 					expr->changed = true;
 					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
 						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
 							expr->raw_cursor_start -= 1;
 						}
 						if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
 							expr->raw_cursor_start -= 1;
 						}
 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
-						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+						dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
 						expr->raw_cursor_start -= 1;
 					}else{
 						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
 							expr->raw_cursor_start -= 1;
 						}
 					}
@@ -1415,14 +1415,14 @@ void update_canvas(){
 					expr->changed = true;
 					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
 						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 						}
-						if(*(expr->raw.str+expr->raw_cursor_start) == ')') str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+						if(*(expr->raw.str+expr->raw_cursor_start) == ')') dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
-						str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+						dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 					}else{
 						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
-							str8_builder_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
 						}
 					}
 				}
@@ -1436,6 +1436,7 @@ void update_canvas(){
 				}
 			}
 		}break;
+		case CanvasTool_Pencil:{}break;
 	}
 		
 // 		////////////////////////////////////////////////////////////////////////////////////////////////

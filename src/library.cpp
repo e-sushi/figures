@@ -25,7 +25,7 @@ struct{
 //            right now it only handles defining a constant with the fields id, value, and symbol
 void library_load(str8 filename){
     FixMe;
-//     str8 file = file_read_simple(ToString8(deshi_temp_allocator, "data/", filename), deshi_temp_allocator);
+//     str8 file = file_read_simple(to_dstr8v(deshi_temp_allocator, "data/", filename), deshi_temp_allocator);
 	
 // #define liberr(line_num, line_col, ...) LogE("", "library error: ", filename, "(", line_num, ",", line_col, "): ", __VA_ARGS__)
 	

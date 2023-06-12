@@ -373,8 +373,8 @@ mint mint_div_new(mint a, mint b){
 }
 
 void mint_print(mint a){
-	str8b out;
-	str8_builder_init(&out, {0}, deshi_temp_allocator);
+	dstr8 out;
+	dstr8_init(&out, {0}, deshi_temp_allocator);
 	mint qtrack = mint_init(0);
 	mint rtrack = mint_init(0);
 	forI(a.count){

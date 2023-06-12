@@ -35,7 +35,7 @@ void debug_print_term(Term* term){
 	// switch(term->type){
 	// 	case TermType_Expression:{
 	// 		expr = ExpressionFromTerm(term);
-	// 		Log("ast",str8_builder_peek(&expr->raw), cursor);
+	// 		Log("ast",dstr8_peek(&expr->raw), cursor);
 	// 		for_node(term->first_child) debug_print_term(it);
 	// 		if(expr->valid) Log("ast", indent, (expr->solution != MAX_F64) ? stringf(deshi_temp_allocator, "=%g", expr->solution) : "ERROR", arg, cursor);
 	// 		Log("ast","---------------------------------");
@@ -190,7 +190,7 @@ b32 parse(Expression* expr){
 
 	b32 valid = true;
 	Term* inside_this_paren = 0;
-	str8 stream = str8_builder_peek(&expr->raw);
+	str8 stream = dstr8_peek(&expr->raw);
 	Term* cursor = &expr->root;
 	while(stream && *stream.str != '\0'){
 		u8* token_start = stream.str;

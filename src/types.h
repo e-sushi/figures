@@ -423,7 +423,7 @@ struct Expression{
 	Node node;
 	//Workspace* workspace;
 	
-	str8_builder raw;
+	dstr8 raw;
 	
 	b32 changed;
 	Term root;
@@ -556,6 +556,122 @@ const uiStyle element_default_style = {
 // 	str8 glyph;
 // };
 
+enum{
+    SymbolType_Child,
+    SymbolType_Glyph,
+    SymbolType_MathObject,
+};
+
+struct Symbol {
+    str8 name;
+    u64 hash;
+
+    u64 line, column;  // source location of definition
+
+    Type type;
+    union{
+        u32 child_idx;
+        str8 glyph;
+        MathObject* mathobj;
+    };
+};
+
+str8
+to_dstr8(const Symbol& symbol, Allocator* a = deshi_allocator) {
+	dstr8 s; dstr8_init(&s, {}, a);
+	switch(symbol.type) {
+		case SymbolType_Child:{
+			// dstr8_append(&s, str8l("Symbol<Child>("))
+			// const char* str = "Symbol<Child>(name: %s, hash: %lld, line: %lld, column: %lld, child_idx: %d)";
+			// s.count = snprintf(0, 0, str, symbol.name.str, symbol.hash, symbol.line, symbol.column, symbol.child_idx);
+			// s.str   = (u8*)s.allocator->reserve(s.count+1); Assert(s.str, "Failed to allocate memory");
+			// s.allocator->commit(s.str, s.count+1);
+			// s.space = s.count+1;
+			// snprintf((char*)s.str, s.count+1, "(%g, %g)", x.x, x.y);
+
+		}break;
+	}
+}
+
+enum {
+	AlignType_Null,
+	AlignType_Left,
+	AlignType_Right,
+	AlignType_Top,
+	AlignType_Bottom,
+	AlignType_TopLeft,
+	AlignType_TopRight,
+	AlignType_BottomRight,
+	AlignType_BottomLeft,
+	AlignType_Origin,
+	AlignType_OriginX,
+	AlignType_OriginY,
+	AlignType_Center,
+	AlignType_CenterX,
+	AlignType_CenterY,
+};
+
+const str8 AlignTypeStrings[] = {
+	str8l("Null"),
+	str8l("Left"),
+	str8l("Right"),
+	str8l("Top"),
+	str8l("Bottom"),
+	str8l("TopLeft"),
+	str8l("TopRight"),
+	str8l("BottomRight"),
+	str8l("BottomLeft"),
+	str8l("Origin"),
+	str8l("OriginX"),
+	str8l("OriginY"),
+	str8l("Center"),
+	str8l("CenterX"),
+	str8l("CenterY"),
+};
+
+struct AlignInstruction {
+	struct {
+		Type align_type;
+		Symbol* symbol; 
+	}lhs, rhs;
+};
+
+str8
+to_dstr8(const AlignInstruction& instr, Allocator* a = deshi_allocator) {
+	const char* str = "AlignInstruction(lhs:(type: %s, symbol: %s), rhs: (type: %s, symbol: %s))";
+	str8 out;
+	out.count = snprintf(0, 0, str, AlignTypeStrings[instr.lhs.align_type], to_dstr8(*instr.lhs.symbol), AlignTypeStrings[instr.rhs.align_type], to_dstr8(*instr.rhs.symbol));
+
+}
+
+enum{
+	InstructionType_Align,
+};
+
+const str8 InstructionTypeStrings[] = {
+	str8l("Align"),
+};
+
+struct Instruction {
+	Type type;
+	union{
+		AlignInstruction align;
+	};
+};
+
+dstr8 
+to_dstr8(const Instruction& instr, Allocator* a = deshi_allocator) {
+	// const char* str = "Instruction(type: %s, )";
+	// s.count = snprintf(nullptr, 0, "(%g, %g)", x.x, x.y);
+	// s.str   = (u8*)s.allocator->reserve(s.count+1); Assert(s.str, "Failed to allocate memory");
+	// s.allocator->commit(s.str, s.count+1);
+	// s.space = s.count+1;
+	// snprintf((char*)s.str, s.count+1, "(%g, %g)", x.x, x.y);
+	
+	// return to_dstr8v(a, );
+	return {};
+}
+
 typedef Type DisplayType; enum{
 	DisplayType_Text,
 	DisplayType_Rendered,
@@ -568,13 +684,15 @@ struct DisplayContext {
 	u32* index_start; // kigu array
 };
 
+
 // type containing data needed for displaying math in some way
 struct Display {
 	TNode node;
 	Term* obj; // the Term this display represents
 
 	str8 text; // data used when displaying as text
-	DisplayContext (*__draw)(Term* term); // pointer to a function that draws this term when we are rendering it 
+	Symbol* symbols; // a collection of symbols we need in rendering
+	Instruction* instructions; // kigu array of instructions used when rendering
 };
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
@@ -594,6 +712,7 @@ struct MathObject {
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
+
 };
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
