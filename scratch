@@ -1,11 +1,8 @@
 MathObject 
 addition,add,+ is Function {
     // the tree form of this Operator, specified with TML (s-expressions)
-    form: (+ a b);
-
-    // the string representation of the key that is pressed to create this MathObject in suugu.
-    key: Plus;
-
+    arity: 2;
+    
     // a list of manipulations applicable with this operator at the root
     manipulations: [
         /* commutativity */ (+ a b) = (+ b a);

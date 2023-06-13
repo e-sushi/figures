@@ -31,6 +31,8 @@ enum {
     Token_Keyword_to,
     Token_Keyword_is,
     Token_Keyword_MathObject,
+    Token_Keyword_key,
+    Token_Keyword_arity,
 
     Token_Keyword_right,
     Token_Keyword_left,
@@ -90,6 +92,8 @@ u32 word_or_keyword(str8 s) {
         str8case("to"):            return Token_Keyword_to;
         str8case("is"):            return Token_Keyword_is;
         str8case("MathObject"):    return Token_Keyword_MathObject;
+        str8case("key"):           return Token_Keyword_key;
+        str8case("arity"):         return Token_Keyword_arity;
         str8case("right"):         return Token_Keyword_right;
         str8case("left"):          return Token_Keyword_left;
         str8case("top"):           return Token_Keyword_top;
@@ -135,9 +139,21 @@ str8 tokenStrings[] = {
     str8l("keyword \"to\""),
     str8l("keyword \"is\""),
     str8l("keyword \"MathObject\""),
+    str8l("keyword \"key\""),
+    str8l("keyword \"arity\""),
     
     str8l("Function"), 
 };
+
+// TODO(sushi) set this up when we are able to do event driven input
+// KeyCode key_str_to_keycode(str8 key) {
+// #define str8case(str) case str8_static_hash64(str8_static_t(str))
+//     switch(str8_hash64(key)) {
+//        str8case("plus"): return Key_EQUALS | InputMod_AnyShift;
+//         // TODO(sushi) more input keys         
+//     }
+// #undef str8case
+// }
 
 struct Token {
     str8 raw;
@@ -163,8 +179,6 @@ struct{ // compiler
     u32* MathObject_tokens; // kigu array of MathObject tokens so that we can make top level names global 
     u32* returns; // kigu array of tokens to return to when parsing global names is done
     MathObject** return_mathobj; // kigu array parallel to returns that gives the mathobj associated with the data we are returning to
-
-    b32 parse_fail;
 }compiler;
 
 void print_symbols(Symbol** table) {
@@ -219,7 +233,29 @@ void advance_stream() {
     str8_advance(&compiler.stream);
 }
 
-b32 compile_parse_instructions() {
+void compile_parse_tree() {
+    NotImplemented;
+    MathObject* curmo = compiler.current_mathobj;
+
+    u32 nesting = 0;
+    b32 prevparen = 0;
+    while(1) {
+        switch(compiler.curt->type) {
+            case Token_OpenParen: {
+                nesting++;
+                compiler.curt++;
+
+
+            }break;
+            case Token_Word: {
+                
+            }break;
+        }
+        if(nesting==1 && compiler.curt->type == Token_CloseParen) break;
+    }
+}
+
+void compile_parse_instructions() {
     MathObject* curmo = compiler.current_mathobj;
     array_init(curmo->display.instructions, 4, deshi_allocator);
     array_init(curmo->display.symbols, 1, deshi_allocator);
@@ -233,7 +269,7 @@ b32 compile_parse_instructions() {
                 compiler.curt++;
                 if(compiler.curt->type != Token_Keyword_is) {
                     ErrorMessage("expected 'is' after symbol definition name.");
-                    return 0;
+                    return;
                 }
 
                 compiler.curt++;
@@ -243,14 +279,14 @@ b32 compile_parse_instructions() {
                     case Token_Keyword_glyph: symtype = SymbolType_Glyph; break;
                     default:{
                         ErrorMessage("expected a glyph or child value for definition of symbol '", symname, "'");
-                        return 0;
+                        return;
                     }break;
                 }
 
                 auto [symbol, found] = symbol_table_add(&curmo->display.symbols, symname, symtype);
                 if(found){
                     ErrorMessage("symbol '", symbol->name, "' already defined on line ", symbol->line, " in column ", symbol->column);
-                    return 0;
+                    return;
                 }
 
                 symbol->name = symname;
@@ -260,7 +296,7 @@ b32 compile_parse_instructions() {
                         compiler.curt++;
                         if(compiler.curt->type != Token_Integer) {
                             ErrorMessage("expected an integer after '$' to indicate which child this symbol represents");
-                            return 0;
+                            return;
                         }
                         symbol->child_idx = stolli(compiler.curt->raw);
                     }break;
@@ -268,7 +304,7 @@ b32 compile_parse_instructions() {
                         compiler.curt++;
                         if(compiler.curt->type != Token_String) {
                             ErrorMessage("expected a string after 'glyph'");
-                            return 0;
+                            return;
                         }
                         symbol->glyph = compiler.curt->raw;
                     }break;
@@ -277,7 +313,7 @@ b32 compile_parse_instructions() {
                 compiler.curt++;
                 if(compiler.curt->type != Token_Semicolon) {
                     ErrorMessage("expected semicolon after definition of symbol '", symname, "'");
-                    return 0;
+                    return;
                 }
                 compiler.curt++;
             }break;
@@ -288,7 +324,7 @@ b32 compile_parse_instructions() {
 
                 if(compiler.curt->type != Token_Word){
                     ErrorMessage("unexpected token '", compiler.curt->type, "'. Expected a symbol for operand of 'align'.");
-                    return 0;
+                    return;
                 }
 
                 auto p = symbol_table_find(&curmo->display.symbols, str8_hash64(compiler.curt->raw));
@@ -296,7 +332,7 @@ b32 compile_parse_instructions() {
                 b32 found = p.second;
                 if(!found){
                     ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
-                    return 0;
+                    return;
                 }
 
                 instr.lhs.symbol = curmo->display.symbols + idx;
@@ -304,19 +340,19 @@ b32 compile_parse_instructions() {
                 compiler.curt++;
                 if(compiler.curt->type == Token_Keyword_to) {
                     ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
-                    return 0;
+                    return;
                 }
 
                 instr.lhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
                 if(!instr.lhs.align_type) {
                     ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
-                    return 0;
+                    return;
                 }
 
                 compiler.curt++;
                 if(compiler.curt->type != Token_Keyword_to) {
                     ErrorMessage("expected 'to' between operands of 'align'");
-                    return 0;
+                    return;
                 }
 
                 compiler.curt++;
@@ -325,7 +361,7 @@ b32 compile_parse_instructions() {
                 found = p.second;
                 if(!found){
                     ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
-                    return 0;
+                    return;
                 }
 
                 instr.rhs.symbol = curmo->display.symbols + idx;
@@ -334,13 +370,13 @@ b32 compile_parse_instructions() {
                 compiler.curt++;
                 if(compiler.curt->type == Token_Semicolon) {
                     ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
-                    return 0;
+                    return;
                 }
 
                 instr.rhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
                 if(!instr.rhs.align_type) {
                     ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
-                    return 0;
+                    return;
                 }
 
                 Instruction* out = array_push(compiler.current_mathobj->display.instructions);
@@ -350,7 +386,7 @@ b32 compile_parse_instructions() {
                 compiler.curt++;
                 if(compiler.curt->type != Token_Semicolon) {
                     ErrorMessage("expected ';' after align instruction.");
-                    return 0;
+                    return;
                 }
 
                 compiler.curt++;
@@ -358,23 +394,20 @@ b32 compile_parse_instructions() {
         }
         if(compiler.curt->type == Token_CloseBracket) break;
     }
-    return 1;
 }
 
-b32 compile_parse() {
+void compile_parse() {
     bool failed = 0;
     for_array(compiler.MathObject_tokens){ 
         compiler.curt = compiler.tokens + *it + 1;
         if(compiler.curt->type != Token_Word) {
             ErrorMessage("expected a name for top level definition.");
-            compiler.parse_fail = 1;
             continue;
         }
         
         auto [symbol, found] = symbol_table_add(&compiler.symbol_table, compiler.curt->raw, SymbolType_MathObject);
         if(found){
             ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->line, " in column ", symbol->column);
-            compiler.parse_fail = 1;
             continue;
         }
         symbol->mathobj = make_math_object();
@@ -387,7 +420,6 @@ b32 compile_parse() {
             auto [symbol, found] = symbol_table_add(&compiler.symbol_table, compiler.curt->raw, SymbolType_MathObject);
             if(found){
                 ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->line, " in column ", symbol->column);
-                compiler.parse_fail = 1;
                 goto subcontinue0;    
             }
             symbol->mathobj = compiler.current_mathobj;
@@ -399,7 +431,6 @@ b32 compile_parse() {
         compiler.curt++;
         if(compiler.curt->type != Token_Keyword_is) {
             ErrorMessage("expected 'is' after name(s) of top level definition");
-            compiler.parse_fail = 1;
             continue;
         }
         
@@ -409,7 +440,6 @@ b32 compile_parse() {
             forI(Token_COUNT - Token_Group_MathObj_Types) {
                 Log("", tokenStrings[i+Token_Group_MathObj_Types]);
             }
-            compiler.parse_fail = 1;
             continue;
         }
 
@@ -421,7 +451,6 @@ b32 compile_parse() {
         compiler.curt++;
         if(compiler.curt->type != Token_OpenBrace) {
             ErrorMessage("expected a '{' after MathObject type in definition of ", symbol->name);
-            compiler.parse_fail = 1;
             continue;
         }
 
@@ -434,14 +463,48 @@ subcontinue0:;
 
     forI(array_count(compiler.returns)) {
         compiler.current_mathobj = compiler.return_mathobj[i];
-        compiler.curt = compiler.tokens + compiler.returns[i];
+        compiler.curt = compiler.tokens + compiler.returns[i] + 1;
         while(compiler.curt->type != Token_CloseBrace){
-            compiler.curt++;
             switch(compiler.curt->type) {
 
                 case Token_Keyword_form: {
-                    Log("MathObjectCompiler", "TODO(sushi) implement tree parser");
+                    Log("MathObjectCompiler", "TODO(sushi) implement form parsing");
                     while(compiler.curt->type != Token_Semicolon) compiler.curt++;
+                    compiler.curt++;
+                }break;
+
+                case Token_Keyword_manipulations: {
+                    Log("MathObjectCompiler", "TODO(sushi) implement manipulations parsing");
+                    while(compiler.curt->type != Token_CloseBracket) compiler.curt++;
+                    compiler.curt++;
+                }break;
+
+                case Token_Keyword_arity: {
+                    if(compiler.current_mathobj->type != MathObject_Function) {
+                        ErrorMessage("key 'arity' can only be used on MathObjects that are Functions");
+                        continue;
+                    }
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_Colon) {
+                        ErrorMessage("expected ':' after key 'arity'");
+                        continue;
+                    }
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_Integer) {
+                        ErrorMessage("expected an integer for key 'arity'");
+                        continue;
+                    }
+                    
+                    compiler.current_mathobj->func.arity = stoi(compiler.curt->raw);
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_Semicolon) {
+                        ErrorMessage("expected a ';' after value of key 'arity'");
+                        continue;
+                    }
+
                     compiler.curt++;
                 }break;
 
@@ -449,14 +512,12 @@ subcontinue0:;
                     compiler.curt++;
                     if(compiler.curt->type != Token_Colon) {
                         ErrorMessage("expected ':' after key 'visual'");
-                        compiler.parse_fail = 1;
                         continue;
                     }
 
                     compiler.curt++;
                     if(compiler.curt->type != Token_OpenBrace) {
                         ErrorMessage("expected '{' starting a map for key 'visual'");
-                        compiler.parse_fail = 1;
                         continue;
                     }
 
@@ -468,14 +529,12 @@ subcontinue0:;
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_Colon) {
                                     ErrorMessage("expected ':' after key 'text'");
-                                    compiler.parse_fail = 1;
                                     goto subcontinue1;
                                 }
 
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_String) {
                                     ErrorMessage("expected string for key 'text'");
-                                    compiler.parse_fail = 1;
                                     goto subcontinue1;
                                 }
 
@@ -484,7 +543,6 @@ subcontinue0:;
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_Semicolon){
                                     ErrorMessage("expected ';' after value of key 'text'");
-                                    compiler.parse_fail = 1;
                                     goto subcontinue1;
                                 }
                             }break;
@@ -493,14 +551,12 @@ subcontinue0:;
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_Colon) {
                                     ErrorMessage("expected ':' after key 'instructions'");
-                                    compiler.parse_fail = 1;
                                     goto subcontinue1;
                                 }
 
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_OpenBracket){
                                     ErrorMessage("expected a '[' to start an array of instructions for key 'instructions'");
-                                    compiler.parse_fail = 1;
                                     goto subcontinue1;
                                 }
 
@@ -514,16 +570,17 @@ subcontinue0:;
                     }
 
                 }break; 
+                default: {
+                    ErrorMessage("unknown key: ", compiler.curt->raw);
+                    return;
+                }break;
             }
         }
 subcontinue1:;
     }
-
-
-    return !compiler.parse_fail;
 }
 
-b32 compile_lex() {
+void compile_lex() {
 #define charcase(c, type_)                  \
 case c: {                                   \
     Token* t = array_push(compiler.tokens); \
@@ -557,7 +614,7 @@ case c: {                                   \
                     advance_stream();
                     if(*compiler.stream.str == '\n'){
                         ErrorMessage("newlines in strings are not supported.");
-                        return 0;
+                        return;
                     }
                     if(*compiler.stream.str == '"'){
                         break;
@@ -565,7 +622,7 @@ case c: {                                   \
                 } 
                 if(!compiler.stream) {
                     ErrorMessage("unexpected end of file while parsing string starting on line ", ls, " at column ", cs, ".");
-                    return 0;
+                    return;
                 }
                 Token* t = array_push(compiler.tokens);
                 t->type = Token_String;
@@ -618,7 +675,7 @@ case c: {                                   \
             }break;
         }
     }
-    return 1;
+    return;
 }
 
 // returns an array of symbols pertaining to MathObjects
@@ -638,22 +695,28 @@ SymbolTable compile_math_objects(str8 path) {
     array_init(compiler.returns, 1, deshi_allocator); // TODO(sushi) since we can count how many mathobj there will be before we need these we can preallocate them with exact amounts.
     array_init(compiler.return_mathobj, 1, deshi_allocator); 
     defer{
-        array_deinit(compiler.symbol_table);
         array_deinit(compiler.tokens);
         array_deinit(compiler.MathObject_tokens);
         array_deinit(compiler.returns);
         array_deinit(compiler.return_mathobj);
     };
 
-    if(!compile_lex()) return 0;
+    compile_lex();
 
     // debug tokens
     // forX_array(token, compiler.tokens) {
     //     Log("", tokenStrings[token->type], " ", token->raw);
     // }
 
+    Symbol* placeholder = symbol_table_add(&compiler.symbol_table, str8l("□"), SymbolType_MathObject).first;
+    MathObject* pmo = placeholder->mathobj = make_math_object();
+    pmo->name = str8l("Placeholder");
+    pmo->description = str8l("suugu's placeholder object, anything may go here.");
+    pmo->type = MathObject_Constant;
+    pmo->display.text = str8l("□");
+
     compiler.curt = compiler.tokens;
-    if(!compile_parse()) return 0;
+    compile_parse();
 
     forI(array_count(compiler.symbol_table)){
         Symbol s = compiler.symbol_table[i];

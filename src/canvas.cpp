@@ -1149,15 +1149,15 @@ void update_canvas(){
 			item->style.border_style = border_solid;
 			item->style.border_width = 1;
 			{
-				FixMe;
 				uiText* text = (uiText*)ui_make_text(str8null, 0);
-				// text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
-				// 	"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
-				// 	"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
-				// 	"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
-				// 	"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
-				// 	"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
-				// ).fin);
+				str8 out = to_dstr8v(deshi_temp_allocator, 
+					"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
+					"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
+					"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
+					"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
+					"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
+				).fin;
+				text_insert_string(&text->text, out);
 				if(canvas.tool.pencil.stroke.idx) {
 					text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
 						"stroke points: ", array_count(array_last(canvas.tool.pencil.strokes)->pencil_points)
@@ -1184,14 +1184,14 @@ void update_canvas(){
 			item->style.border_width = 1;
 			item->style.padding = {5,5,5,5};
 
-			ui_make_text(to_dstr8v(deshi_ui_allocator, "elements: ", array_count(canvas.element.arr)).fin, 0);
+			// TODO(sushi) fix the deshi_ui_allocator bug and then use it here
+			ui_make_text(to_dstr8v(deshi_allocator, "elements: ", array_count(canvas.element.arr)).fin, 0);
 			if(canvas.element.selected) {
-				FixMe;
-				// uiTextM(to_dstr8v(deshi_temp_allocator,
-				// 	"selected: ", canvas.element.selected, "\n",
-				// 	"position: ", canvas.element.selected->pos, "\n",
-				// 	"size:     ", canvas.element.selected->size, "\n"
-				// ).fin);
+				ui_make_text(to_dstr8v(deshi_temp_allocator,
+					"selected: ", canvas.element.selected, "\n",
+					"position: ", canvas.element.selected->pos, "\n",
+					"size:     ", canvas.element.selected->size, "\n"
+				).fin, 0);
 			}
 			ui_end_item();
 		}ui_end_immediate_branch();	
@@ -1290,150 +1290,156 @@ void update_canvas(){
 				element->width     = element->height / 2.0;
 				element->type      = ElementType_Expression;
 				element->item = ui_make_item(0);
-				element->item->id = to_dstr8v(deshi_ui_allocator, "suugu.canvas.expression", array_count(canvas.element.arr)).fin; 
+				// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
+				element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.expression", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
 				element->expression.term_cursor_start = &element->expression.root;
 				element->expression.raw_cursor_start  = 1;
-				dstr8_init(&element->expression.raw, str8l(" "), deshi_allocator);
+				dstr8_init(&element->expression.raw, str8l(""), deshi_allocator);
+				dstr8_init(&element->expression.root.raw, str8l(""), deshi_allocator);
 				
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
 			}
+
 			
-			if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
-				Expression* expr = &canvas.element.selected->expression;
-				expr->changed = false;
+			if(DeshInput->anyKeyDown && canvas.element.selected) 
+				ast_input(&canvas.element.selected->expression);
+			
+			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
+			// 	Expression* expr = &canvas.element.selected->expression;
+			// 	expr->changed = false;
 				
-				//// @input_expression_cursor ////
-				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
-					expr->raw_cursor_start -= 1;
-				}
-				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
-					expr->raw_cursor_start += 1;
-				}
-				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
-					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
-						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
-							expr->raw_cursor_start -= 1;
-						}
-						if(*(expr->raw.str+expr->raw_cursor_start-1) == '(') expr->raw_cursor_start -= 1;
-					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
-						expr->raw_cursor_start -= 1;
-					}else{
-						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
-							expr->raw_cursor_start -= 1;
-						}
-					}
-				}
-				if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
-					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
-						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
-							expr->raw_cursor_start += 1;
-						}
-						if(*(expr->raw.str+expr->raw_cursor_start) == ')') expr->raw_cursor_start += 1;
-					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
-						expr->raw_cursor_start += 1;
-					}else{
-						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
-							expr->raw_cursor_start += 1;
-						}
-					}
-				}
-				if(key_pressed(CanvasBind_Expression_CursorHome)){
-					expr->raw_cursor_start = 1;
-				}
-				if(key_pressed(CanvasBind_Expression_CursorEnd)){
-					expr->raw_cursor_start = expr->raw.count;
-				}
+			// 	//// @input_expression_cursor ////
+			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
+			// 		expr->raw_cursor_start -= 1;
+			// 	}
+			// 	if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorRight)){
+			// 		expr->raw_cursor_start += 1;
+			// 	}
+			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorWordLeft)){
+			// 		if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+			// 			while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+			// 				expr->raw_cursor_start -= 1;
+			// 			}
+			// 			if(*(expr->raw.str+expr->raw_cursor_start-1) == '(') expr->raw_cursor_start -= 1;
+			// 		}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+			// 			expr->raw_cursor_start -= 1;
+			// 		}else{
+			// 			while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+			// 				expr->raw_cursor_start -= 1;
+			// 			}
+			// 		}
+			// 	}
+			// 	if(expr->raw_cursor_start < expr->raw.count && key_pressed(CanvasBind_Expression_CursorWordRight)){
+			// 		if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+			// 			while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+			// 				expr->raw_cursor_start += 1;
+			// 			}
+			// 			if(*(expr->raw.str+expr->raw_cursor_start) == ')') expr->raw_cursor_start += 1;
+			// 		}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+			// 			expr->raw_cursor_start += 1;
+			// 		}else{
+			// 			while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+			// 				expr->raw_cursor_start += 1;
+			// 			}
+			// 		}
+			// 	}
+			// 	if(key_pressed(CanvasBind_Expression_CursorHome)){
+			// 		expr->raw_cursor_start = 1;
+			// 	}
+			// 	if(key_pressed(CanvasBind_Expression_CursorEnd)){
+			// 		expr->raw_cursor_start = expr->raw.count;
+			// 	}
 				
 				
-				/*
-				if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
-					expr->term_cursor_start    = expr->term_cursor_start->left;
-					expr->raw_cursor_start     = expr->term_cursor_start->raw.str - expr->raw.str;
-					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
-						expr->raw_cursor_start  += 1;
-						expr->right_paren_cursor = true;
-					}else{
-						expr->right_paren_cursor = false;
-					}
-				}
-				if(key_pressed(CanvasBind_Expression_CursorRight)){
-					if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
-						expr->raw_cursor_start  += 1;
-						expr->right_paren_cursor = true;
-					}else if(expr->term_cursor_start->right){
-						expr->term_cursor_start  = expr->term_cursor_start->right;
-						expr->raw_cursor_start   = expr->term_cursor_start->raw.str - expr->raw.str;
-						expr->right_paren_cursor = false;
-					}
-				}
-				*/
+			// 	/*
+			// 	if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
+			// 		expr->term_cursor_start    = expr->term_cursor_start->left;
+			// 		expr->raw_cursor_start     = expr->term_cursor_start->raw.str - expr->raw.str;
+			// 		if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+			// 			expr->raw_cursor_start  += 1;
+			// 			expr->right_paren_cursor = true;
+			// 		}else{
+			// 			expr->right_paren_cursor = false;
+			// 		}
+			// 	}
+			// 	if(key_pressed(CanvasBind_Expression_CursorRight)){
+			// 		if(HasFlag(expr->term_cursor_start->flags, TermFlag_DanglingClosingParenToRight)){
+			// 			expr->raw_cursor_start  += 1;
+			// 			expr->right_paren_cursor = true;
+			// 		}else if(expr->term_cursor_start->right){
+			// 			expr->term_cursor_start  = expr->term_cursor_start->right;
+			// 			expr->raw_cursor_start   = expr->term_cursor_start->raw.str - expr->raw.str;
+			// 			expr->right_paren_cursor = false;
+			// 		}
+			// 	}
+			// 	*/
 				
-				//character based input (letters, numbers, symbols)
-				//// @input_expression_insertion ////
-				if(DeshInput->charCount){
-					expr->changed = true;
-					dstr8_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
-					expr->raw_cursor_start += DeshInput->charCount;
-					Log("", expr->raw.fin);
-				}
+			// 	//character based input (letters, numbers, symbols)
+			// 	//// @input_expression_insertion ////
+			// 	if(DeshInput->charCount){
+			// 		expr->changed = true;
+			// 		dstr8_insert_byteoffset(&expr->raw, expr->raw_cursor_start, str8{DeshInput->charIn, DeshInput->charCount});
+			// 		expr->raw_cursor_start += DeshInput->charCount;
+			// 		Log("", expr->raw.fin);
+			// 	}
 				
-				//// @input_expression_deletion ////
-				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
-					expr->changed = true;
-					dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-					expr->raw_cursor_start -= 1;
-				}
-				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
-					expr->changed = true;
-					dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-				}
-				if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
-					expr->changed = true;
-					if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
-						while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
-							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-							expr->raw_cursor_start -= 1;
-						}
-						if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
-							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-							expr->raw_cursor_start -= 1;
-						}
-					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
-						dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-						expr->raw_cursor_start -= 1;
-					}else{
-						while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
-							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
-							expr->raw_cursor_start -= 1;
-						}
-					}
-				}
-				if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
-					expr->changed = true;
-					if(*(expr->raw.str+expr->raw_cursor_start) == '('){
-						while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
-							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-						}
-						if(*(expr->raw.str+expr->raw_cursor_start) == ')') dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-					}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
-						dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-					}else{
-						while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
-							dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
-						}
-					}
-				}
+			// 	//// @input_expression_deletion ////
+			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
+			// 		expr->changed = true;
+			// 		dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+			// 		expr->raw_cursor_start -= 1;
+			// 	}
+			// 	if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteRight)){
+			// 		expr->changed = true;
+			// 		dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+			// 	}
+			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteWordLeft)){
+			// 		expr->changed = true;
+			// 		if(*(expr->raw.str+expr->raw_cursor_start-1) == ')'){
+			// 			while(expr->raw_cursor_start > 1 && *(expr->raw.str+expr->raw_cursor_start-1) != '('){
+			// 				dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+			// 				expr->raw_cursor_start -= 1;
+			// 			}
+			// 			if(*(expr->raw.str+expr->raw_cursor_start-1) == '('){
+			// 				dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+			// 				expr->raw_cursor_start -= 1;
+			// 			}
+			// 		}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start-1)) && *(expr->raw.str+expr->raw_cursor_start-1) != '.'){
+			// 			dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+			// 			expr->raw_cursor_start -= 1;
+			// 		}else{
+			// 			while(expr->raw_cursor_start > 1 && (isalnum(*(expr->raw.str+expr->raw_cursor_start-1)) || *(expr->raw.str+expr->raw_cursor_start-1) == '.')){
+			// 				dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start-1);
+			// 				expr->raw_cursor_start -= 1;
+			// 			}
+			// 		}
+			// 	}
+			// 	if(expr->raw_cursor_start < expr->raw.count-1 && key_pressed(CanvasBind_Expression_CursorDeleteWordRight)){
+			// 		expr->changed = true;
+			// 		if(*(expr->raw.str+expr->raw_cursor_start) == '('){
+			// 			while(expr->raw_cursor_start < expr->raw.count && *(expr->raw.str+expr->raw_cursor_start) != ')'){
+			// 				dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+			// 			}
+			// 			if(*(expr->raw.str+expr->raw_cursor_start) == ')') dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+			// 		}else if(ispunct(*(expr->raw.str+expr->raw_cursor_start)) && *(expr->raw.str+expr->raw_cursor_start) != '.'){
+			// 			dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+			// 		}else{
+			// 			while(expr->raw_cursor_start < expr->raw.count && (isalnum(*(expr->raw.str+expr->raw_cursor_start)) || *(expr->raw.str+expr->raw_cursor_start) == '.')){
+			// 				dstr8_remove_codepoint_at_byteoffset(&expr->raw, expr->raw_cursor_start);
+			// 			}
+			// 		}
+			// 	}
 				
 
-				if(expr->changed){
-					expr->valid = parse(expr);
-					solve(&expr->root);
-					debug_draw_term_tree(expr, &expr->root);
-					debug_print_term(&expr->root);
-				}
-			}
+			// 	if(expr->changed){
+			// 		expr->valid = parse(expr);
+			// 		solve(&expr->root);
+			// 		debug_draw_term_tree(expr, &expr->root);
+			// 		debug_print_term(&expr->root);
+			// 	}
+			// }
 		}break;
 		case CanvasTool_Pencil:{}break;
 	}

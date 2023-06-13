@@ -86,6 +86,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #endif
 #define SUUGU_IMPLEMENTATION
 #include "types.h"
+#include "mocompiler.cpp"
 #include "mint.h"
 #include "functions.cpp"
 #include "library.cpp"
@@ -97,7 +98,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #  include "unistd.h" // _exit on linux
 #endif
 
-#include "mocompiler.cpp"
 
 int main(int args_count, char** args){
 	profiler_init();
@@ -215,7 +215,6 @@ int main(int args_count, char** args){
 
 	Log("", "\n\n\n\n\n\n-------------------------------------");
 	suugu_memory_init();
-	compile_math_objects(str8l("scratch"));
 	
 	window_create(str8l("suugu"));
 	render_init();
@@ -232,6 +231,8 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 
+	math_objects = compile_math_objects(str8l("scratch"));
+
 
 #if 0 //mint testing
 	mint a = mint_init(20);
@@ -247,17 +248,29 @@ int main(int args_count, char** args){
 	}
 #endif
 	
+	u32 input_idx = 0;
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
-		update_canvas();
 
+		switch(input_idx) {
+			case 100: simulate_key_press(CanvasBind_SetTool_Expression); break;
+			case 101: simulate_key_press(CanvasBind_Expression_Create); break;
+			case 102: simulate_key_press(Key_EQUALS|InputMod_AnyShift); break;
+		}
+		input_idx++;
+
+		update_canvas();
 		// //update deshi
 		// console_update();
 		ui_update();
 		render_update();
 		logger_update();
 		memory_clear_temp();
+
+		
+
+		
 	}
 	
 	//cleanup deshi

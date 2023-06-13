@@ -14,6 +14,11 @@ left op is lesser, no right op
 2->3) right dangling term changes parent to lit parent (insert_last, right arg)
 2->3) delete lit
 
+(+ 1 (* 2 3)) -> (+ 1 (□ 2 3)) ->  (+ 1 (□ 3))
+      ^       D          ^     D
+empty block node with one child just reduces to that child
+-> (+ 1 3)
+
 ---------------------------------------------------------------------
 left op is greater, no right op
       V          V          V
@@ -27,6 +32,13 @@ left op is greater, no right op
 1->2) delete op
 2->3) right dangling term changes parent to lit parent (insert_last, right arg)
 2->3) delete lit
+
+(+ (* 1 2) 3) -> (□ (* 1 2) 3) -> (□ (* 1) 3)
+ ^            D          ^     D    
+if an empty block has a child that represents an operation, and it has one child, 
+absorb that operation and unwrap the child.
+-> (* 1 3)
+
 
 ---------------------------------------------------------------------
 left op is equal, no right op
@@ -42,6 +54,11 @@ left op is equal, no right op
 2->3) right dangling term changes parent to lit parent (insert_last, right arg)
 2->3) delete lit
 
+(+ (+ 1 2) 3) -> (□ (+ 1 2) 3) -> (□ (+ 1) 3)
+ ^            D          ^     D      ^
+same as previous
+-> (+ 1 3)
+
 ---------------------------------------------------------------------
 no left op, right op is lesser
   V          V           V 
@@ -54,6 +71,11 @@ no left op, right op is lesser
 1->2) right child changes parent to right operator (insert_first, left arg)
 1->2) delete op
 2->3) delete lit
+
+(+ (* 1 2) 3) -> (+ (□ 1 2) 3) -> (+ (□ 2) 3)
+    ^         D        ^       D        ^
+empty box absorbs single child
+-> (+ 2 3)
 
 ---------------------------------------------------------------------
 no left op, right op is greater
@@ -68,6 +90,8 @@ no left op, right op is greater
 1->2) delete op
 2->3) delete lit
 
+(+ 1 (* 2 3)) -> ()
+
 ---------------------------------------------------------------------
 nested left op is lesser, no right op
           V              V
@@ -79,6 +103,8 @@ nested left op is lesser, no right op
 1->2) left child changes parent to left operator (insert_last, right arg)
 1->2) right child changes parent to expression (insert_last, remove arg)
 1->2) delete op
+
+(+ (+ 1 2) (* 3 4)) -> (+ (+ 1 2) (□ 3 4))
 
 ---------------------------------------------------------------------
 nested left op is greater, no right op
@@ -108,6 +134,10 @@ left op is equal, right op is equal
 2->3) right literal changes parent to lit parent (insert_last, right arg)
 2->3) lit parent changes parent to right literal's old parent (insert_first, left arg)
 2->3) delete lit
+
+(+ (+ 1 2) (+ 3 4)) -> (□ (+ 1 2) (+ 3 4)) -> (□ (+ 1 □) (+ 3 4))
+absorb
+-> (+ 1 (+ 3 4))
 
 ---------------------------------------------------------------------
 left op is equal, right op is equal, right lit deletion
@@ -307,6 +337,9 @@ literal deletion, nested left op greater, right op lesser
 1->2) delete lit
 2->3) left lit changes parent to left op (insert_last, right arg)
 2->3) delete op
+
+(+ 1 (+ (* 2 3) 4)) -> (+ 1 (+ 1 (* 2 □) 4)) -> (+ 1 (+ 1 (□ 2 □) 4))
+
 
 ---------------------------------------------------------------------
 literal deletion, right op deletion, nested left op greater, right op lesser

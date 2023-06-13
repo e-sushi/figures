@@ -33,9 +33,7 @@ struct Variable{
 };
 
 struct Function{
-	str8  text;
-	void* ptr;
-	s32   args;
+	s32 arity; // number of arguments 
 };
 typedef f64(*Function1Arg)(f64 a);
 
@@ -282,7 +280,7 @@ struct MathObject;
 struct Term{
 	TermType  type;
 	TermFlags flags;
-	str8 raw;
+	dstr8 raw;
 	MathObject* mathobj; // the MathObject containing information about the type of this Term
 
 	union{
@@ -517,45 +515,6 @@ const uiStyle element_default_style = {
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @Display
 
-// TODO(sushi) return to this idea later
-//             I would really like to allow the user to define custom mathematical objects 
-//             as deeply as possible, and this requires allowing them to define how to draw them
-//             I underestimated how complex drawing somethings are even in normal math, so 
-//             for now I am just going to use function pointers, but I do not want a user to have 
-//             to write C code to do this.
- 
-// typedef Type DisplayInstructionAnchor; enum {
-// 	DisplayInstructionAnchor_TopLeft,
-// 	DisplayInstructionAnchor_TopRight,
-// 	DisplayInstructionAnchor_BottomRight,
-// 	DisplayInstructionAnchor_BottomLeft,
-// };
-
-// typedef Type DisplayInstructionRelative; enum {
-// 	// this instruction will draw relative to the first glyph placed
-// 	DisplayInstructionRelative_ToBaseGlyph,
-// 	// the instruction will draw relative to the last glyph placed
-// 	DisplayInstructionRelative_ToLastGlyph,
-// 	// the instruction will draw relative to the bounding box of all glyphs before this one
-// 	DisplayInstructionRelative_ToTotalBoundingBox,
-// };
-
-// // a single instruction for the renderer
-// // an array of these are defined by the Term being rendered
-// // and is used when the display type is set to DisplayType_Rendered
-// struct DisplayInstruction {
-// 	DisplayInstructionAnchor anchor : 2;
-// 	DisplayInstructionRelative relative : 2;
-// 	// offset of the glyph about to be drawn from the specified anchor
-// 	vec2 offset;
-// 	// how to scale the glyph to be drawn
-// 	vec2 scaling;
-// 	// currently, an instruction may specify a glyph or, in the case of
-// 	// functions and numbers, a series of glyphs. all symbols used here must
-// 	// exist in the currently used math font.
-// 	str8 glyph;
-// };
-
 enum{
     SymbolType_Child,
     SymbolType_Glyph,
@@ -624,7 +583,7 @@ b32 symbol_table_remove(SymbolTable* table, str8 name) {
     return 1;
 }
 
-
+global SymbolTable math_objects;
 
 enum {
 	AlignType_Null,
@@ -668,8 +627,6 @@ struct AlignInstruction {
 		Symbol* symbol; 
 	}lhs, rhs;
 };
-
-
 
 enum{
 	InstructionType_Align,
@@ -757,7 +714,22 @@ struct MathObject {
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
+
+	union{
+		Function func;
+	};
 };
+
+// TODO(sushi) set this up when we are able to do event driven input
+// struct MathObjectKey{
+//     KeyCode key;
+//     MathObject* mathobj;
+// };
+
+// typedef MathObjectKey* KeyTable; 
+// global KeyTable key_table;
+
+// pair<spt, b32> key_table_find()
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
@@ -798,7 +770,7 @@ make_element(){
 }
 
 global Term* 
-make_term(Expression* expr, str8 raw, TermType type){
+make_term(){
 	Term* result;
 	if(arenas.inactive_terms.next){
 		result = (Term*)arenas.inactive_terms.next;
@@ -813,8 +785,7 @@ make_term(Expression* expr, str8 raw, TermType type){
 		arenas.terms->cursor += sizeof(Term);
 		arenas.terms->used += sizeof(Term);
 	}
-	result->type = type;
-	result->raw  = raw;
+	dstr8_init(&result->raw, str8l(""), deshi_allocator);
 	return result;
 }
 
@@ -836,5 +807,7 @@ make_math_object() {
 	}
 	return result;
 }
+
+
 
 #endif //SUUGU_TYPES_H
