@@ -19,6 +19,7 @@
 #   --sa   Enable static analysis
 #   --ba   Enable build analysis (currently only works with clang with ClangBuildAnalyzer installed)
 #   --nd   Disable building deshi's sources
+#   --ad   Automatically decide to build deshi based on whether or not it has source files newer than the last time it was built. If --nd is used, this is ignored.
 #
 #   -platform <win32,mac,linux>           Build for specified OS: win32, mac, linux (default: builder's OS)
 #   -graphics <vulkan,opengl,directx>     Build for specified Graphics API (default: vulkan)
@@ -40,6 +41,7 @@ config = {
     "static_analysis": False,
     "build_analysis": False,
     "build_deshi": True,
+    "auto_build_deshi": False,
 
     "platform": "unknown",
     "compiler": "unknown",
@@ -76,6 +78,7 @@ while i < len(sys.argv):
         case "--sa":   config["static_analysis"] = True
         case "--ba":   config["build_analysis"] = True
         case "--nd":   config["build_deshi"] = False
+        case "--ad":   config["auto_build_deshi"] = True
 
         case "-platform":
             if i != len(sys.argv) - 1:
@@ -144,6 +147,21 @@ folders["root"] = os.path.abspath(f"{folders['misc']}/..")
 folders["build"] = f"{folders['root']}/build/{config['buildmode']}"
 
 os.chdir(folders["root"])
+
+# check if deshi has any source files newer than the last time it was built
+def check_newer_files():
+    if os.path.exists(f"{folders['build']}/deshilastcompile"):
+        f = open(f"{folders['build']}/deshilastcompile")
+        lastcompiletime = int(f.read())
+        for root, dirs, files in os.walk(f"{folders['root']}/deshi/src"):
+            for file in files:
+                if int(os.path.getmtime(f"{root}/{file}")) > lastcompiletime:
+                    return True
+    return False
+
+# if not, then we don't build deshi
+if config["auto_build_deshi"] and config["build_deshi"] and not check_newer_files():
+    config["build_deshi"] = False
 
 #
 #  data
@@ -450,6 +468,9 @@ aproc.start()
 
 if config["build_deshi"]: 
     dproc.join()
+    f = open(f"{folders['build']}/deshilastcompile", "w")
+    f.write(f"{int(time.time())}")
+    f.close()
 
 aproc.join()
 
@@ -465,10 +486,5 @@ if config["build_analysis"]:
 lproc = Thread(target=run_proc, args=("exe", full_link))
 lproc.start()
 lproc.join()
-
-# gdbinit = open(f"{folders['build']}/.gdbinit", "w")
-# for s in parts["gdbinit sources"]:
-#     gdbinit.write(f"source {os.path.abspath(s)}\n")
-# gdbinit.close()
 
 print(f"time: {format_time(round(time.time()-start, 3))}")
