@@ -254,7 +254,7 @@ int main(int args_count, char** args){
 		//update suugu
 
 		switch(input_idx) {
-			case 100: simulate_key_press(CanvasBind_SetTool_Expression); break;
+			case 100: simulate_key_press(CanvasBind_SetTool_Expression); DebugBreakpoint; break;
 			case 101: simulate_key_press(CanvasBind_Expression_Create); break;
 			case 102: simulate_key_press(Key_EQUALS|InputMod_AnyShift); break;
 		}
@@ -267,10 +267,6 @@ int main(int args_count, char** args){
 		render_update();
 		logger_update();
 		memory_clear_temp();
-
-		
-
-		
 	}
 	
 	//cleanup deshi

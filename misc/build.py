@@ -20,6 +20,7 @@
 #   --ba   Enable build analysis (currently only works with clang with ClangBuildAnalyzer installed)
 #   --nd   Disable building deshi's sources
 #   --ad   Automatically decide to build deshi based on whether or not it has source files newer than the last time it was built. If --nd is used, this is ignored.
+#   --pch  Generate a precompiled header from a selection of headers in the 'precompiled'. If one of these files is found to be newer than its pch, it will be regenerated
 #
 #   -platform <win32,mac,linux>           Build for specified OS: win32, mac, linux (default: builder's OS)
 #   -graphics <vulkan,opengl,directx>     Build for specified Graphics API (default: vulkan)
@@ -42,6 +43,7 @@ config = {
     "build_analysis": False,
     "build_deshi": True,
     "auto_build_deshi": False,
+    "use_pch": False,
 
     "platform": "unknown",
     "compiler": "unknown",
@@ -79,6 +81,7 @@ while i < len(sys.argv):
         case "--ba":   config["build_analysis"] = True
         case "--nd":   config["build_deshi"] = False
         case "--ad":   config["auto_build_deshi"] = True
+        case "--pch":  config["use_pch"] = True
 
         case "-platform":
             if i != len(sys.argv) - 1:
@@ -158,7 +161,7 @@ def check_newer_files():
                     return True
     return False
 
-# if not, then we don't build deshi
+# if --ad is used and deshi is found to have newer sources that its object file, then we rebuild it
 if config["auto_build_deshi"] and config["build_deshi"] and not check_newer_files():
     config["build_deshi"] = False
 
@@ -403,6 +406,8 @@ pathprefix = parts['link']['prefix'][config['linker']]['path']
 for lp in link_paths:
     link["paths"] += f"{pathprefix}{lp} "
 
+
+
 shared = (
     f'{defines} '
     f'{includes} '
@@ -411,11 +416,46 @@ shared = (
     f'{parts["compiler_flags"][config["compiler"]]["analyze"][config["static_analysis"]]} '
 )
 
+# TODO(sushi) look more into precompiling
+# cmd = f"clang -c -xc++-header test.h -o test.h.pch {shared}"
+# print(cmd)
+# subprocess.Popen(cmd.split(' ')).wait()
+
+if config["use_pch"]:
+    f = open("src/pch.h", "r")
+    buff = f.read()
+    f.close()
+
+    pchlasttime = 0
+    if os.path.exists(f"{folders['build']}/pch.h.pch"):
+        pchlasttime = os.path.getmtime(f"{folders['build']}/pch.h.pch")
+
+    buff = buff.split("*/")[1]
+    includes = list(filter(len, [a.strip().strip('"') for a in buff.split("#include")]))
+    def regen_pch():
+        for include in includes:
+            if os.path.getmtime(include) > pchlasttime:
+                return True
+        return False
+
+    if os.path.getmtime("src/pch.h") > pchlasttime or regen_pch():
+        subprocess.Popen(f"clang -c -xc++-header -I. src/pch.h -o {folders['build']}/pch.h.pch {shared}".split(' ')).wait()
+
+    shared += f"-include-pch {folders['build']}/pch.h.pch "
+
 full_deshi = (
     f'{config["compiler"]} -c '
     f'{sources["deshi"]} ' + shared + 
     f'-o {folders["build"]}/deshi.o'
 ) 
+
+# dream on it 
+
+# f = open("deshi/src/external/stb/stb_image.h", "r")
+# buff = f.read()
+# startidx = buff.find("#ifdef STB_IMAGE_IMPLEMENTATION")
+# endidx = buff.find("#endif // STB_IMAGE_IMPLEMENTATION")
+# print(buff[idx:idx+128])
 
 full_app = (
     f'{config["compiler"]} -c '
@@ -431,6 +471,8 @@ full_link = (
     f'{link["paths"]} '
     f'-o {folders["build"]}/{app_name}'
 )
+
+
 
 def format_time(time):
     one_second = 1
