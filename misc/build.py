@@ -150,12 +150,11 @@ os.chdir(folders["root"])
 
 # check if deshi has any source files newer than the last time it was built
 def check_newer_files():
-    if os.path.exists(f"{folders['build']}/deshilastcompile"):
-        f = open(f"{folders['build']}/deshilastcompile")
-        lastcompiletime = int(f.read())
+    if os.path.exists(f"{folders['build']}/deshi.o"):
+        lasttime = os.path.getmtime(f"{folders['build']}/deshi.o")
         for root, dirs, files in os.walk(f"{folders['root']}/deshi/src"):
             for file in files:
-                if int(os.path.getmtime(f"{root}/{file}")) > lastcompiletime:
+                if os.path.getmtime(f"{root}/{file}") > lasttime:
                     return True
     return False
 
@@ -468,9 +467,6 @@ aproc.start()
 
 if config["build_deshi"]: 
     dproc.join()
-    f = open(f"{folders['build']}/deshilastcompile", "w")
-    f.write(f"{int(time.time())}")
-    f.close()
 
 aproc.join()
 
