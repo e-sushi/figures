@@ -37,7 +37,10 @@ struct Function{
 };
 typedef f64(*Function1Arg)(f64 a);
 
-
+struct Number {
+	// TODO(sushi) replace this with mint and a built in fixed point types
+	f64 value; 
+};
 
 
 ////workspace: region of the canvas in which expressions are able to interact together  
@@ -695,12 +698,16 @@ struct Display {
 // @MathObject
 
 enum{
+	MathObject_Placeholder, // builtin
+	MathObject_Number, // builtin
 	MathObject_Function,
 	MathObject_Constant,
 	MathObject_Unit,
 };
 
 const str8 MathObjectTypeStrings[] = {
+	str8l("Placeholder"),
+	str8l("Number"),
 	str8l("Function"),
 	str8l("Constant"),
 	str8l("Unit"),
@@ -717,6 +724,7 @@ struct MathObject {
 
 	union{
 		Function func;
+		Number number;
 	};
 };
 

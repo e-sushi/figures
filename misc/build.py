@@ -159,6 +159,8 @@ def check_newer_files():
             for file in files:
                 if os.path.getmtime(f"{root}/{file}") > lasttime:
                     return True
+    else:
+        return True # if deshi.o does not exist then I guess we have to build it..?
     return False
 
 # if --ad is used and deshi is found to have newer sources that its object file, then we rebuild it
@@ -406,8 +408,6 @@ pathprefix = parts['link']['prefix'][config['linker']]['path']
 for lp in link_paths:
     link["paths"] += f"{pathprefix}{lp} "
 
-
-
 shared = (
     f'{defines} '
     f'{includes} '
@@ -469,10 +469,8 @@ full_link = (
     f'{link["flags"]} '
     f'{link["libs"]} '
     f'{link["paths"]} '
-    f'-o {folders["build"]}/{app_name}'
+    f'-o {folders["build"]}/{app_name} '
 )
-
-
 
 def format_time(time):
     one_second = 1

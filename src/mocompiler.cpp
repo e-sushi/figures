@@ -712,8 +712,14 @@ SymbolTable compile_math_objects(str8 path) {
     MathObject* pmo = placeholder->mathobj = make_math_object();
     pmo->name = str8l("Placeholder");
     pmo->description = str8l("suugu's placeholder object, anything may go here.");
-    pmo->type = MathObject_Constant;
+    pmo->type = MathObject_Placeholder;
     pmo->display.text = str8l("□");
+
+    Symbol* number = symbol_table_add(&compiler.symbol_table, str8l("Number"), SymbolType_MathObject).first;
+    MathObject* nmo = number->mathobj = make_math_object();
+    nmo->name = str8l("Number");
+    nmo->description = str8l("A mathematical object used to count, measure, and label.");
+    nmo->type = MathObject_Number;
 
     compiler.curt = compiler.tokens;
     compile_parse();
