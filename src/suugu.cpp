@@ -148,7 +148,7 @@ int main(int args_count, char** args){
 			if(expr.unknown_vars){
 				//TODO assuming very simple, one-op equations for now (5 = 1 + x; 1 + x = 5)
 				//TODO hacky direct usage of solver vars
-				Logf("","%.*s = %g", (int)solver_unknown_variables[0]->raw.count, (const char*)solver_unknown_variables[0]->raw.str, expr.solution);
+				Logf("","%.*s = %g", (int)solver_unknown_variables[0]->raw.buffer.count, (const char*)solver_unknown_variables[0]->raw.buffer.str, expr.solution);
 			}else{
 				if(expr.solution == MAX_F64){
 					Logf("","%.*s ERROR", (int)cmdline_solve_input.count, (const char*)cmdline_solve_input.str);
@@ -233,6 +233,15 @@ int main(int args_count, char** args){
 
 	math_objects = compile_math_objects(str8l("scratch"));
 
+	forI(array_count(math_objects)) {
+		Symbol s = math_objects[i];
+		MathObject* mo = s.mathobj;
+		Log("", 
+			"name: ", mo->name, "\n",
+			"desc: ", mo->description, "\n",
+			"type: ", mo->type, "\n"
+		);
+	}
 
 #if 0 //mint testing
 	mint a = mint_init(20);

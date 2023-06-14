@@ -947,6 +947,11 @@ dstr8 gen_str(Term* term) {
 	}
 
 	if(term->mathobj) {
+		switch(term->mathobj->type) {
+			case MathObject_Number: {
+				dstr8_append(&out, term->mathobj->number.value);
+			}break;
+		}
 		dstr8_append(&out, term->mathobj->name, " ");
 	}
 
@@ -965,12 +970,12 @@ void print_expression_text(Expression* expr){
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
 	Term* root = &expr->root;
 	if(root->child_count){
-		dstr8_append(&out, "(", root->raw.fin, " ");
+		dstr8_append(&out, "(", root->raw.buffer.fin, " ");
 		for(Term* t = root->first_child; t; t = t->next) {
 			dstr8_append(&out, gen_str(t).fin);
 		}
 	} else {
-		dstr8_append(&out, "(", root->raw.fin);
+		dstr8_append(&out, "(", root->raw.buffer.fin);
 	}
 
 	// trim trailing space
@@ -986,39 +991,53 @@ void print_expression_text(Expression* expr){
 void ast_input(Expression* expr) {
 	Term* cursor = expr->term_cursor_start;
 
+	// handle movements
+	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
+		if(text_cursor_at_start(&cursor->raw)) {
+			//if()
+		}
+	}
+
 	if(!cursor->mathobj) {
 		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
 		if(DeshInput->charCount){
-			dstr8_append(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
+			text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
 		}
 
 		// if the first character is a digit this must be an integer
-		if(is_digit(cursor->raw.str[0])) {
-			// TODO(sushi) make an Integer math object
-			NotImplemented;
-		} 
+		if(is_digit(cursor->raw.buffer.str[0])) {
+			cursor->mathobj = builtin_mathobj.number;
+		} else {
+			// check if the current string belongs to any known symbol
+			auto [idx, found] = symbol_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
+			if(found) {
+				// if we find a math object pertaining to the string, we attach the MathObject to this node
+				// and then, if it is a function, create child nodes as placeholders for its arguments
+				cursor->mathobj = (math_objects + idx)->mathobj;
 
-		Log("", cursor->raw.fin);
-
-		auto [idx, found] = symbol_table_find(&math_objects, str8_hash64(cursor->raw.fin));
-		if(found) {
-			// if we find a math object pertaining to the string, we attach the MathObject to this node
-			// and then, if it is a function, create child nodes as placeholders for its arguments
-			cursor->mathobj = (math_objects + idx)->mathobj;
-
-			switch(cursor->mathobj->type) {
-				case MathObject_Function: {
-					forI(cursor->mathobj->func.arity) {
-						Term* t = make_term();
-						ast_insert_last(cursor, t);
-						t->mathobj = (math_objects + symbol_table_find(&math_objects, str8_hash64(str8l("□"))).first)->mathobj;
-					}
-				}break;
-			}
-
-		} else return; // if we still dont have a MathObject, there's nothing more to do
+				switch(cursor->mathobj->type) {
+					case MathObject_Function: {
+						forI(cursor->mathobj->func.arity) {
+							Term* t = make_term();
+							ast_insert_last(cursor, t);
+							t->mathobj = builtin_mathobj.placeholder;
+						}
+					}break;
+				}
+			} else return; // if we still dont have a MathObject, there's nothing more to do
+		}
 	}
 
+	switch(cursor->mathobj->type) {
+		case MathObject_Number:{
+			forI(DeshInput->charCount) {
+				// scan the input array. if we find numbers, simply append them where the cursor is
+				// if we find anything else, we need to decide how to handle it
+				//if(is_digit())
+\
+			}
+		}break;
+	}
 
 
 

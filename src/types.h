@@ -1,4 +1,4 @@
-/* Index:
+﻿/* Index:
 @vec2f64
 @element
 @term
@@ -283,8 +283,9 @@ struct MathObject;
 struct Term{
 	TermType  type;
 	TermFlags flags;
-	dstr8 raw;
+	Text raw;
 	MathObject* mathobj; // the MathObject containing information about the type of this Term
+	Symbol* symbol; // the symbol of the MathObject this term represents
 
 	union{
 		OpType op_type;
@@ -547,7 +548,6 @@ struct Symbol {
 
 typedef Symbol* SymbolTable;
 
-
 pair<spt,b32> symbol_table_find(SymbolTable* table, u64 key){
     spt index = -1, middle = -1;
     spt left = 0;
@@ -631,6 +631,8 @@ const str8 AlignTypeStrings[] = {
 	str8l("CenterY"),
 };
 
+// aligns 2 symbols two each other in various ways 
+// not used in text display
 struct AlignInstruction {
 	struct {
 		Type align_type;
@@ -695,6 +697,7 @@ struct DisplayContext {
 struct Display {
 	TNode node;
 	Term* obj; // the Term this display represents
+	MathObject* mathobj; // the MathObject that this Display belongs to
 
 	str8 text; // data used when displaying as text
 	SymbolTable symbols; // a collection of symbols we need in rendering
@@ -734,6 +737,11 @@ struct MathObject {
 		Number number;
 	};
 };
+
+struct{ // these are made in the compiler for now
+	MathObject* placeholder;
+	MathObject* number;
+}builtin_mathobj;
 
 // TODO(sushi) set this up when we are able to do event driven input
 // struct MathObjectKey{
@@ -800,7 +808,7 @@ make_term(){
 		arenas.terms->cursor += sizeof(Term);
 		arenas.terms->used += sizeof(Term);
 	}
-	dstr8_init(&result->raw, str8l(""), deshi_allocator);
+	result->raw = text_init(str8l(""), deshi_allocator);
 	return result;
 }
 

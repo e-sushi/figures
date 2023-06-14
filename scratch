@@ -1,26 +1,102 @@
+/*
+    A MathObject definition is begun using the keyword 'MathObject' followed by one or more names
+    that may take on any form as long as they don't include any of the following syntax symbols:
+        ; , : . { } ( ) [ ] $ "
+    It may also not contain any integers or whitespace. A MathObject may not use a single ascii 
+    character as its name, as these are reserved for use in the manipulations key.
+
+    Following the list of names is the keyword 'is' followed by a MathObject type. As of writing this,
+    the only type is 'Function' which is a tree node containing n child nodes, n being the function's
+    arity, or its number of arguments. 
+
+    All MathObjects may define a name and description, as well as 'display', which contains information 
+    about how to display the MathObject in various contexts.
+*/
+
 MathObject 
 addition,add,+ is Function {
-    // the tree form of this Operator, specified with TML (s-expressions)
+    // The name actually attributed to the MathObject
+    name: "Addition";
+    // A description shown along with the name
+    desc: "The process of putting two groups of countable objects together and counting the resulting group.";
+
+    // A Function must define its parts, which are just names attached to each node 
+    // of the AST that this MathObject represents
+    parts: [
+        // The first part given is considered the root node of the function.
+        // Keyword "glyph" followed by a string defines a glyph to be retrieved
+        // from the loaded math font. 
+        plus is glyph "+";
+        // An integer prefixed with '$' denotes the nth child node of the root of this MathObject
+        lhs is $1;
+        rhs is $2;
+    ]
+
+    // The amount of arguments this function has 
     arity: 2;
     
-    // a list of manipulations applicable with this operator at the root
+    /*
+        A list of manipulations given in TML. The root of these trees must be the 
+        MathObject we are currently defining. The children of the root node may be any other 
+        MathObject or any single letter ascii character to represent any form of child.
+
+        A manipulation consists of two trees separated by '=' which are considered equal and 
+        thus interchangable by the TME.
+    */
     manipulations: [
         /* commutativity */ (+ a b) = (+ b a);
         /*  associativiy */ (+ (+ a b) c) = (+ a (+ b c));
     ]
 
-    visual: {
-        // when a string is given as the base glyph of a visual, the glyph used will be loaded from the selected math font.
-        text: "$1+$2";
+    /*
+        suugu supports displaying MathObjects in multiple ways, and so information about 
+        how to display them and how a user may interact with them must be provided.
+
+        This map currently supports 3 keys:
+            instructions: a series of instructions that tells the renderer how to position 
+                          and scale each part of this function.
+            
+            movement: a map whose keys are the symbols defined in 'parts'. The value of 
+                      these keys are yet another map whose keys are one of 
+                        ('left', 'right', 'up', 'down')
+                    The value of these keys may be 'out', indicating that moving in this
+                    direction leaves the MathObject and goes to the logical next object
+                    in the AST. Otherwise, the value must be one of the parts defined in 
+                    'parts' that is not the part whose movements we are currently defining.
+                
+            text: a string that contains the part identifiers given in 'parts' and any other 
+                  glyph to be used when a MathObject is to be displayed as plain text.
+
+    */
+    display: {
+        // a set of instructions used by the renderer to visual position elements
         instructions: [
-            lhs is $1;
-            rhs is $2;
-            plus is glyph "+";
             align lhs origin_y to plus center_y;
             align lhs right to plus left;
             align rhs origin_y to plus center_y;
             align rhs left to plus right;
         ]
+
+        // when a cursor is manuvering this MathObject, we need to know how we can traverse through the nodes
+        movement: {
+            lhs: {
+                left: out;
+                right: plus;
+            }
+            // it's possible we may be able to get away with not needing to define plus' movement here,
+            // cause we have already defined every other node's path to it, but to be safe we'll require
+            // it for now
+            plus: {
+                left: lhs;
+                right: rhs;
+            }
+            rhs: {
+                left: plus;
+                right: out;
+            }
+        }
+        // when this MathObject is being displayed as text, this is used to determine how to do so
+        text: "lhs plus rhs"; 
     }
 }
 

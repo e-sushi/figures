@@ -1296,7 +1296,7 @@ void update_canvas(){
 				element->expression.term_cursor_start = &element->expression.root;
 				element->expression.raw_cursor_start  = 1;
 				dstr8_init(&element->expression.raw, str8l(""), deshi_allocator);
-				dstr8_init(&element->expression.root.raw, str8l(""), deshi_allocator);
+				element->expression.root.raw = text_init(str8l(""), deshi_allocator);
 				
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
