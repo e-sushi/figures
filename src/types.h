@@ -1,4 +1,4 @@
-﻿/* Index:
+/* Index:
 @vec2f64
 @element
 @term
@@ -536,7 +536,14 @@ struct Symbol {
         str8 glyph;
         MathObject* mathobj;
     };
+
+	struct{ // index into a Display's symbol array indicating which symbol should be selected when we move in some direction
+		s32 left, right, up, down;
+	}movement;
 };
+
+#define MOVEMENT_NONE -1
+#define MOVEMENT_OUT  -2
 
 typedef Symbol* SymbolTable;
 
