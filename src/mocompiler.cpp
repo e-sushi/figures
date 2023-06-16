@@ -210,7 +210,7 @@ struct Symbol {
 
     Type type;
     union{
-        Part* part;
+        u32 part; // index into a MathObject's parts array
         MathObject* mathobj;
     };
 };
@@ -370,7 +370,7 @@ b32 compile_parse_instructions() {
                         return false;
                     }
 
-                    instr.lhs.part = s->part;
+                    instr.lhs.part = curmo->parts + s->part;
                     
                     compiler.curt++;
                     if(compiler.curt->type == Token_Keyword_to) {
@@ -405,7 +405,7 @@ b32 compile_parse_instructions() {
                         return false;
                     }
 
-                    instr.rhs.part = s->part;
+                    instr.rhs.part = curmo->parts + s->part;
 
                     // TODO(sushi) this is a poor check for this error
                     compiler.curt++;
@@ -465,7 +465,7 @@ b32 compile_parse_movement() {
             return false;
         }
 
-        Part* part = s->part;
+        Part* part = curmo->parts + s->part;
         part->movement.down  =
         part->movement.up    =
         part->movement.left  =
@@ -508,11 +508,16 @@ case GLUE(Token_Keyword_,dir): {                                                
     switch(compiler.curt->type) {                                                                  \
         case Token_Word:{                                                                          \
             auto [subidx, found] = symbol_table_find(&compiler.symbol_table, compiler.curt->hash); \
+            if(!found) {                                                                           \
+                ErrorMessage("unknown symbol '", compiler.curt->raw, "'");                         \
+                return false;                                                                      \
+            }                                                                                      \
+            Symbol* subs = (compiler.symbol_table+subidx);                                         \
             if(idx == subidx) {                                                                    \
                 ErrorMessage("cannot assign a movement from a symbol to itself.");                 \
                 return false;                                                                      \
             }                                                                                      \
-            part->movement. dir = curmo->parts + subidx;                                           \
+            part->movement. dir = curmo->parts + subs->part;                                       \
         }break;                                                                                    \
         case Token_Keyword_out: {                                                                  \
             part->movement. dir = MOVEMENT_OUT;                                                    \
@@ -755,6 +760,8 @@ subcontinue0:;
                         goto subcontinue1;
                     }
 
+                    
+
                     compiler.curt++;
                     while(1) {
                         if(compiler.curt->type != Token_Word) {
@@ -769,11 +776,11 @@ subcontinue0:;
                         auto [symbol, found] = symbol_table_add(&compiler.symbol_table, symname, SymbolType_Part);
                         if(found){
                             ErrorMessage("symbol '", symbol->name, "' already defined on line ", symbol->token->line, " in column ", symbol->token->column);
-                            goto subcontinue1;;
+                            goto subcontinue1;
                         }
 
-                        Part* part = symbol->part = array_push(curmo->parts);
-                        
+                        Part* part = array_push(curmo->parts);
+                        symbol->part = part-curmo->parts;
 
                         compiler.curt++;
                         switch(compiler.curt->type) {
@@ -801,6 +808,8 @@ subcontinue0:;
                         }
                         if(compiler.curt->type == Token_CloseBracket) break;
                     }
+                    // because the parts array on the MathObject can move, we assign parts to the proper symbols here
+
                     compiler.curt++;
 
                     used_keys.parts = 1;
