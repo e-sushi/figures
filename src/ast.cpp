@@ -942,22 +942,31 @@ b32 parse(Expression* expr){
 dstr8 gen_str(Term* term, Expression* expr) {
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
 	
-	if(term == expr->term_cursor_start) {
-		dstr8_append(&out, "^");
-	}
+	
 
 	if(term->child_count){
 		dstr8_append(&out, "(");
 	}
 
-	if(term->mathobj) {
-		switch(term->mathobj->type) {
-			case MathObject_Number: {
-				dstr8_append(&out, term->mathobj->number.value);
-			}break;
-		}
-		dstr8_append(&out, term->mathobj->name, " ");
-	}
+	// dstr8 node_text;
+	// dstr8_init(&out, str8l(""), deshi_temp_allocator);
+
+	// if(term->mathobj) {
+	// 	switch(term->mathobj->type) {
+	// 		case MathObject_Number: {
+	// 			dstr8_append(&node_text, term->mathobj->number.value);
+	// 		}break;
+	// 	}
+	// 	dstr8_append(&node_text, term->mathobj->name, " ");
+	// }
+
+	if(term == expr->term_cursor_start) {
+		dstr8_append(&out, 
+			str8{term->raw.buffer.str, term->raw.cursor.pos},
+			"|",
+			str8{term->raw.buffer.str+term->raw.cursor.pos, term->raw.buffer.count-term->raw.cursor.pos}
+		);
+	} else dstr8_append(&out, term->raw.buffer.fin);
 
 	for(Term* t = term->first_child; t; t = t->next){
 		dstr8_append(&out, gen_str(t, expr));
@@ -976,12 +985,16 @@ void print_expression_text(Expression* expr){
 
 	dstr8_append(&out, "(");
 
-	if(root == expr->term_cursor_start){
-		dstr8_append(&out, "^");
-	}
+	
 
 	if(root->child_count){
-		dstr8_append(&out, root->raw.buffer.fin, " ");
+		if(root == expr->term_cursor_start){
+			dstr8_append(&out, 
+				str8{root->raw.buffer.str, root->raw.cursor.pos},
+				"|",
+				str8{root->raw.buffer.str+root->raw.cursor.pos, root->raw.buffer.count-root->raw.cursor.pos}
+			);
+		} else dstr8_append(&out, root->raw.buffer.fin, " ");
 		for(Term* t = root->first_child; t; t = t->next) {
 			dstr8_append(&out, gen_str(t, expr).fin);
 		}
@@ -998,19 +1011,51 @@ void print_expression_text(Expression* expr){
 
 
 void ast_input(Expression* expr) {
-	Log("","ast_input");
 	Term* cursor = expr->term_cursor_start;
 
 	// handle movements
 	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
-		if(text_cursor_at_start(&cursor->raw)) {
-			cursor = expr->term_cursor_start = cursor->movement.left;
+		if(text_cursor_at_start(&cursor->raw) && cursor->movement.left) {
+			if(cursor->movement.left == (Term*)MOVEMENT_OUT){
+				// TODO(sushi) logic for moving out of a MathObject
+			}else{
+				cursor = expr->term_cursor_start = cursor->movement.left;
+			}
 		}else{
 			text_move_cursor_left(&cursor->raw);
 		}
 	}
+	if(key_pressed(CanvasBind_Expression_CursorRight)) {
+		if(text_cursor_at_end(&cursor->raw) && cursor->movement.right) {
+			if(cursor->movement.right == (Term*)MOVEMENT_OUT) {
+				// TODO(sushi) logic for moving out of a MathObject
+			}else{
+				cursor = expr->term_cursor_start = cursor->movement.right;
+			}
+		}else{
+			text_move_cursor_right(&cursor->raw);
+		}
+	}
+	if(key_pressed(CanvasBind_Expression_CursorUp)) {
+		if(cursor->movement.up) {
+			if(cursor->movement.up == (Term*)MOVEMENT_OUT) {
+				// TODO(sushi) logic for moving out of a MathObject
+			} else {
+				cursor = expr->term_cursor_start = cursor->movement.up;
+			}
+		}		
+	}
+	if(key_pressed(CanvasBind_Expression_CursorDown)) {
+		if(cursor->movement.down) {
+			if(cursor->movement.down == (Term*)MOVEMENT_OUT) {
+				// TODO(sushi) logic for moving out of a MathObject
+			} else {
+				cursor = expr->term_cursor_start = cursor->movement.down;
+			}
+		}		
+	}
 
-	if(!cursor->mathobj) {
+	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder) {
 		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
 		if(DeshInput->charCount){
 			text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
@@ -1068,21 +1113,6 @@ void ast_input(Expression* expr) {
 								}
 							}
 						}
-
-						// // connect Terms by movement
-						// Term* curt = cursor;
-						// forI(array_count(cursor->mathobj->symbols)) {
-						// 	Part s = cursor->mathobj->symbols[i];
-						// 	if(s.movement.left) {
-						// 		if(s.movement.left == MOVEMENT_OUT){
-						// 			curt->movement.left = (Term*)MOVEMENT_OUT;
-						// 		}else{
-						// 		}
-
-						// 	}
-						// 	if(!i) curt = curt->first_child;
-						// 	else curt = curt->next;
-						// }	
 					}break;
 				}
 
@@ -1096,7 +1126,9 @@ void ast_input(Expression* expr) {
 			forI(DeshInput->charCount) {
 				// scan the input array. if we find numbers, simply append them where the cursor is
 				// if we find anything else, we need to decide how to handle it
-				//if(is_digit())
+				if(is_digit(DeshInput->charIn[i])) {
+					text_insert_string(&cursor->raw, str8{DeshInput->charIn+i,1});
+				}
 			}
 		}break;
 	}
