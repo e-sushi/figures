@@ -15,33 +15,6 @@
 
 struct Expression;
 
-// represents a unit, which may or may not be composed of other units
-struct Unit{
-	Unit* unit; //array of units that this unit may be made of, 0 if base unit
-	str8 id; 	   // the unique identifier of this unit 
-	str8 quantity; // the physical quantity this unit represents such as length, mass, etc.
-	str8 symbols;  // symbols this unit may use
-	str8 description;
-};
-
-struct Variable{
-	Expression* expr; //TODO maybe let variable terms have expression children rather than a tree disconnect
-	str8 name;
-	Unit* unit;
-	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
-	b32 right_of_equals;
-};
-
-struct Function{
-	s32 arity; // number of arguments 
-};
-typedef f64(*Function1Arg)(f64 a);
-
-struct Number {
-	// TODO(sushi) replace this with mint and a built in fixed point types
-	f64 value; 
-};
-
 
 ////workspace: region of the canvas in which expressions are able to interact together  
 //struct Expression;
@@ -149,6 +122,7 @@ enum TermType : u32 { //TermType_{
 	TermType_Variable,
 	TermType_FunctionCall,
 	TermType_Logarithm,
+	TermType_FunctionArg,	
 }; //typedef Type TermType;
 
 enum TermFlags_{
@@ -278,6 +252,7 @@ static str8 OpTypeStrs(u32 type){
 }
 
 struct MathObject;
+struct Part;
 
 //term: generic base thing (literal, operator, variable, function call, etc)
 struct Term{
@@ -285,16 +260,12 @@ struct Term{
 	TermFlags flags;
 	Text raw;
 	MathObject* mathobj; // the MathObject containing information about the type of this Term
-	Symbol* symbol; // the symbol of the MathObject this term represents
+	Part* part; // the part of the MathObject this Term represents
 
-	union{
-		OpType op_type;
-		f64 lit_value;
-		Function* func;
-		f64 log_base;
-		Variable var;
-	};
-	
+	struct{
+		Term* left, *right, *up, *down;
+	}movement;
+
 	//syntax tree
 	Term* prev;
 	Term* next;
@@ -520,14 +491,15 @@ const uiStyle element_default_style = {
 // @Display
 
 enum{
-    SymbolType_Child,
-    SymbolType_Glyph,
-    SymbolType_MathObject,
+    PartType_Child,
+    PartType_Glyph,
+    PartType_MathObject,
 };
 
-struct Symbol {
+struct Part {
     str8 name;
     u64 hash;
+	MathObject* parent; // the MathObject this Part belongs to, 0 if it doesnt belong to one
 
     u64 line, column;  // source location of definition
 
@@ -538,62 +510,16 @@ struct Symbol {
         MathObject* mathobj;
     };
 
-	struct{ // index into a Display's symbol array indicating which symbol should be selected when we move in some direction
-		s32 left, right, up, down;
+	struct{ // pointer to another symbol to move to when some movement key is pressed
+		Part* left, *right, *up, *down;
 	}movement;
 };
+typedef Part* PartArray;
 
-#define MOVEMENT_NONE -1
-#define MOVEMENT_OUT  -2
+#define MOVEMENT_NONE 0
+#define MOVEMENT_OUT  (Part*)-1
 
-typedef Symbol* SymbolTable;
 
-pair<spt,b32> symbol_table_find(SymbolTable* table, u64 key){
-    spt index = -1, middle = -1;
-    spt left = 0;
-    spt right = array_count(*table)-1;
-    while(left <= right){
-        middle = left+((right-left)/2);
-        if((*table)[middle].hash == key){
-            index = middle;
-            break;
-        }
-        if((*table)[middle].hash < key){
-            left = middle+1;
-            middle = left+((right-left)/2);
-        }else{
-            right = middle-1;
-        }
-    }
-    return {middle, index != -1};
-}
-
-pair<Symbol*, b32> symbol_table_add(SymbolTable* table, str8 name, Type type) {
-    u64 hash = str8_hash64(name);
-    
-    auto [idx,found] = symbol_table_find(table, hash);
-    if(found) return {&(*table)[idx], 1};
-    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
-    
-    Symbol* s = array_insert(*table, idx);
-    s->type = type;
-    s->hash = hash;
-    s->name = name;
-
-    return {s, 0};
-}
-
-b32 symbol_table_remove(SymbolTable* table, str8 name) {
-    u64 hash = str8_hash64(name);
-
-    auto [idx,found] = symbol_table_find(table, hash);
-    if(!found) return 0;
-
-    array_remove_ordered(*table, idx);
-    return 1;
-}
-
-global SymbolTable math_objects;
 
 enum {
 	AlignType_Null,
@@ -636,7 +562,7 @@ const str8 AlignTypeStrings[] = {
 struct AlignInstruction {
 	struct {
 		Type align_type;
-		Symbol* symbol; 
+		Part* part; 
 	}lhs, rhs;
 };
 
@@ -657,26 +583,26 @@ struct Instruction {
 
 dstr8
 to_dstr8(const Instruction& instr, Allocator* a = deshi_allocator) {
-	dstr8 s; dstr8_init(&s, {}, a);
-	switch(instr.type) {
-		case InstructionType_Align:{
-			AlignInstruction align = instr.align;
-			dstr8_append(&s, "AlignInstruction(lhs: ");
-			switch(align.lhs.symbol->type) {
-				case SymbolType_Child: dstr8_append(&s, "$", align.lhs.symbol->child_idx, " "); break;
-				case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.lhs.symbol->glyph, ") "); break;
-				case SymbolType_MathObject: Assert(0); // this should never happen as MathObjects cannot be used as parameters of instructions
-			}
-			dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ", rhs: ");
-			switch(align.rhs.symbol->type) {
-				case SymbolType_Child: dstr8_append(&s, "$", align.rhs.symbol->child_idx, " "); break;
-				case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.rhs.symbol->glyph, ") "); break;
-				case SymbolType_MathObject: Assert(0); // this should never happen as MathObjects cannot be used as parameters of instructions
-			}
-			dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ")");
-		}break;
-	}
-	return s;
+	FixMe;
+	// dstr8 s; dstr8_init(&s, {}, a);
+	// switch(instr.type) {
+	// 	case InstructionType_Align:{
+	// 		AlignInstruction align = instr.align;
+	// 		dstr8_append(&s, "AlignInstruction(lhs: ");
+	// 		switch(align.lhs.symbol->type) {
+	// 			case SymbolType_Child: dstr8_append(&s, "$", align.lhs.symbol->child_idx, " "); break;
+	// 			case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.lhs.symbol->glyph, ") "); break;
+	// 		}
+	// 		dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ", rhs: ");
+	// 		switch(align.rhs.symbol->type) {
+	// 			case SymbolType_Child: dstr8_append(&s, "$", align.rhs.symbol->child_idx, " "); break;
+	// 			case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.rhs.symbol->glyph, ") "); break;
+	// 		}
+	// 		dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ")");
+	// 	}break;
+	// }
+	// return s;
+	return {};
 }
 
 
@@ -700,16 +626,42 @@ struct Display {
 	MathObject* mathobj; // the MathObject that this Display belongs to
 
 	str8 text; // data used when displaying as text
-	SymbolTable symbols; // a collection of symbols we need in rendering
 	Instruction* instructions; // kigu array of instructions used when rendering
 };
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @MathObject
 
+// represents a unit, which may or may not be composed of other units
+struct Unit{
+	Unit* unit; //array of units that this unit may be made of, 0 if base unit
+	str8 id; 	   // the unique identifier of this unit 
+	str8 quantity; // the physical quantity this unit represents such as length, mass, etc.
+	str8 symbols;  // symbols this unit may use
+	str8 description;
+};
+
+struct Variable{
+	Expression* expr; //TODO maybe let variable terms have expression children rather than a tree disconnect
+	str8 name;
+	Unit* unit;
+	str8* symbols; // a list of symbols that this variable may take on. if a symbol conflicts with another, we will try to use a different one to avoid conflicts
+	b32 right_of_equals;
+};
+
+struct Function{
+	s32 arity; // number of arguments 
+};
+
+struct Number {
+	// TODO(sushi) replace this with mint and a built in fixed point type
+	f64 value; 
+};
+
 enum{
 	MathObject_Placeholder, // builtin
 	MathObject_Number, // builtin
+	//MathObject_Array, // builtin
 	MathObject_Function,
 	MathObject_Constant,
 	MathObject_Unit,
@@ -728,9 +680,11 @@ const str8 MathObjectTypeStrings[] = {
 // data regarding how to display it.
 struct MathObject {
 	str8 name;
+	u64  hash;
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
+	PartArray parts;
 
 	union{
 		Function func;
@@ -753,6 +707,62 @@ struct{ // these are made in the compiler for now
 // global KeyTable key_table;
 
 // pair<spt, b32> key_table_find()
+
+
+// MathObjects can be referred to by multiple names
+struct MathObjectTableEntry{
+	str8 name;
+	u64  hash;
+	MathObject* mathobj;
+};
+
+typedef MathObjectTableEntry* MathObjectTable;
+global MathObjectTable math_objects;
+
+pair<spt,b32> mathobj_table_find(MathObjectTable* table, u64 key){
+    spt index = -1, middle = -1;
+    spt left = 0;
+    spt right = array_count(*table)-1;
+    while(left <= right){
+        middle = left+((right-left)/2);
+        if((*table)[middle].hash == key){
+            index = middle;
+            break;
+        }
+        if((*table)[middle].hash < key){
+            left = middle+1;
+            middle = left+((right-left)/2);
+        }else{
+            right = middle-1;
+        }
+    }
+    return {middle, index != -1};
+}
+
+pair<MathObjectTableEntry*, b32> mathobj_table_add(MathObjectTable* table, str8 name) {
+    u64 hash = str8_hash64(name);
+    
+    auto [idx,found] = mathobj_table_find(table, hash);
+    if(found) return {&(*table)[idx], 1};
+    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
+    
+    MathObjectTableEntry* s = array_insert(*table, idx);
+	s->name = name;
+	s->hash = hash;
+    return {s, 0};
+}
+
+b32 mathobj_table_remove(MathObjectTable* table, str8 name) {
+    u64 hash = str8_hash64(name);
+
+    auto [idx,found] = mathobj_table_find(table, hash);
+    if(!found) return 0;
+
+    array_remove_ordered(*table, idx);
+    return 1;
+}
+
+
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////

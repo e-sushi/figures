@@ -102,7 +102,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 int main(int args_count, char** args){
 	profiler_init();
 
-
 	//parse cmd line args
 	b32 solve_mode = false;
 	b32 interactive_mode = false;
@@ -231,17 +230,17 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 
-	math_objects = compile_math_objects(str8l("scratch"));
+	compile_math_objects(str8l("scratch"));
 
-	forI(array_count(math_objects)) {
-		Symbol s = math_objects[i];
-		MathObject* mo = s.mathobj;
-		Log("", 
-			"name: ", mo->name, "\n",
-			"desc: ", mo->description, "\n",
-			"type: ", mo->type, "\n"
-		);
-	}
+	// forI(array_count(math_objects)) {
+	// 	Part s = math_objects[i];
+	// 	MathObject* mo = s.mathobj;
+	// 	Log("", 
+	// 		"name: ", mo->name, "\n",
+	// 		"desc: ", mo->description, "\n",
+	// 		"type: ", mo->type, "\n"
+	// 	);
+	// }
 
 #if 0 //mint testing
 	mint a = mint_init(20);
@@ -256,18 +255,21 @@ int main(int args_count, char** args){
 		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
 	}
 #endif
+
+
 	
 	u32 input_idx = 0;
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
 
-		switch(input_idx) {
-			case 0: simulate_key_press(CanvasBind_SetTool_Expression); break;
-			case 1: simulate_key_press(CanvasBind_Expression_Create); break;
-			case 2: simulate_key_press(Key_EQUALS|InputMod_AnyShift); break;
+		
+		switch(DeshTime->frame) {
+			case 1: simulate_key_press(CanvasBind_SetTool_Expression); break;
+			case 2: simulate_key_press(CanvasBind_Expression_Create); break;
+			case 3: simulate_key_press(Key_EQUALS|InputMod_AnyShift); break;
 		}
-		if(input_idx < 3) input_idx++;
+		
 
 		update_canvas();
 		// //update deshi
@@ -276,6 +278,8 @@ int main(int args_count, char** args){
 		render_update();
 		logger_update();
 		memory_clear_temp();
+
+		
 	}
 	
 	//cleanup deshi

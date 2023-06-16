@@ -939,8 +939,12 @@ b32 parse(Expression* expr){
 }
 
 
-dstr8 gen_str(Term* term) {
+dstr8 gen_str(Term* term, Expression* expr) {
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
+	
+	if(term == expr->term_cursor_start) {
+		dstr8_append(&out, "^");
+	}
 
 	if(term->child_count){
 		dstr8_append(&out, "(");
@@ -956,7 +960,7 @@ dstr8 gen_str(Term* term) {
 	}
 
 	for(Term* t = term->first_child; t; t = t->next){
-		dstr8_append(&out, gen_str(t));
+		dstr8_append(&out, gen_str(t, expr));
 	}
 
 	if(term->child_count) {
@@ -969,13 +973,18 @@ dstr8 gen_str(Term* term) {
 void print_expression_text(Expression* expr){
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
 	Term* root = &expr->root;
+
+	dstr8_append(&out, "(");
+
+	if(root == expr->term_cursor_start){
+		dstr8_append(&out, "^");
+	}
+
 	if(root->child_count){
-		dstr8_append(&out, "(", root->raw.buffer.fin, " ");
+		dstr8_append(&out, root->raw.buffer.fin, " ");
 		for(Term* t = root->first_child; t; t = t->next) {
-			dstr8_append(&out, gen_str(t).fin);
+			dstr8_append(&out, gen_str(t, expr).fin);
 		}
-	} else {
-		dstr8_append(&out, "(", root->raw.buffer.fin);
 	}
 
 	// trim trailing space
@@ -989,12 +998,15 @@ void print_expression_text(Expression* expr){
 
 
 void ast_input(Expression* expr) {
+	Log("","ast_input");
 	Term* cursor = expr->term_cursor_start;
 
 	// handle movements
 	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
 		if(text_cursor_at_start(&cursor->raw)) {
-			//if()
+			cursor = expr->term_cursor_start = cursor->movement.left;
+		}else{
+			text_move_cursor_left(&cursor->raw);
 		}
 	}
 
@@ -1009,21 +1021,72 @@ void ast_input(Expression* expr) {
 			cursor->mathobj = builtin_mathobj.number;
 		} else {
 			// check if the current string belongs to any known symbol
-			auto [idx, found] = symbol_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
+			auto [idx, found] = mathobj_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
 			if(found) {
 				// if we find a math object pertaining to the string, we attach the MathObject to this node
 				// and then, if it is a function, create child nodes as placeholders for its arguments
 				cursor->mathobj = (math_objects + idx)->mathobj;
-
 				switch(cursor->mathobj->type) {
 					case MathObject_Function: {
+						Term** temp;
+						array_init(temp, array_count(cursor->mathobj->parts), deshi_temp_allocator);
+						cursor->part = cursor->mathobj->parts;
+						*array_push(temp) = cursor;
 						forI(cursor->mathobj->func.arity) {
 							Term* t = make_term();
 							ast_insert_last(cursor, t);
 							t->mathobj = builtin_mathobj.placeholder;
+							t->part = cursor->mathobj->parts + i + 1;
+							*array_push(temp) = t;
 						}
+
+						forI(array_count(cursor->mathobj->parts)) {
+							Term* t = temp[i];
+							Part* p = cursor->mathobj->parts + i;
+							if(p->movement.left) {
+								if(p->movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
+								else{
+									t->movement.left = temp[p->movement.left-cursor->mathobj->parts];
+								}
+							}
+							if(p->movement.right) {
+								if(p->movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
+								else{
+									t->movement.right = temp[p->movement.right-cursor->mathobj->parts];
+								}
+							}
+							if(p->movement.up) {
+								if(p->movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
+								else{
+									t->movement.up = temp[p->movement.up-cursor->mathobj->parts];
+								}
+							}
+							if(p->movement.down) {
+								if(p->movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
+								else{
+									t->movement.down = temp[p->movement.down-cursor->mathobj->parts];
+								}
+							}
+						}
+
+						// // connect Terms by movement
+						// Term* curt = cursor;
+						// forI(array_count(cursor->mathobj->symbols)) {
+						// 	Part s = cursor->mathobj->symbols[i];
+						// 	if(s.movement.left) {
+						// 		if(s.movement.left == MOVEMENT_OUT){
+						// 			curt->movement.left = (Term*)MOVEMENT_OUT;
+						// 		}else{
+						// 		}
+
+						// 	}
+						// 	if(!i) curt = curt->first_child;
+						// 	else curt = curt->next;
+						// }	
 					}break;
 				}
+
+				
 			} else return; // if we still dont have a MathObject, there's nothing more to do
 		}
 	}
@@ -1034,7 +1097,6 @@ void ast_input(Expression* expr) {
 				// scan the input array. if we find numbers, simply append them where the cursor is
 				// if we find anything else, we need to decide how to handle it
 				//if(is_digit())
-\
 			}
 		}break;
 	}

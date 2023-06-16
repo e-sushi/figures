@@ -10,6 +10,7 @@
 
 */
 
+#include "deshi/src/kigu/common.h"
 #include "deshi/src/kigu/arrayT.h"
 #include "deshi/src/kigu/array_utils.h"
 #include "deshi/src/core/memory.h"

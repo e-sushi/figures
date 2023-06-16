@@ -25,7 +25,7 @@ enum {
     Token_Keyword_name,
     Token_Keyword_desc,
     Token_Keyword_manipulations,
-    Token_Keyword_visual,
+    Token_Keyword_display,
     Token_Keyword_text,
     Token_Keyword_instructions,
     Token_Keyword_align,
@@ -37,6 +37,7 @@ enum {
     Token_Keyword_arity,
     Token_Keyword_out,
     Token_Keyword_movement,
+    Token_Keyword_parts,
 
     Token_Keyword_right,
     Token_Keyword_left,
@@ -92,7 +93,7 @@ u32 word_or_keyword(str8 s) {
         str8case("name"):          return Token_Keyword_name;
         str8case("desc"):          return Token_Keyword_desc;
         str8case("manipulations"): return Token_Keyword_manipulations;
-        str8case("visual"):        return Token_Keyword_visual;
+        str8case("display"):        return Token_Keyword_display;
         str8case("text"):          return Token_Keyword_text;
         str8case("instructions"):  return Token_Keyword_instructions;
         str8case("align"):         return Token_Keyword_align;
@@ -120,6 +121,7 @@ u32 word_or_keyword(str8 s) {
         str8case("movement"):      return Token_Keyword_movement;
         str8case("up"):            return Token_Keyword_up;
         str8case("down"):          return Token_Keyword_down;
+        str8case("parts"):         return Token_Keyword_parts;
     };
     return Token_Word;
 #undef str8case
@@ -145,7 +147,7 @@ str8 tokenStrings[] = {
     str8l("keyword \"name\""),
     str8l("keyword \"desc\""),
     str8l("keyword \"manipulations\""),
-    str8l("keyword \"visual\""),
+    str8l("keyword \"display\""),
     str8l("keyword \"text\""),
     str8l("keyword \"instructions\""),
     str8l("keyword \"align\""),
@@ -157,6 +159,7 @@ str8 tokenStrings[] = {
     str8l("keyword \"arity\""),
     str8l("keyword \"out\""),
     str8l("keyword \"movement\""),
+    str8l("keyword \"parts\""),
 
     str8l("keyword \"right\""),
     str8l("keyword \"left\""),
@@ -194,6 +197,71 @@ struct Token {
     Type type;
     u64 line, column;
 };
+
+enum {
+    SymbolType_Part, // this symbol belongs to a Part of a MathObject
+    SymbolType_MathObject, // this symbol belongs to a MathObject
+};
+
+struct Symbol {
+    str8 name;
+    u64 hash;
+    Token* token; // token that defines this symbol
+
+    Type type;
+    union{
+        Part* part;
+        MathObject* mathobj;
+    };
+};
+
+typedef Symbol* SymbolTable;
+
+pair<spt,b32> symbol_table_find(SymbolTable* table, u64 key){
+    spt index = -1, middle = -1;
+    spt left = 0;
+    spt right = array_count(*table)-1;
+    while(left <= right){
+        middle = left+((right-left)/2);
+        if((*table)[middle].hash == key){
+            index = middle;
+            break;
+        }
+        if((*table)[middle].hash < key){
+            left = middle+1;
+            middle = left+((right-left)/2);
+        }else{
+            right = middle-1;
+        }
+    }
+    return {middle, index != -1};
+}
+
+pair<Symbol*, b32> symbol_table_add(SymbolTable* table, str8 name, Type type) {
+    u64 hash = str8_hash64(name);
+    
+    auto [idx,found] = symbol_table_find(table, hash);
+    if(found) return {&(*table)[idx], 1};
+    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
+    
+    Symbol* s = array_insert(*table, idx);
+    s->type = type;
+    s->hash = hash;
+    s->name = name;
+
+    return {s, 0};
+}
+
+b32 symbol_table_remove(SymbolTable* table, str8 name) {
+    u64 hash = str8_hash64(name);
+
+    auto [idx,found] = symbol_table_find(table, hash);
+    if(!found) return 0;
+
+    array_remove_ordered(*table, idx);
+    return 1;
+}
+
 
 struct{ // compiler
     SymbolTable symbol_table;
@@ -289,26 +357,32 @@ b32 compile_parse_instructions() {
                     return false;
                 }
 
-                auto p = symbol_table_find(&curmo->display.symbols, compiler.curt->hash);
-                spt idx = p.first;
-                b32 found = p.second;
-                if(!found){
-                    ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
-                    return false;
-                }
+                {
+                    auto [idx, found] = symbol_table_find(&compiler.symbol_table, compiler.curt->hash);
+                    if(!found){
+                        ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
+                        return false;
+                    }
 
-                instr.lhs.symbol = curmo->display.symbols + idx;
-                
-                compiler.curt++;
-                if(compiler.curt->type == Token_Keyword_to) {
-                    ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
-                    return false;
-                }
+                    Symbol* s = compiler.symbol_table + idx;
+                    if(s->type != SymbolType_Part) {
+                        ErrorMessage("must give a symbol that belongs to a part defined in the parts key.");
+                        return false;
+                    }
 
-                instr.lhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
-                if(!instr.lhs.align_type) {
-                    ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
-                    return false;
+                    instr.lhs.part = s->part;
+                    
+                    compiler.curt++;
+                    if(compiler.curt->type == Token_Keyword_to) {
+                        ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
+                        return false;
+                    }
+
+                    instr.lhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
+                    if(!instr.lhs.align_type) {
+                        ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
+                        return false;
+                    }
                 }
 
                 compiler.curt++;
@@ -316,39 +390,45 @@ b32 compile_parse_instructions() {
                     ErrorMessage("expected 'to' between operands of 'align'");
                     return false;
                 }
-
                 compiler.curt++;
-                p = symbol_table_find(&curmo->display.symbols, compiler.curt->hash);
-                idx = p.first;
-                found = p.second;
-                if(!found){
-                    ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
-                    return false;
-                }
+                
+                {
+                    auto [idx, found] = symbol_table_find(&compiler.symbol_table, compiler.curt->hash);
+                    if(!found){
+                        ErrorMessage("reference to unknown symbol '", compiler.curt->raw, "'");
+                        return false;
+                    }
 
-                instr.rhs.symbol = curmo->display.symbols + idx;
+                    Symbol* s = compiler.symbol_table + idx;
+                    if(s->type != SymbolType_Part) {
+                        ErrorMessage("must give a symbol that belongs to a part defined in the parts key.");
+                        return false;
+                    }
 
-                // TODO(sushi) this is a poor check for this error
-                compiler.curt++;
-                if(compiler.curt->type == Token_Semicolon) {
-                    ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
-                    return false;
-                }
+                    instr.rhs.part = s->part;
 
-                instr.rhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
-                if(!instr.rhs.align_type) {
-                    ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
-                    return false;
-                }
+                    // TODO(sushi) this is a poor check for this error
+                    compiler.curt++;
+                    if(compiler.curt->type == Token_Semicolon) {
+                        ErrorMessage("cannot specify alignment of an entire symbol, you must specify some part of it (right, left, topleft, etc.) to align");
+                        return false;
+                    }
 
-                Instruction* out = array_push(compiler.current_mathobj->display.instructions);
-                out->type = InstructionType_Align;
-                out->align = instr;
+                    instr.rhs.align_type = token_align_keyword_to_align_type(compiler.curt->type);
+                    if(!instr.rhs.align_type) {
+                        ErrorMessage("unexpected token '", compiler.curt->raw, "' following symbol. Expected one of: top, left, right, bottom, topleft, topright, bottomleft, bottomright, center, center_x, center_y, origin, origin_x, origin_y");
+                        return false;
+                    }
 
-                compiler.curt++;
-                if(compiler.curt->type != Token_Semicolon) {
-                    ErrorMessage("expected ';' after align instruction.");
-                    return false;
+                    Instruction* out = array_push(compiler.current_mathobj->display.instructions);
+                    out->type = InstructionType_Align;
+                    out->align = instr;
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_Semicolon) {
+                        ErrorMessage("expected ';' after align instruction.");
+                        return false;
+                    }
                 }
 
                 compiler.curt++;
@@ -367,24 +447,29 @@ b32 compile_parse_movement() {
         if(compiler.curt->type != Token_Word) {
             ErrorMessage("expected a symbol to assign movements to");
             Log("MathObjectCompiler", "available symbols in this context are: ");
-            forI(array_count(curmo->display.symbols)) {
-                Log("MathObjectCompiler", curmo->display.symbols[i].name);
+            forI(array_count(compiler.symbol_table)) {
+                if(compiler.symbol_table[i].type == SymbolType_Part)
+                    Log("MathObjectCompiler", compiler.symbol_table[i].name);
             }
             return false;
         }
 
-        auto [idx, found] = symbol_table_find(&curmo->display.symbols, compiler.curt->hash);
+        auto [idx, found] = symbol_table_find(&compiler.symbol_table, compiler.curt->hash);
         if(!found) {
             ErrorMessage("unknown symbol '", compiler.curt->hash, "'");
             return false;
         }
+        Symbol* s = compiler.symbol_table + idx;
+        if(s->type != SymbolType_Part) {
+            ErrorMessage("expected a symbol defined in parts array.");
+            return false;
+        }
 
-        Symbol* cursym = curmo->display.symbols + idx;
-        Log("aa", cursym->name, " ", (void*)cursym);
-        cursym->movement.down  =
-        cursym->movement.up    =
-        cursym->movement.left  =
-        cursym->movement.right = MOVEMENT_NONE;
+        Part* part = s->part;
+        part->movement.down  =
+        part->movement.up    =
+        part->movement.left  =
+        part->movement.right = MOVEMENT_NONE;
 
         compiler.curt++;
         if(compiler.curt->type != Token_Colon) {
@@ -414,7 +499,7 @@ case GLUE(Token_Keyword_,dir): {                                                
         return false;                                                                              \
     }                                                                                              \
                                                                                                    \
-    if(cursym->movement. dir != -1) {                                                              \
+    if(part->movement. dir != MOVEMENT_NONE) {                                                     \
         ErrorMessage("defined key 'left' twice");                                                  \
         return false;                                                                              \
     }                                                                                              \
@@ -422,15 +507,15 @@ case GLUE(Token_Keyword_,dir): {                                                
     compiler.curt++;                                                                               \
     switch(compiler.curt->type) {                                                                  \
         case Token_Word:{                                                                          \
-            auto [subidx, found] = symbol_table_find(&curmo->display.symbols, compiler.curt->hash);\
+            auto [subidx, found] = symbol_table_find(&compiler.symbol_table, compiler.curt->hash); \
             if(idx == subidx) {                                                                    \
                 ErrorMessage("cannot assign a movement from a symbol to itself.");                 \
                 return false;                                                                      \
             }                                                                                      \
-             cursym->movement. dir = subidx;                                                       \
+            part->movement. dir = curmo->parts + subidx;                                           \
         }break;                                                                                    \
         case Token_Keyword_out: {                                                                  \
-            cursym->movement. dir = MOVEMENT_OUT;                                                  \
+            part->movement. dir = MOVEMENT_OUT;                                                    \
         }break;                                                                                    \
         default: {                                                                                 \
             ErrorMessage("expected a symbol name or 'out' for movement key '" STRINGIZE(dir) "'"); \
@@ -451,6 +536,11 @@ case GLUE(Token_Keyword_,dir): {                                                
                 movementcase(right);
                 movementcase(up);
                 movementcase(down);
+
+                default:{
+                    ErrorMessage("unexpected key '", compiler.curt->raw, "'. Expected one of ( left, right, up, down ).");
+                    return false;
+                }break;
             }
 
             if(compiler.curt->type == Token_CloseBrace) {
@@ -462,7 +552,7 @@ case GLUE(Token_Keyword_,dir): {                                                
         movements_defined++;
 
         if(compiler.curt->type == Token_CloseBrace) {
-            if(movements_defined < array_count(curmo->display.symbols)){
+            if(movements_defined < array_count(curmo->parts)){
                 ErrorMessage("you must define a movement for all defined symbols.");
                 // TODO(sushi) it would be very easy to show what symbols aren't defined here
                 return false;
@@ -485,25 +575,25 @@ void compile_parse() {
         
         auto [symbol, found] = symbol_table_add(&compiler.symbol_table, compiler.curt->raw, SymbolType_MathObject);
         if(found){
-            ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->line, " in column ", symbol->column);
+            ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->token->line, " in column ", symbol->token->column);
             continue;
         }
         symbol->mathobj = make_math_object();
-        symbol->name   = compiler.curt->raw;
-        symbol->line   = compiler.curt->line;
-        symbol->column = compiler.curt->column;
+        symbol->name    = compiler.curt->raw;
+        symbol->token   = compiler.curt;
         compiler.current_mathobj = symbol->mathobj;
+        mathobj_table_add(&math_objects, symbol->name).first->mathobj = symbol->mathobj;
         while((compiler.curt+1)->type == Token_Comma) {
             compiler.curt += 2;
             auto [symbol, found] = symbol_table_add(&compiler.symbol_table, compiler.curt->raw, SymbolType_MathObject);
             if(found){
-                ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->line, " in column ", symbol->column);
+                ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->token->line, " in column ", symbol->token->column);
                 goto subcontinue0;    
             }
             symbol->mathobj = compiler.current_mathobj;
-            symbol->line = compiler.curt->line;
-            symbol->column = compiler.curt->column;
+            symbol->token = compiler.curt;
             symbol->name = compiler.curt->raw;
+            mathobj_table_add(&math_objects, symbol->name).first->mathobj = symbol->mathobj;
         }
 
         compiler.curt++;
@@ -534,16 +624,23 @@ void compile_parse() {
 
         *array_push(compiler.returns) = compiler.curt - compiler.tokens;
         *array_push(compiler.return_mathobj) = compiler.current_mathobj;
-
-
 subcontinue0:;
     }
 
+    struct{
+        b32
+        name:1, desc:1,
+        arity:1, parts:1,
+        manipulations:1,
+        display:1;
+    }used_keys;
+
     // parse each MathObject completely
     forI(array_count(compiler.returns)) {
+        used_keys = {};
         MathObject* curmo = compiler.current_mathobj = compiler.return_mathobj[i];
         compiler.curt = compiler.tokens + compiler.returns[i] + 1;
-        array_init(curmo->display.symbols, 1, deshi_allocator);
+        array_init(curmo->parts, 1, deshi_allocator);
         while(compiler.curt->type != Token_CloseBrace){
             switch(compiler.curt->type) {
 
@@ -569,6 +666,7 @@ subcontinue0:;
                     }
 
                     compiler.curt++;
+                    used_keys.name = 1;
                 }break;
 
                 case Token_Keyword_desc: {
@@ -593,6 +691,7 @@ subcontinue0:;
                     }
 
                     compiler.curt++;
+                    used_keys.desc = 1;
                 }break;
 
                 case Token_Keyword_form: {
@@ -605,6 +704,7 @@ subcontinue0:;
                     Log("MathObjectCompiler", "TODO(sushi) implement manipulations parsing");
                     while(compiler.curt->type != Token_CloseBracket) compiler.curt++;
                     compiler.curt++;
+                    used_keys.manipulations = 1;
                 }break;
 
                 case Token_Keyword_arity: {
@@ -634,9 +734,79 @@ subcontinue0:;
                     }
 
                     compiler.curt++;
+                    used_keys.arity = 1;
                 }break;
 
-                case Token_Keyword_visual: {
+                case Token_Keyword_parts: {
+                    if(!used_keys.arity) {
+                        ErrorMessage("you must specify the arity of the function before specifying its parts.");
+                        goto subcontinue1;
+                    }
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_Colon) {
+                        ErrorMessage("expected ':' after key 'parts'");
+                        goto subcontinue1;
+                    }
+
+                    compiler.curt++;
+                    if(compiler.curt->type != Token_OpenBracket) {
+                        ErrorMessage("expected an array for key 'parts'");
+                        goto subcontinue1;
+                    }
+
+                    compiler.curt++;
+                    while(1) {
+                        if(compiler.curt->type != Token_Word) {
+                            ErrorMessage("expected a symbol name");
+                            goto subcontinue1;
+                        }
+
+                        // user must be defining a new symbol to reference later
+                        // we need to figure out what type of symbol it is
+                        str8 symname = compiler.curt->raw;
+
+                        auto [symbol, found] = symbol_table_add(&compiler.symbol_table, symname, SymbolType_Part);
+                        if(found){
+                            ErrorMessage("symbol '", symbol->name, "' already defined on line ", symbol->token->line, " in column ", symbol->token->column);
+                            goto subcontinue1;;
+                        }
+
+                        Part* part = symbol->part = array_push(curmo->parts);
+                        
+
+                        compiler.curt++;
+                        switch(compiler.curt->type) {
+                            case Token_Colon: {
+                                compiler.curt++;
+                                if(compiler.curt->type != Token_String) {
+                                    ErrorMessage("expected string for part '", symname, "'");
+                                    goto subcontinue1;
+                                }
+                                part->glyph = compiler.curt->raw;
+                                compiler.curt++;
+                                if(compiler.curt->type != Token_Semicolon) {
+                                    ErrorMessage("expected ';'");
+                                    goto subcontinue1;
+                                }
+                                compiler.curt++;
+                            }break; 
+                            case Token_Semicolon: {
+                                compiler.curt++;
+                            }break;
+                            default: {
+                                ErrorMessage("unexpected token. Expected a ':' or ';'.");
+                                goto subcontinue1;
+                            }break;
+                        }
+                        if(compiler.curt->type == Token_CloseBracket) break;
+                    }
+                    compiler.curt++;
+
+                    used_keys.parts = 1;
+                } break;
+
+                case Token_Keyword_display: {
                     compiler.curt++;
                     if(compiler.curt->type != Token_Colon) {
                         ErrorMessage("expected ':' after key 'visual'");
@@ -657,63 +827,6 @@ subcontinue0:;
 
                     while(1) {
                         switch(compiler.curt->type){
-                             case Token_Word:{
-                                // user must be defining a new symbol to reference later
-                                // we need to figure out what type of symbol it is
-                                str8 symname = compiler.curt->raw;
-
-                                compiler.curt++;
-                                if(compiler.curt->type != Token_Keyword_is) {
-                                    ErrorMessage("expected 'is' after symbol definition name.");
-                                    return;
-                                }
-
-                                compiler.curt++;
-                                Type symtype;
-                                switch(compiler.curt->type) {
-                                    case Token_Dollar: symtype = SymbolType_Child; break;
-                                    case Token_Keyword_glyph: symtype = SymbolType_Glyph; break;
-                                    default:{
-                                        ErrorMessage("expected a glyph or child value for definition of symbol '", symname, "'");
-                                        return;
-                                    }break;
-                                }
-
-                                auto [symbol, found] = symbol_table_add(&curmo->display.symbols, symname, symtype);
-                                if(found){
-                                    ErrorMessage("symbol '", symbol->name, "' already defined on line ", symbol->line, " in column ", symbol->column);
-                                    return;
-                                }
-
-                                symbol->name = symname;
-
-                                switch(symbol->type){
-                                    case SymbolType_Child:{
-                                        compiler.curt++;
-                                        if(compiler.curt->type != Token_Integer) {
-                                            ErrorMessage("expected an integer after '$' to indicate which child this symbol represents");
-                                            return;
-                                        }
-                                        symbol->child_idx = stolli(compiler.curt->raw);
-                                    }break;
-                                    case SymbolType_Glyph:{
-                                        compiler.curt++;
-                                        if(compiler.curt->type != Token_String) {
-                                            ErrorMessage("expected a string after 'glyph'");
-                                            return;
-                                        }
-                                        symbol->glyph = compiler.curt->raw;
-                                    }break;
-                                }
-
-                                compiler.curt++;
-                                if(compiler.curt->type != Token_Semicolon) {
-                                    ErrorMessage("expected semicolon after definition of symbol '", symname, "'");
-                                    return;
-                                }
-                                compiler.curt++;
-                            }break;
-
                             case Token_Keyword_text:{
                                 compiler.curt++;
                                 if(compiler.curt->type != Token_Colon) {
@@ -778,17 +891,37 @@ subcontinue0:;
                                 goto subcontinue1;
                             }break;
                         }
-
                         if(compiler.curt->type == Token_CloseBrace) break;
                     }
 
+                    used_keys.display = 1;
                 }break; 
                 default: {
                     ErrorMessage("unknown key: ", compiler.curt->raw);
                     return;
                 }break;
             }
+        }  
+
+        // parts are local to MathObjects, so we dont need them in the table anymore
+        forI(array_count(compiler.symbol_table)) {
+            if(compiler.symbol_table[i].type == SymbolType_Part) {
+                array_remove_ordered(compiler.symbol_table, i);
+            }
         }
+
+        // when the MathObject is finished, we no longer care about its symbol array being a map
+        // so we resort it so that it is in the order
+        // root -> child0 -> child1 -> ...
+        {
+            // forI(array_count(curmo->symbols)) {
+            //     if(curmo->symbols[i].type == SymbolType_Glyph){
+            //         Swap(curmo->symbols[0], curmo->symbols[i]);
+            //     }
+            // }
+            // bubble_sort(curmo->symbols+1, array_last(curmo->symbols), [](Symbol a, Symbol b){return a.child_idx < b.child_idx;});
+        }
+
 subcontinue1:;
     }
 }
@@ -905,6 +1038,8 @@ SymbolTable compile_math_objects(str8 path) {
 
     compiler.stream = compiler.buffer;
 
+    array_init(math_objects, 1, deshi_allocator);
+
     array_init(compiler.symbol_table, 1, deshi_allocator);
     array_init(compiler.tokens, 1, deshi_allocator);
     array_init(compiler.MathObject_tokens, 1, deshi_allocator);
@@ -945,17 +1080,18 @@ SymbolTable compile_math_objects(str8 path) {
             MathObject* mo = s.mathobj;
             Instruction* instr = mo->display.instructions;
             if(!instr) continue;
-            forI(array_count(instr)) {
-                Log("", instr[i]);
-            }
-            forI(array_count(mo->display.symbols)) {
-                Symbol s = mo->display.symbols[i];
+            // forI(array_count(instr)) {
+            //     Log("", instr[i]);
+            // }
+            forI(array_count(mo->parts)) {
+                Part s = mo->parts[i];
 
                 Log("", s.name, ": movement: ",
-                    "up: ", s.movement.up,
-                    " down: ", s.movement.down,
-                    " left: ", s.movement.left,
-                    " right: ", s.movement.right
+                    "up: ", (void*)s.movement.up,
+                    " down: ", (void*)s.movement.down,
+                    " left: ", (void*)s.movement.left,
+                    " right: ", (void*)s.movement.right,
+                    " childidx: ", s.child_idx
                 );
             }   
             

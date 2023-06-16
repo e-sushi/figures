@@ -102,3 +102,11 @@ dintegrate(1, 2, sin(x), x) + 2 * 4 -> (+ (dintegrate 1 2 (sin x) x) (* 2 4))
 dintegrate(1, 2, sin(x), x) + 2 * 4 -> (+ (dintegrate 1 2 (sin x) x) (* 2 4))
                                   ^                                       ^ 
 
+
+
+1 + 2 * 3 + 4 * 5  ->  (+ 1 (+ (* 2 3) (* 4 5)))) 
+    ^                             ^
+
+moving left here would take you out of *, because it is in its left child
+and also out of the inner + because the * is the left child of that + and going
+out of that takes you left again, to the outer +

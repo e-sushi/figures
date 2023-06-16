@@ -20,20 +20,13 @@ addition,add,+ is Function {
     // A description shown along with the name
     desc: "The process of putting two groups of countable objects together and counting the resulting group.";
 
-    // A Function must define its parts, which are just names attached to each node 
-    // of the AST that this MathObject represents
-    parts: [
-        // The first part given is considered the root node of the function.
-        // Keyword "glyph" followed by a string defines a glyph to be retrieved
-        // from the loaded math font. 
-        plus is glyph "+";
-        // An integer prefixed with '$' denotes the nth child node of the root of this MathObject
-        lhs is $1;
-        rhs is $2;
-    ]
-
     // The amount of arguments this function has 
     arity: 2;
+
+    // specify an identifier for each node belonging to a MathObject
+    // this must be given in the order 
+    //     root -> child 0 -> child 1 -> child 2 -> ...
+    parts: [ plus: "+"; lhs; rhs; ]
     
     /*
         A list of manipulations given in TML. The root of these trees must be the 

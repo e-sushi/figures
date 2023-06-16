@@ -1303,7 +1303,7 @@ void update_canvas(){
 			}
 
 			
-			if(DeshInput->anyKeyDown && canvas.element.selected) 
+			if(any_key_pressed() && canvas.element.selected) 
 				ast_input(&canvas.element.selected->expression);
 			
 			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
