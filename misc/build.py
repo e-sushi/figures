@@ -28,6 +28,8 @@
 #   -linker <link,ld,lld,lld-link>        Build using the specified linker (default: link on Windows, ld on Mac and Linux)
 #   -vulkan_path <path_to_vulkan>         Override the default $VULKAN_SDK path with this path
 
+# TODO(sushi) we need to regenerate pch stuff if the graphics api changes, not sure how to properly detect that though
+
 import os,sys,subprocess,platform,time
 from datetime import datetime
 from threading import Thread
@@ -378,15 +380,7 @@ link = {
     "paths": ""
 }
 
-defines = ""
-
-if config["graphics"] == "vulkan":
-    if folders["vulkan"] == None:
-        print("vulkan was selected as the graphics api, but the environment variable VULKAN_SDK is not set")
-    includes += f"-I{folders['vulkan']} "
-    link["pathnames"].append(f"{folders['vulkan']}lib")
-
-defines += (
+defines = (
     parts["defines"]["buildmode"][config["buildmode"]] +
     parts["defines"]["platform"][config["platform"]] +
     parts["defines"]["graphics"][config["graphics"]] +
@@ -403,7 +397,6 @@ for ln in link_names:
     link["libs"] += f"{nameprefix}{ln} "
 
 link_paths = parts["link"][config["platform"]]["paths"]
-
 pathprefix = parts['link']['prefix'][config['linker']]['path']
 for lp in link_paths:
     link["paths"] += f"{pathprefix}{lp} "

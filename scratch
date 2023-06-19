@@ -1,3 +1,13 @@
+
+
+(+ 1 2)
+
+render $1
+render $2
+
+align $1.origin.y to $2.origin.x
+
+
 /*
     A MathObject definition is begun using the keyword 'MathObject' followed by one or more names
     that may take on any form as long as they don't include any of the following syntax symbols:
@@ -91,6 +101,10 @@ addition,add,+ is Function {
         // when this MathObject is being displayed as text, this is used to determine how to do so
         text: "lhs plus rhs"; 
     }
+}
+
+line{
+    align start.x to min(den.top_left.x, num.bottom_left.x) 
 }
 
 // MathObject 

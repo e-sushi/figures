@@ -111,6 +111,34 @@ local const char* context_dropdown_option_strings[] = {
 };
 
 
+struct{
+	uiItem* item; // the item we are drawing into 
+}drawcontext;
+
+struct RenderContext{
+
+};
+
+RenderContext render_term(Term* term) {
+	switch((spt)term->mathobj) {
+		case (spt)&math_objects.addition:{
+
+		}break;
+	}
+}
+
+
+void render_element(Element* element) {
+	switch(element->type) {
+		case ElementType_Expression: {
+
+		}break;
+		case ElementType_Graph: {
+
+		}break;
+	}
+}
+
 ////////////////////
 //// @draw_term ////
 ////////////////////
@@ -1281,7 +1309,7 @@ void update_canvas(){
 			}
 			
 			if(key_pressed(CanvasBind_Expression_Create)){
-				Element* element = make_element();
+				Element* element = create_element();
 				*array_push(canvas.element.arr) = element;
 				element->type = ElementType_Expression;
 				element->x         = canvas.world.mouse_pos.x;

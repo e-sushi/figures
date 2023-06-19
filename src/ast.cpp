@@ -222,7 +222,7 @@ b32 parse(Expression* expr){
 // 					value = (f64)strtoll((const char*)token_start, 0, 10);
 // 				}
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Literal);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Literal);
 // 				term->lit_value = value;
 				
 // 				if      (cursor->type == TermType_Expression){
@@ -231,7 +231,7 @@ b32 parse(Expression* expr){
 // 				}else if(cursor->type == TermType_Operator){
 // 					if(cursor->op_type == OpType_Parentheses){
 // 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 // 							//loop until we find a lower precedence operator, then insert op below it
@@ -264,7 +264,7 @@ b32 parse(Expression* expr){
 // 						term->flags = TermFlag_OpArgRight;
 // 					}
 // 				}else if(cursor->type == TermType_Variable){
-// 					Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 					implicit_multiply->op_type   = OpType_ImplicitMultiplication;
 					
 // 					//loop until we find a lower precedence operator, then insert op below it
@@ -316,7 +316,7 @@ b32 parse(Expression* expr){
 // 							stream = open_paren;
 // 							str8_advance(&stream);
 							
-// 							Term* func = make_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_Logarithm);
+// 							Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_Logarithm);
 // 							func->log_base = atof((const char*)token_start+4);
 // 						}
 // 					}
@@ -331,7 +331,7 @@ b32 parse(Expression* expr){
 // 								stream = open_paren;
 // 								str8_advance(&stream);
 								
-// 								Term* func = make_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_FunctionCall);
+// 								Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_FunctionCall);
 // 								func->func = it;
 // 								break;
 // 							}
@@ -340,7 +340,7 @@ b32 parse(Expression* expr){
 // 				}
 				
 // 				if(func){
-// 					Term* paren = make_term(expr, {stream.str-1, 1}, TermType_Operator);
+// 					Term* paren = create_term(expr, {stream.str-1, 1}, TermType_Operator);
 // 					paren->op_type = OpType_Parentheses;
 // 					ast_insert_last(func, paren);
 // 					linear_insert_right(func, paren);
@@ -351,7 +351,7 @@ b32 parse(Expression* expr){
 // 					}else if(cursor->type == TermType_Operator){
 // 						if(cursor->op_type == OpType_Parentheses){
 // 							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 								Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 								Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 								implicit_multiply->op_type = OpType_ImplicitMultiplication;
 								
 // 								//loop until we find a lower precedence operator, then insert op below it
@@ -384,7 +384,7 @@ b32 parse(Expression* expr){
 // 							func->flags = TermFlag_OpArgRight;
 // 						}
 // 					}else if(cursor->type == TermType_Literal){
-// 						Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 						Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 						implicit_multiply->op_type = OpType_ImplicitMultiplication;
 						
 // 						//loop until we find a lower precedence operator, then insert op below it
@@ -414,7 +414,7 @@ b32 parse(Expression* expr){
 // 					str8_advance(&stream);
 					
 // 					forI(TOKEN_LENGTH){
-// 						Term* term = make_term(expr, {token_start, 1}, TermType_Variable);
+// 						Term* term = create_term(expr, {token_start, 1}, TermType_Variable);
 						
 // 						//TODO handle variable substitution, currently just assuming we're solving for it
 // 						expr->unknown_vars += 1;
@@ -440,7 +440,7 @@ b32 parse(Expression* expr){
 // 								}
 // 							}
 // 						}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-// 							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 // 							//loop until we find a lower precedence operator, then insert op below it
@@ -473,7 +473,7 @@ b32 parse(Expression* expr){
 // 			case '(':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_Parentheses;
 				
 // 				if      (cursor->type == TermType_Expression){
@@ -482,7 +482,7 @@ b32 parse(Expression* expr){
 // 				}else if(cursor->type == TermType_Operator){
 // 					if(cursor->op_type == OpType_Parentheses){
 // 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 							Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
 							
 // 							//loop until we find a lower precedence operator, then insert op below it
@@ -516,7 +516,7 @@ b32 parse(Expression* expr){
 // 						linear_insert_right(cursor, term);
 // 					}
 // 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-// 					Term* implicit_multiply = make_term(expr, {0, 0}, TermType_Operator);
+// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
 // 					implicit_multiply->op_type = OpType_ImplicitMultiplication;
 					
 // 					//loop until we find a lower precedence operator, then insert op below it
@@ -572,7 +572,7 @@ b32 parse(Expression* expr){
 // 			case '^':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_Exponential;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -609,7 +609,7 @@ b32 parse(Expression* expr){
 // 			case '*':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_ExplicitMultiplication;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -645,7 +645,7 @@ b32 parse(Expression* expr){
 // 			case '/':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_Division;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -681,7 +681,7 @@ b32 parse(Expression* expr){
 // 			case '%':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_Modulo;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -718,7 +718,7 @@ b32 parse(Expression* expr){
 // 			case '+':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_Addition;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -754,7 +754,7 @@ b32 parse(Expression* expr){
 // 			case '-':{
 // 				str8_advance(&stream);
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 				
 // 				if      (cursor->type == TermType_Expression){
 // 					term->op_type = OpType_Negation;
@@ -811,7 +811,7 @@ b32 parse(Expression* expr){
 // 					valid = false; //NOTE an equals operator already exists
 // 				}
 				
-// 				Term* term = make_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
 // 				term->op_type = OpType_ExpressionEquals;
 				
 // 				if(   cursor->type == TermType_Literal
@@ -941,8 +941,6 @@ b32 parse(Expression* expr){
 
 dstr8 gen_str(Term* term, Expression* expr) {
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
-	
-	
 
 	if(term->child_count){
 		dstr8_append(&out, "(");
@@ -964,12 +962,13 @@ dstr8 gen_str(Term* term, Expression* expr) {
 		dstr8_append(&out, 
 			str8{term->raw.buffer.str, term->raw.cursor.pos},
 			"|",
-			str8{term->raw.buffer.str+term->raw.cursor.pos, term->raw.buffer.count-term->raw.cursor.pos}
+			str8{term->raw.buffer.str+term->raw.cursor.pos, term->raw.buffer.count-term->raw.cursor.pos},
+			" "
 		);
-	} else dstr8_append(&out, term->raw.buffer.fin);
+	} else dstr8_append(&out, term->raw.buffer.fin, " ");
 
 	for(Term* t = term->first_child; t; t = t->next){
-		dstr8_append(&out, gen_str(t, expr));
+		dstr8_append(&out, gen_str(t, expr).fin);
 	}
 
 	if(term->child_count) {
@@ -985,15 +984,15 @@ void print_expression_text(Expression* expr){
 
 	dstr8_append(&out, "(");
 
-	
-
 	if(root->child_count){
 		if(root == expr->term_cursor_start){
 			dstr8_append(&out, 
 				str8{root->raw.buffer.str, root->raw.cursor.pos},
 				"|",
-				str8{root->raw.buffer.str+root->raw.cursor.pos, root->raw.buffer.count-root->raw.cursor.pos}
+				str8{root->raw.buffer.str+root->raw.cursor.pos, root->raw.buffer.count-root->raw.cursor.pos},
+				" "
 			);
+			
 		} else dstr8_append(&out, root->raw.buffer.fin, " ");
 		for(Term* t = root->first_child; t; t = t->next) {
 			dstr8_append(&out, gen_str(t, expr).fin);
@@ -1009,9 +1008,93 @@ void print_expression_text(Expression* expr){
 	Log("", out.fin);
 }
 
+b32 is_digit(u32 codepoint){
+	switch(codepoint){
+		case '0': case '1': case '2': case '3': case '4': 
+		case '5': case '6': case '7': case '8': case '9':
+			return true;
+		default:
+			return false;
+	}
+}
+
+// abstracting this out because it can be used in multiple places
+// such as when we make a new placeholder on splitting a number
+// we can call this immediately instead of needing to wait until the 
+// next input
+// returns true if the calling function should stop
+b32 attempt_to_resolve_placeholder(Expression* expr) {
+	Term* cursor = expr->term_cursor_start;
+
+	// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
+	if(DeshInput->charCount){
+		text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
+	}
+
+	// if the first character is a digit this must be an integer
+	if(is_digit(cursor->raw.buffer.str[0])) {
+		cursor->mathobj = &math_objects.number;
+		return true; // we've already inserted the character for this frame, so we must quit early so we dont do it again below
+	} else {
+		// // check if the current string belongs to any known symbol
+		// auto [idx, found] = mathobj_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
+		// if(found) {
+		// 	// if we find a math object pertaining to the string, we attach the MathObject to this node
+		// 	// and then, if it is a function, create child nodes as placeholders for its arguments
+		// 	cursor->mathobj = (math_objects + idx)->mathobj;
+		// 	switch(cursor->mathobj->type) {
+		// 		case MathObject_Function: {
+		// 			Term** temp;
+		// 			array_init(temp, array_count(cursor->mathobj->parts), deshi_temp_allocator);
+		// 			cursor->part = cursor->mathobj->parts;
+		// 			*array_push(temp) = cursor;
+		// 			forI(cursor->mathobj->func.arity) {
+		// 				Term* t = create_term();
+		// 				ast_insert_last(cursor, t);
+		// 				t->mathobj = math_objects.placeholder;
+		// 				t->part = cursor->mathobj->parts + i + 1;
+		// 				*array_push(temp) = t;
+		// 			}
+
+		// 			forI(array_count(cursor->mathobj->parts)) {
+		// 				Term* t = temp[i];
+		// 				Part* p = cursor->mathobj->parts + i;
+		// 				if(p->movement.left) {
+		// 					if(p->movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
+		// 					else{
+		// 						t->movement.left = temp[p->movement.left-cursor->mathobj->parts];
+		// 					}
+		// 				}
+		// 				if(p->movement.right) {
+		// 					if(p->movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
+		// 					else{
+		// 						t->movement.right = temp[p->movement.right-cursor->mathobj->parts];
+		// 					}
+		// 				}
+		// 				if(p->movement.up) {
+		// 					if(p->movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
+		// 					else{
+		// 						t->movement.up = temp[p->movement.up-cursor->mathobj->parts];
+		// 					}
+		// 				}
+		// 				if(p->movement.down) {
+		// 					if(p->movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
+		// 					else{
+		// 						t->movement.down = temp[p->movement.down-cursor->mathobj->parts];
+		// 					}
+		// 				}
+		// 			}
+		// 		}break;
+		// 	}
+		// } else return true; // if we still dont have a MathObject, there's nothing more to do
+	}
+	return false;
+}
 
 void ast_input(Expression* expr) {
 	Term* cursor = expr->term_cursor_start;
+	
+	defer{print_expression_text(expr);};
 
 	// handle movements
 	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
@@ -1056,69 +1139,7 @@ void ast_input(Expression* expr) {
 	}
 
 	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder) {
-		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
-		if(DeshInput->charCount){
-			text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
-		}
-
-		// if the first character is a digit this must be an integer
-		if(is_digit(cursor->raw.buffer.str[0])) {
-			cursor->mathobj = builtin_mathobj.number;
-		} else {
-			// check if the current string belongs to any known symbol
-			auto [idx, found] = mathobj_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
-			if(found) {
-				// if we find a math object pertaining to the string, we attach the MathObject to this node
-				// and then, if it is a function, create child nodes as placeholders for its arguments
-				cursor->mathobj = (math_objects + idx)->mathobj;
-				switch(cursor->mathobj->type) {
-					case MathObject_Function: {
-						Term** temp;
-						array_init(temp, array_count(cursor->mathobj->parts), deshi_temp_allocator);
-						cursor->part = cursor->mathobj->parts;
-						*array_push(temp) = cursor;
-						forI(cursor->mathobj->func.arity) {
-							Term* t = make_term();
-							ast_insert_last(cursor, t);
-							t->mathobj = builtin_mathobj.placeholder;
-							t->part = cursor->mathobj->parts + i + 1;
-							*array_push(temp) = t;
-						}
-
-						forI(array_count(cursor->mathobj->parts)) {
-							Term* t = temp[i];
-							Part* p = cursor->mathobj->parts + i;
-							if(p->movement.left) {
-								if(p->movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
-								else{
-									t->movement.left = temp[p->movement.left-cursor->mathobj->parts];
-								}
-							}
-							if(p->movement.right) {
-								if(p->movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
-								else{
-									t->movement.right = temp[p->movement.right-cursor->mathobj->parts];
-								}
-							}
-							if(p->movement.up) {
-								if(p->movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
-								else{
-									t->movement.up = temp[p->movement.up-cursor->mathobj->parts];
-								}
-							}
-							if(p->movement.down) {
-								if(p->movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
-								else{
-									t->movement.down = temp[p->movement.down-cursor->mathobj->parts];
-								}
-							}
-						}
-					}break;
-				}
-
-				
-			} else return; // if we still dont have a MathObject, there's nothing more to do
-		}
+		if(attempt_to_resolve_placeholder(expr)) return;
 	}
 
 	switch(cursor->mathobj->type) {
@@ -1128,15 +1149,42 @@ void ast_input(Expression* expr) {
 				// if we find anything else, we need to decide how to handle it
 				if(is_digit(DeshInput->charIn[i])) {
 					text_insert_string(&cursor->raw, str8{DeshInput->charIn+i,1});
+				} else {
+					// the user is probably inserting something inside the text, like another operator, or something.
+					// we convert the current node to a placeholder, make the new text the raw of the placeholder,
+					// then make the split number the children of the placeholder
+					//text_insert_string(&t->raw, str8{DeshInput->charIn+i, 1});
+					if(text_cursor_at_start(&cursor->raw) || text_cursor_at_end(&cursor->raw)) {
+						Term* move = create_term();
+						move->mathobj = &math_objects.number;
+						text_clear_and_replace(&move->raw, cursor->raw.buffer.fin);
+						ast_insert_last(cursor, move);
+					} else {
+						// we need to split the number at the cursor
+						Term* front = create_term(), *back = create_term();
+						text_clear_and_replace(&front->raw, str8{cursor->raw.buffer.str, cursor->raw.cursor.pos});
+						text_clear_and_replace(&back->raw, str8{cursor->raw.buffer.str+cursor->raw.cursor.pos, cursor->raw.buffer.count-cursor->raw.cursor.pos});
+						front->mathobj = back->mathobj = &math_objects.number;
+						ast_insert_last(cursor, front);
+						ast_insert_last(cursor, back);
+						cursor->mathobj = &math_objects.placeholder;
+						text_clear_and_replace(&cursor->raw, str8{(u8*)DeshInput->charIn,1});
+						cursor->movement.left = front;
+						cursor->movement.right = back;
+						front->movement.left = (Term*)MOVEMENT_OUT;
+						front->movement.right = cursor;
+						back->movement.left = cursor;
+						back->movement.right = (Term*)MOVEMENT_OUT;
+						// we need to try and resolve the place holder here incase it is a single symbol
+						// representing a MathObject
+						if(attempt_to_resolve_placeholder(expr)) return;
+
+					}
 				}
 			}
 		}break;
 	}
 
-
-
-
-	print_expression_text(expr);
 }
 
 

@@ -583,7 +583,7 @@ void compile_parse() {
             ErrorMessage("symbol '", compiler.curt->raw, "' is already defined on line ", symbol->token->line, " in column ", symbol->token->column);
             continue;
         }
-        symbol->mathobj = make_math_object();
+        symbol->mathobj = create_math_object();
         symbol->name    = compiler.curt->raw;
         symbol->token   = compiler.curt;
         compiler.current_mathobj = symbol->mathobj;
@@ -1068,13 +1068,13 @@ SymbolTable compile_math_objects(str8 path) {
     //     Log("", tokenStrings[token->type], " ", token->raw);
     // }
 
-    builtin_mathobj.placeholder = make_math_object();
+    builtin_mathobj.placeholder = create_math_object();
     builtin_mathobj.placeholder->name = str8l("Placeholder");
     builtin_mathobj.placeholder->description = str8l("suugu's placeholder object, anything may go here.");
     builtin_mathobj.placeholder->type = MathObject_Placeholder;
     builtin_mathobj.placeholder->display.text = str8l("□");
 
-    builtin_mathobj.number = make_math_object();
+    builtin_mathobj.number = create_math_object();
     builtin_mathobj.number->name = str8l("Number");
     builtin_mathobj.number->description = str8l("A mathematical object used to count, measure, and label.");
     builtin_mathobj.number->type = MathObject_Number;

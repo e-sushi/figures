@@ -490,36 +490,58 @@ const uiStyle element_default_style = {
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @Display
 
-enum{
-    PartType_Child,
-    PartType_Glyph,
-    PartType_MathObject,
+enum {
+	Position_Top, // y value of top edge  
+	Position_Right, // x value of right edge
+	Position_Bottom, // y value of bottom edge
+	Position_Left, // x value of left edge
+	Position_TopLeftX,
+	Position_TopLeftY,
+	Position_TopRightX, 
+	Position_TopRightY, 
+	Position_BottomRightX,
+	Position_BottomRightY,
+	Position_BottomLeftX,
+	Position_BottomLeftY,
+	Position_OriginX,
+	Position_OriginY,
+	Position_CenterX,
+	Position_CenterY,
 };
 
-struct Part {
-    str8 name;
-    u64 hash;
-	MathObject* parent; // the MathObject this Part belongs to, 0 if it doesnt belong to one
-
-    u64 line, column;  // source location of definition
-
-    Type type;
-    union{
-        u32 child_idx;
-        str8 glyph;
-        MathObject* mathobj;
-    };
-
-	struct{ // pointer to another symbol to move to when some movement key is pressed
-		Part* left, *right, *up, *down;
-	}movement;
+// represents some position relative to a Part
+struct Position {
+	spt part;
+	Type type;
 };
-typedef Part* PartArray;
 
-#define MOVEMENT_NONE 0
-#define MOVEMENT_OUT  (Part*)-1
+enum {
+	NumberInstruction_Min,
+	NumberInstruction_Max,
+	NumberInstruction_Average,
+};
 
+// any instruction that gives a number
+struct NumberInstruction{ 
+	Type type;
+	union {
+		struct {
+			Position pos;
+		}unary;
+		struct {
+			Position lhs,rhs;
+		}binary;
+	};
+};
 
+struct ScaleInstruction {
+	Type type;
+	union{
+		struct{
+			
+		}relative_to_part;
+	};
+};
 
 enum {
 	AlignType_Null,
@@ -561,13 +583,117 @@ const str8 AlignTypeStrings[] = {
 // not used in text display
 struct AlignInstruction {
 	struct {
-		Type align_type;
-		Part* part; 
+		Type type;
+		spt part; 
 	}lhs, rhs;
+};
+
+// static 
+struct OffsetInstruction {
+	
+};
+
+enum {
+	Positioning_align,
+	Positioning_number,
+};
+
+struct PositioningInstruction {
+	Type type;
+	union{
+		AlignInstruction alignment;
+		OffsetInstruction offset;
+		NumberInstruction number;
+	};
+};
+
+enum{
+	ShapeType_Circle,
+	ShapeType_Line,
+	ShapeType_Rectangle,
+};
+
+struct ShapePart {
+	Type type;
+	union{
+		struct{
+			PositioningInstruction offset_x;
+			PositioningInstruction offset_y;
+			PositioningInstruction radius_x;
+			PositioningInstruction radius_y;
+		}circle;
+
+		struct{
+			struct{
+				PositioningInstruction x,y;
+			}start;
+			struct{
+				PositioningInstruction x,y;
+			}end;
+		}line;
+
+		struct{
+			vec2 offset;
+			vec2 size;
+		}rect;
+	};
+};
+
+
+
+enum {
+	Text_PartRaw,
+	Text_Literal,
+};
+
+// displays some text
+struct TextInstruction {
+	Type type;
+	union {
+		Term* term; // part whose raw to display
+		str8 literal; // literal to display
+	};
+};
+
+enum{
+    PartType_Child,
+    PartType_Text,
+    PartType_MathObject,
+	PartType_Shape,
+};
+
+struct Part {
+    str8 name;
+	MathObject* parent; // the MathObject this Part belongs to, 0 if it doesnt belong to one
+
+    Type type;
+    union{
+        u32 child_idx;
+        str8 glyph;
+        MathObject* mathobj;
+		ShapePart shape;
+    };
+
+	struct{ // index into the MathObject's parts array indicating which part to move to when a movement key is pressed
+		s32 left, right, up, down;
+	}movement;
+};
+typedef Part* PartArray;
+
+#define MOVEMENT_NONE -1
+#define MOVEMENT_OUT  -2
+
+// loads a Part into the renderer's memory
+struct LoadPartInstruction {
+
 };
 
 enum{
 	InstructionType_Align,
+	InstructionType_Text,
+	InstructionType_Min,
+	InstructionType_Max,
+
 };
 
 const str8 InstructionTypeStrings[] = {
@@ -578,6 +704,9 @@ struct Instruction {
 	Type type;
 	union{
 		AlignInstruction align;
+		TextInstruction text;
+		MinInstruction min;
+		MaxInstruction max;
 	};
 };
 
@@ -626,8 +755,15 @@ struct Display {
 	MathObject* mathobj; // the MathObject that this Display belongs to
 
 	str8 text; // data used when displaying as text
+	str8 s_expression; //  data used when displaying as an s-expression
 	Instruction* instructions; // kigu array of instructions used when rendering
+
 };
+
+void compile_display(Term* term) {
+	MathObject* curmo = term->mathobj;
+
+}
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @MathObject
@@ -693,9 +829,17 @@ struct MathObject {
 };
 
 struct{ // these are made in the compiler for now
-	MathObject* placeholder;
-	MathObject* number;
-}builtin_mathobj;
+	MathObject placeholder;
+	MathObject number;
+
+	// arithmetic
+	MathObject addition;
+	MathObject subtraction;
+	MathObject multiplication;
+	MathObject division;
+}math_objects;
+
+
 
 // TODO(sushi) set this up when we are able to do event driven input
 // struct MathObjectKey{
@@ -710,57 +854,57 @@ struct{ // these are made in the compiler for now
 
 
 // MathObjects can be referred to by multiple names
-struct MathObjectTableEntry{
-	str8 name;
-	u64  hash;
-	MathObject* mathobj;
-};
+// struct MathObjectTableEntry{
+// 	str8 name;
+// 	u64  hash;
+// 	MathObject* mathobj;
+// };
 
-typedef MathObjectTableEntry* MathObjectTable;
-global MathObjectTable math_objects;
+// typedef MathObjectTableEntry* MathObjectTable;
+// global MathObjectTable math_objects;
 
-pair<spt,b32> mathobj_table_find(MathObjectTable* table, u64 key){
-    spt index = -1, middle = -1;
-    spt left = 0;
-    spt right = array_count(*table)-1;
-    while(left <= right){
-        middle = left+((right-left)/2);
-        if((*table)[middle].hash == key){
-            index = middle;
-            break;
-        }
-        if((*table)[middle].hash < key){
-            left = middle+1;
-            middle = left+((right-left)/2);
-        }else{
-            right = middle-1;
-        }
-    }
-    return {middle, index != -1};
-}
+// pair<spt,b32> mathobj_table_find(MathObjectTable* table, u64 key){
+//     spt index = -1, middle = -1;
+//     spt left = 0;
+//     spt right = array_count(*table)-1;
+//     while(left <= right){
+//         middle = left+((right-left)/2);
+//         if((*table)[middle].hash == key){
+//             index = middle;
+//             break;
+//         }
+//         if((*table)[middle].hash < key){
+//             left = middle+1;
+//             middle = left+((right-left)/2);
+//         }else{
+//             right = middle-1;
+//         }
+//     }
+//     return {middle, index != -1};
+// }
 
-pair<MathObjectTableEntry*, b32> mathobj_table_add(MathObjectTable* table, str8 name) {
-    u64 hash = str8_hash64(name);
+// pair<MathObjectTableEntry*, b32> mathobj_table_add(MathObjectTable* table, str8 name) {
+//     u64 hash = str8_hash64(name);
     
-    auto [idx,found] = mathobj_table_find(table, hash);
-    if(found) return {&(*table)[idx], 1};
-    if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
+//     auto [idx,found] = mathobj_table_find(table, hash);
+//     if(found) return {&(*table)[idx], 1};
+//     if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
     
-    MathObjectTableEntry* s = array_insert(*table, idx);
-	s->name = name;
-	s->hash = hash;
-    return {s, 0};
-}
+//     MathObjectTableEntry* s = array_insert(*table, idx);
+// 	s->name = name;
+// 	s->hash = hash;
+//     return {s, 0};
+// }
 
-b32 mathobj_table_remove(MathObjectTable* table, str8 name) {
-    u64 hash = str8_hash64(name);
+// b32 mathobj_table_remove(MathObjectTable* table, str8 name) {
+//     u64 hash = str8_hash64(name);
 
-    auto [idx,found] = mathobj_table_find(table, hash);
-    if(!found) return 0;
+//     auto [idx,found] = mathobj_table_find(table, hash);
+//     if(!found) return 0;
 
-    array_remove_ordered(*table, idx);
-    return 1;
-}
+//     array_remove_ordered(*table, idx);
+//     return 1;
+// }
 
 
 
@@ -781,66 +925,88 @@ void suugu_memory_init() {
 	arenas.elements = memory_create_arena(500*sizeof(Element));
 	arenas.terms = memory_create_arena(5000*sizeof(Term));
 	arenas.math_objects = memory_create_arena(5000*sizeof(MathObject));
+	arenas.inactive_elements.next = &arenas.inactive_elements;
+	arenas.inactive_elements.prev = &arenas.inactive_elements;
+	arenas.inactive_terms.next = &arenas.inactive_terms;
+	arenas.inactive_terms.prev = &arenas.inactive_terms;
+	arenas.inactive_math_objects.next = &arenas.inactive_math_objects;
+	arenas.inactive_math_objects.prev = &arenas.inactive_math_objects; 
 }
 
 global Element* 
-make_element(){
-	Element* element;
-	if(arenas.inactive_elements.next){
-		element = (Element*)arenas.inactive_elements.next;
+create_element(){
+	Element* result;
+	if(arenas.inactive_elements.next != &arenas.inactive_elements){
+		result = (Element*)arenas.inactive_elements.next;
 		NodeRemove(arenas.inactive_elements.next);
-		ZeroMemory(element, sizeof(Element));
+		ZeroMemory(result, sizeof(Element));
 	}else{
 		if(arenas.elements->used + sizeof(Element) > arenas.elements->size) {
 			LogE("suugu_memory", "ran out of memory when allocating an Element, allocated size is ", arenas.elements->size/bytesDivisor(arenas.elements->size), " ", bytesUnit(arenas.elements->size));
 			return 0;
 		}
-		element = (Element*)arenas.elements->cursor;
+		result = (Element*)arenas.elements->cursor;
 		arenas.elements->cursor += sizeof(Element);
 		arenas.elements->used += sizeof(Element);
 	}
-	return element;
+	return result;
+}
+
+global void
+delete_element(Element* element) {
+	NotImplemented; // TODO(sushi) when we need it 
 }
 
 global Term* 
-make_term(){
+create_term(){
 	Term* result;
-	if(arenas.inactive_terms.next){
-		result = (Term*)arenas.inactive_terms.next;
+	if(arenas.inactive_terms.next != &arenas.inactive_terms){
+		result = (Term*)(arenas.inactive_terms.next+sizeof(Node));
 		NodeRemove(arenas.inactive_terms.next);
 		ZeroMemory(result, sizeof(Term));
 	}else{
-		if(arenas.terms->used + sizeof(Term) > arenas.terms->size) {
+		if(arenas.terms->used + sizeof(Term)+sizeof(Node) > arenas.terms->size) {
 			LogE("suugu_memory", "ran out of memory when allocating a Term, allocated size is ", arenas.terms->size/bytesDivisor(arenas.terms->size), " ", bytesUnit(arenas.terms->size));
 			return 0;
 		}
 		result = (Term*)arenas.terms->cursor;
-		arenas.terms->cursor += sizeof(Term);
-		arenas.terms->used += sizeof(Term);
+		arenas.terms->cursor += sizeof(Term)+sizeof(Node);
+		arenas.terms->used += sizeof(Term)+sizeof(Node);
 	}
 	result->raw = text_init(str8l(""), deshi_allocator);
 	return result;
 }
 
+global void
+delete_term(Term* t) {
+	text_deinit(&t->raw);
+	Node* n = (Node*)(t-sizeof(Node));
+	NodeInsertPrev(&arenas.inactive_terms, n);
+}
+
 global MathObject* 
-make_math_object() {
+create_math_object() {
 	MathObject* result;
-	if(arenas.inactive_math_objects.next){ // this probably shouldn't happen
-		result = (MathObject*)arenas.inactive_math_objects.next;
+	if(arenas.inactive_math_objects.next != &arenas.inactive_math_objects){ // this probably shouldn't happen
+		result = (MathObject*)(arenas.inactive_math_objects.next+sizeof(Node));
 		NodeRemove(arenas.inactive_math_objects.next);
 		ZeroMemory(result, sizeof(MathObject));
 	}else{
-		if(arenas.math_objects->used + sizeof(MathObject) > arenas.math_objects->size) {
+		if(arenas.math_objects->used + sizeof(MathObject)+sizeof(Node) > arenas.math_objects->size) {
 			LogE("suugu_memory", "ran out of memory when allocating a MathObject, allocated size is ", arenas.math_objects->size/bytesDivisor(arenas.math_objects->size), " ", bytesUnit(arenas.math_objects->size));
 			return 0;
 		}
 		result = (MathObject*)arenas.math_objects->cursor;
-		arenas.math_objects->cursor += sizeof(MathObject);
-		arenas.math_objects->used += sizeof(MathObject);
+		arenas.math_objects->cursor += sizeof(MathObject)+sizeof(Node);
+		arenas.math_objects->used += sizeof(MathObject)+sizeof(Node);
 	}
 	return result;
 }
 
+global void
+delete_math_object(MathObject* mathobj) {
+	NotImplemented; // TODO(sushi) when we need it 
+}
 
 
 #endif //SUUGU_TYPES_H
