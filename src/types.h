@@ -495,25 +495,13 @@ enum {
 	Position_Right, // x value of right edge
 	Position_Bottom, // y value of bottom edge
 	Position_Left, // x value of left edge
-	Position_TopLeftX,
-	Position_TopLeftY,
-	Position_TopRightX, 
-	Position_TopRightY, 
-	Position_BottomRightX,
-	Position_BottomRightY,
-	Position_BottomLeftX,
-	Position_BottomLeftY,
 	Position_OriginX,
 	Position_OriginY,
 	Position_CenterX,
 	Position_CenterY,
 };
 
-// represents some position relative to a Part
-struct Position {
-	spt part;
-	Type type;
-};
+typedef Type Position;
 
 enum {
 	NumberInstruction_Min,
@@ -543,47 +531,10 @@ struct ScaleInstruction {
 	};
 };
 
-enum {
-	AlignType_Null,
-	AlignType_Left,
-	AlignType_Right,
-	AlignType_Top,
-	AlignType_Bottom,
-	AlignType_TopLeft,
-	AlignType_TopRight,
-	AlignType_BottomRight,
-	AlignType_BottomLeft,
-	AlignType_Origin,
-	AlignType_OriginX,
-	AlignType_OriginY,
-	AlignType_Center,
-	AlignType_CenterX,
-	AlignType_CenterY,
-};
-
-const str8 AlignTypeStrings[] = {
-	str8l("Null"),
-	str8l("Left"),
-	str8l("Right"),
-	str8l("Top"),
-	str8l("Bottom"),
-	str8l("TopLeft"),
-	str8l("TopRight"),
-	str8l("BottomRight"),
-	str8l("BottomLeft"),
-	str8l("Origin"),
-	str8l("OriginX"),
-	str8l("OriginY"),
-	str8l("Center"),
-	str8l("CenterX"),
-	str8l("CenterY"),
-};
-
-// aligns 2 symbols two each other in various ways 
-// not used in text display
+// aligns two part positions to each other
 struct AlignInstruction {
 	struct {
-		Type type;
+		Position position;
 		spt part; 
 	}lhs, rhs;
 };
@@ -639,25 +590,10 @@ struct ShapePart {
 	};
 };
 
-
-
-enum {
-	Text_PartRaw,
-	Text_Literal,
-};
-
-// displays some text
-struct TextInstruction {
-	Type type;
-	union {
-		Term* term; // part whose raw to display
-		str8 literal; // literal to display
-	};
-};
-
 enum{
     PartType_Child,
-    PartType_Text,
+    PartType_StaticText, // static text retrieved from the text var on Part
+    PartType_TermRawText, // raw text retrieved from the Term this part represents
     PartType_MathObject,
 	PartType_Shape,
 };
@@ -669,7 +605,7 @@ struct Part {
     Type type;
     union{
         u32 child_idx;
-        str8 glyph;
+        str8 text;
         MathObject* mathobj;
 		ShapePart shape;
     };
@@ -683,61 +619,43 @@ typedef Part* PartArray;
 #define MOVEMENT_NONE -1
 #define MOVEMENT_OUT  -2
 
-// loads a Part into the renderer's memory
-struct LoadPartInstruction {
+enum{
+	Text_Literal,
+	Text_TermRaw,
+};
 
+// make some text
+// this pushes a render part onto the stack
+struct TextInstruction {
+	Type type;
+	union {
+		str8 literal;
+		s32 term; // which term on the stack to extract text from
+	};
+};
+
+// draws a child node, pushing its data to the stack
+struct RenderChildInstruction {
+	spt child;
 };
 
 enum{
 	InstructionType_Align,
 	InstructionType_Text,
-	InstructionType_Min,
-	InstructionType_Max,
-
-};
-
-const str8 InstructionTypeStrings[] = {
-	str8l("Align"),
+	InstructionType_Number,
+	InstructionType_RenderChild,
+	InstructionType_PushParts,
 };
 
 struct Instruction {
 	Type type;
+	spt part; // which render part this instruction belongs to 
 	union{
 		AlignInstruction align;
+		NumberInstruction number;
 		TextInstruction text;
-		MinInstruction min;
-		MaxInstruction max;
+		RenderChildInstruction renderchild;
 	};
-};
-
-dstr8
-to_dstr8(const Instruction& instr, Allocator* a = deshi_allocator) {
-	FixMe;
-	// dstr8 s; dstr8_init(&s, {}, a);
-	// switch(instr.type) {
-	// 	case InstructionType_Align:{
-	// 		AlignInstruction align = instr.align;
-	// 		dstr8_append(&s, "AlignInstruction(lhs: ");
-	// 		switch(align.lhs.symbol->type) {
-	// 			case SymbolType_Child: dstr8_append(&s, "$", align.lhs.symbol->child_idx, " "); break;
-	// 			case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.lhs.symbol->glyph, ") "); break;
-	// 		}
-	// 		dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ", rhs: ");
-	// 		switch(align.rhs.symbol->type) {
-	// 			case SymbolType_Child: dstr8_append(&s, "$", align.rhs.symbol->child_idx, " "); break;
-	// 			case SymbolType_Glyph: dstr8_append(&s, "glyph(", align.rhs.symbol->glyph, ") "); break;
-	// 		}
-	// 		dstr8_append(&s, AlignTypeStrings[align.lhs.align_type], ")");
-	// 	}break;
-	// }
-	// return s;
-	return {};
-}
-
-
-typedef Type DisplayType; enum{
-	DisplayType_Text,
-	DisplayType_Rendered,
 };
 
 struct DisplayContext {
@@ -746,7 +664,6 @@ struct DisplayContext {
 	Vertex2* vertex_start; // kigu array
 	u32* index_start; // kigu array
 };
-
 
 // type containing data needed for displaying math in some way
 struct Display {
@@ -757,6 +674,7 @@ struct Display {
 	str8 text; // data used when displaying as text
 	str8 s_expression; //  data used when displaying as an s-expression
 	Instruction* instructions; // kigu array of instructions used when rendering
+	spt n_parts; // how many parts are used to render this Display
 
 };
 
@@ -811,6 +729,12 @@ const str8 MathObjectTypeStrings[] = {
 	str8l("Unit"),
 };
 
+struct Movement {
+	s32 left, right, up, down;
+};
+
+typedef Movement* MovementArray;
+
 // Base object of all mathematical things in suugu, such as operators,
 // functions, constants, units, etc. This contains information such as its name and
 // data regarding how to display it.
@@ -820,7 +744,7 @@ struct MathObject {
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
-	PartArray parts;
+	MovementArray movements;
 
 	union{
 		Function func;
@@ -838,8 +762,6 @@ struct{ // these are made in the compiler for now
 	MathObject multiplication;
 	MathObject division;
 }math_objects;
-
-
 
 // TODO(sushi) set this up when we are able to do event driven input
 // struct MathObjectKey{

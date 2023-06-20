@@ -227,387 +227,342 @@ int main(int args_count, char** args){
 	init_canvas();
 	init_suugu_commands();
 
-	math_objects.placeholder.name = str8l("Placeholder");
-	math_objects.placeholder.description = str8l("suugu's placeholder object, anything may go here.");
-	math_objects.placeholder.type = MathObject_Placeholder;
-	math_objects.placeholder.display.text = str8l("□");
+	
+
+	{
+		MathObject& placeholder = math_objects.placeholder;
+		placeholder.name = str8l("Placeholder");
+		placeholder.description = str8l("suugu's placeholder object, anything may go here.");
+		placeholder.type = MathObject_Placeholder;
+		placeholder.display.text = str8l("□");
+
+		array_init(placeholder.movements, 1, deshi_allocator);
+		Movement* mov = array_push(placeholder.movements);
+		mov->left = MOVEMENT_OUT;
+		mov->right = MOVEMENT_OUT;
+
+		placeholder.display.mathobj = &placeholder;
+		array_init(placeholder.display.instructions, 1, deshi_allocator);
+		placeholder.display.n_parts = 1;
+
+		Instruction* instr = array_push(placeholder.display.instructions);
+		instr->type = InstructionType_Text;
+		instr->part = 0;
+		TextInstruction& text = instr->text;
+		text.type = Text_Literal;
+		text.literal = str8l("□");
+	}
 
     {
 		MathObject& num = math_objects.number;
 		num.name = str8l("Number");
     	num.description = str8l("A mathematical object used to count, measure, and label.");
     	num.type = MathObject_Number;
-		array_init(num.parts, 1, deshi_allocator);
-		
-		Part* root = array_push(num.parts);
-		root->type = PartType_Text;
+		array_init(num.movements, 1, deshi_allocator);
+		Movement* mov = array_push(num.movements);
+		mov->left = MOVEMENT_OUT;
+		mov->right = MOVEMENT_OUT;
+
+		/*
+			stack:
+				0: root
+		*/
 
 		array_init(num.display.instructions, 1, deshi_allocator);
-		Instruction* instr = array_push(num.display.instructions);
-		instr->type = InstructionType_Text;
-		TextInstruction& text = instr->text;
-		text.type = Text_PartRaw;
-		text.part = root;
+
 
 	}
-
-
 
 	{
 		MathObject& add = math_objects.addition;
 		add.name = str8l("Addition");
 		add.description = str8l("The result of taking two groups of objects, putting them together, and then counting the result.");
-		array_init(add.parts, 3, deshi_allocator);
+		add.type = MathObject_Function;
+		add.func.arity = 2;
+		array_init(add.movements, 3, deshi_allocator);
 
-		Part* root = array_push(add.parts);
-		root->name = str8l("plus");
-		root->type = PartType_MathObject;
-		root->parent = &add;
-		
-		Part* lhs = array_push(add.parts);
-		lhs->name = str8l("lhs");
-		lhs->type = PartType_Child;
-		lhs->parent = &add;
-
-		Part* rhs = array_push(add.parts);
-		rhs->name = str8l("rhs");
-		rhs->type = PartType_Child;
-		rhs->parent = &add;
-
-		root->movement.right = 2;
-		root->movement.left = 1;
-
-		rhs->movement.right = MOVEMENT_OUT;
-		rhs->movement.left = 0;
-
-		lhs->movement.right = 0;
-		lhs->movement.left = MOVEMENT_OUT;
+		Movement* movement;
+		// root
+		movement = array_push(add.movements);
+		movement->left = 1;
+		movement->right = 2;
+		// lhs
+		movement = array_push(add.movements);
+		movement->left = MOVEMENT_OUT;
+		movement->right = 0;
+		// rhs
+		movement = array_push(add.movements);
+		movement->left = 0;
+		movement->right = MOVEMENT_OUT;  
 
 		add.display.mathobj = &add;
-		array_init(add.display.instructions, 4, deshi_allocator);
+		add.display.n_parts = 3;
+		array_init(add.display.instructions, 7, deshi_allocator);
+
+		{ // add text "+", assing to part 0
+			Instruction* instr = array_push(add.display.instructions);
+			instr->type = InstructionType_Text;
+			instr->part = 0;
+			TextInstruction& text = instr->text;
+			text.type = Text_Literal;
+			text.literal = str8l("+");
+		}
+
+		{ // render the lhs, assigning to part 1 
+			Instruction* instr = array_push(add.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 1;
+			instr->renderchild.child = 0;
+		}
+
+		{ // render the rhs, assinging to part 2
+			Instruction* instr = array_push(add.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 2;
+			instr->renderchild.child = 1;
+		}
 
 		{ // align lhs origin.y to root center.y
 			Instruction* instr = array_push(add.display.instructions);
 			instr->type = InstructionType_Align;
 			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
+			align.lhs.part = 1;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
 		}
-		
-		{ // align lhs right to root left
+
+		{ // align root left to lhs right
 			Instruction* instr = array_push(add.display.instructions);
 			instr->type = InstructionType_Align;
 			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Right;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Left;
+			align.lhs.part = 0;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 1;
+			align.rhs.position = Position_Right;
 		}
 
 		{ // align rhs origin.y to root center.y
 			Instruction* instr = array_push(add.display.instructions);
 			instr->type = InstructionType_Align;
 			AlignInstruction& align = instr->align;
-			align.lhs.part = rhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
+			align.lhs.part = 2;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
 		}
-
+		
 		{ // align rhs left to root right
 			Instruction* instr = array_push(add.display.instructions);
 			instr->type = InstructionType_Align;
 			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Left;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Right;
+			align.lhs.part = 2;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 0;
+			align.rhs.position = Position_Right;
 		}
 
 		add.display.text = str8l("$1 + $2");
 		add.display.s_expression = str8l("(+ $1 $2)");
 	}
 
-	{
-		MathObject& sub = math_objects.subtraction;
-		sub.name = str8l("Subtraction");
-		sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
-		array_init(sub.parts, 3, deshi_allocator);
+	// {
+	// 	MathObject& sub = math_objects.subtraction;
+	// 	sub.name = str8l("Subtraction");
+	// 	sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
+	// 	array_init(sub.parts, 3, deshi_allocator);
 
-		Part* root = array_push(sub.parts);
-		root->name = str8l("subtract");
-		root->type = PartType_MathObject;
-		root->parent = &sub;
+	// 	Part* root = array_push(sub.parts);
+	// 	root->name = str8l("subtract");
+	// 	root->type = PartType_MathObject;
+	// 	root->parent = &sub;
 		
-		Part* lhs = array_push(sub.parts);
-		lhs->name = str8l("lhs");
-		lhs->type = PartType_Child;
-		lhs->parent = &sub;
+	// 	Part* lhs = array_push(sub.parts);
+	// 	lhs->name = str8l("lhs");
+	// 	lhs->type = PartType_Child;
+	// 	lhs->parent = &sub;
 
-		Part* rhs = array_push(sub.parts);
-		rhs->name = str8l("rhs");
-		rhs->type = PartType_Child;
-		rhs->parent = &sub;
+	// 	Part* rhs = array_push(sub.parts);
+	// 	rhs->name = str8l("rhs");
+	// 	rhs->type = PartType_Child;
+	// 	rhs->parent = &sub;
 
-		root->movement.right = 2;
-		root->movement.left = 1;
+	// 	root->movement.right = 2;
+	// 	root->movement.left = 1;
 
-		rhs->movement.right = MOVEMENT_OUT;
-		rhs->movement.left = 0;
+	// 	rhs->movement.right = MOVEMENT_OUT;
+	// 	rhs->movement.left = 0;
 
-		lhs->movement.right = 0;
-		lhs->movement.left = MOVEMENT_OUT;
+	// 	lhs->movement.right = 0;
+	// 	lhs->movement.left = MOVEMENT_OUT;
 
-		sub.display.mathobj = &sub;
-		array_init(sub.display.instructions, 4, deshi_allocator);
+	// 	sub.display.mathobj = &sub;
+	// 	array_init(sub.display.instructions, 4, deshi_allocator);
 
-		/*
-			align lhs origin.y to root center.y
+	// 	/*
+	// 		align lhs origin.y to root center.y
 
 
-		*/
+	// 	*/
 
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
+	// 	{ // align lhs origin.y to root center.y
+	// 		Instruction* instr = array_push(sub.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 1;
+	// 		align.lhs.position= Position_OriginY;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_CenterY;
+	// 	}
 		
-		{ // align lhs right to root left
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Right;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Left;
-		}
+	// 	{ // align lhs right to root left
+	// 		Instruction* instr = array_push(sub.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 1;
+	// 		align.lhs.position= Position_Right;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_Left;
+	// 	}
 
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = rhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
+	// 	{ // align rhs origin.y to root center.y
+	// 		Instruction* instr = array_push(sub.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 2;
+	// 		align.lhs.position= Position_OriginY;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_CenterY;
+	// 	}
 
-		{ // align rhs left to root right
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Left;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Right;
-		}
+	// 	{ // align rhs left to root right
+	// 		Instruction* instr = array_push(sub.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 2;
+	// 		align.lhs.position= Position_Left;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_Right;
+	// 	}
 
-		sub.display.text = str8l("$1 - $2");
-		sub.display.s_expression = str8l("(- $1 $2)");
-	}
+	// 	sub.display.text = str8l("$1 - $2");
+	// 	sub.display.s_expression = str8l("(- $1 $2)");
+	// }
 
-	{
-		MathObject& mul = math_objects.multiplication;
-		mul.name = str8l("Multiplication");
-		mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
-		array_init(mul.parts, 3, deshi_allocator);
+	// {
+	// 	MathObject& mul = math_objects.multiplication;
+	// 	mul.name = str8l("Multiplication");
+	// 	mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
+	// 	array_init(mul.parts, 3, deshi_allocator);
 
-		Part* root = array_push(mul.parts);
-		root->name = str8l("multiply");
-		root->type = PartType_MathObject;
-		root->parent = &mul;
+	// 	Part* root = array_push(mul.parts);
+	// 	root->name = str8l("multiply");
+	// 	root->type = PartType_MathObject;
+	// 	root->parent = &mul;
 		
-		Part* lhs = array_push(mul.parts);
-		lhs->name = str8l("lhs");
-		lhs->type = PartType_Child;
-		lhs->parent = &mul;
+	// 	Part* lhs = array_push(mul.parts);
+	// 	lhs->name = str8l("lhs");
+	// 	lhs->type = PartType_Child;
+	// 	lhs->parent = &mul;
 
-		Part* rhs = array_push(mul.parts);
-		rhs->name = str8l("rhs");
-		rhs->type = PartType_Child;
-		rhs->parent = &mul;
+	// 	Part* rhs = array_push(mul.parts);
+	// 	rhs->name = str8l("rhs");
+	// 	rhs->type = PartType_Child;
+	// 	rhs->parent = &mul;
 
-		root->movement.right = 2;
-		root->movement.left = 1;
+	// 	root->movement.right = 2;
+	// 	root->movement.left = 1;
 
-		rhs->movement.right = MOVEMENT_OUT;
-		rhs->movement.left = 0;
+	// 	rhs->movement.right = MOVEMENT_OUT;
+	// 	rhs->movement.left = 0;
 
-		lhs->movement.right = 0;
-		lhs->movement.left = MOVEMENT_OUT;
+	// 	lhs->movement.right = 0;
+	// 	lhs->movement.left = MOVEMENT_OUT;
 
-		mul.display.mathobj = &mul;
-		array_init(mul.display.instructions, 4, deshi_allocator);
+	// 	mul.display.mathobj = &mul;
+	// 	array_init(mul.display.instructions, 4, deshi_allocator);
 
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
+	// 	{ // align lhs origin.y to root center.y
+	// 		Instruction* instr = array_push(mul.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 1;
+	// 		align.lhs.position= Position_OriginY;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_CenterY;
+	// 	}
 		
-		{ // align lhs right to root left
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Right;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Left;
-		}
+	// 	{ // align lhs right to root left
+	// 		Instruction* instr = array_push(mul.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 1;
+	// 		align.lhs.position= Position_Right;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_Left;
+	// 	}
 
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = rhs;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
+	// 	{ // align rhs origin.y to root center.y
+	// 		Instruction* instr = array_push(mul.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 2;
+	// 		align.lhs.position= Position_OriginY;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_CenterY;
+	// 	}
 
-		{ // align rhs left to root right
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = lhs;
-			align.lhs.type = AlignType_Left;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Right;
-		}
+	// 	{ // align rhs left to root right
+	// 		Instruction* instr = array_push(mul.display.instructions);
+	// 		instr->type = InstructionType_Align;
+	// 		AlignInstruction& align = instr->align;
+	// 		align.lhs.part = 2;
+	// 		align.lhs.position= Position_Left;
+	// 		align.rhs.part = 0;
+	// 		align.rhs.position= Position_Right;
+	// 	}
 
-		mul.display.text = str8l("$1 * $2");
-		mul.display.s_expression = str8l("(* $1 $2)");
-	}
+	// 	mul.display.text = str8l("$1 * $2");
+	// 	mul.display.s_expression = str8l("(* $1 $2)");
+	// }
 
-	{
-		MathObject& div = math_objects.division;
-		div.name = str8l("Division");
-		div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
-		array_init(div.parts, 3, deshi_allocator);
+	// {
+	// 	MathObject& div = math_objects.division;
+	// 	div.name = str8l("Division");
+	// 	div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
+	// 	array_init(div.parts, 3, deshi_allocator);
 
-		Part* root = array_push(div.parts);
-		root->name = str8l("divide");
-		root->type = PartType_MathObject;
-		root->parent = &div;
+	// 	Part* root = array_push(div.parts);
+	// 	root->name = str8l("divide");
+	// 	root->type = PartType_MathObject;
+	// 	root->parent = &div;
 		
-		Part* numerator = array_push(div.parts);
-		numerator->name = str8l("numerator");
-		numerator->type = PartType_Child;
-		numerator->parent = &div;
+	// 	Part* numerator = array_push(div.parts);
+	// 	numerator->name = str8l("numerator");
+	// 	numerator->type = PartType_Child;
+	// 	numerator->parent = &div;
 
-		Part* denominator = array_push(div.parts);
-		denominator->name = str8l("denominator");
-		denominator->type = PartType_Child;
-		denominator->parent = &div;
+	// 	Part* denominator = array_push(div.parts);
+	// 	denominator->name = str8l("denominator");
+	// 	denominator->type = PartType_Child;
+	// 	denominator->parent = &div;
 
-		denominator->movement.right = MOVEMENT_OUT;
-		denominator->movement.left = MOVEMENT_OUT;
-		denominator->movement.up = 1;
+	// 	denominator->movement.right = MOVEMENT_OUT;
+	// 	denominator->movement.left = MOVEMENT_OUT;
+	// 	denominator->movement.up = 1;
 
-		numerator->movement.right = MOVEMENT_OUT;
-		numerator->movement.left = MOVEMENT_OUT;
-		numerator->movement.down = 2;
+	// 	numerator->movement.right = MOVEMENT_OUT;
+	// 	numerator->movement.left = MOVEMENT_OUT;
+	// 	numerator->movement.down = 2;
 
-		// the divising line 
-		Part* line = array_push(div.parts); 
-		line->type = PartType_Shape;
-		ShapePart* shape = &line->shape;
-		shape->type = ShapeType_Line;
-		shape->line.start.x.type = Positioning_number;
-		shape->line.start.x.number.type = NumberInstruction_Min;
-		shape->line.start.x.number.binary.lhs = Position{1, Position_Left};
-		shape->line.start.x.number.binary.rhs = Position{2, Position_Left};
+	// 	div.display.mathobj = &div;
+	// 	array_init(div.display.instructions, 4, deshi_allocator);
 
-		shape->line.start.y.type = Positioning_number;
-		shape->line.start.y.number.type = NumberInstruction_Average;
-		shape->line.start.y.number.binary.lhs = Position{1, Position_Bottom};
-		shape->line.start.y.number.binary.rhs =	Position{2, Position_Top}
 
-		div.display.mathobj = &div;
-		array_init(div.display.instructions, 4, deshi_allocator);
 
-		/*
-			render numerator
-			render denominator
-			align numerator.center.x to denominator.center.x
-			align numerator.bottom to denominator.top
-			render line
-		*/
-
-		{
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = numerator;
-			align.lhs.type = AlignType_CenterX;
-			align.rhs.part = denominator;
-			align.rhs.type = AlignType_CenterX;
-		}
-
-		{
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = numerator;
-			align.lhs.type = AlignType_Bottom;
-			align.rhs.part = denominator;
-			align.rhs.type = AlignType_Top;
-		}
-	
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = numerator;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
-		
-		{ // align lhs right to root left
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = numerator;
-			align.lhs.type = AlignType_Right;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Left;
-		}
-
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = denominator;
-			align.lhs.type = AlignType_OriginY;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_CenterY;
-		}
-
-		{ // align rhs left to root right
-			Instruction* instr = array_push(div.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = numerator;
-			align.lhs.type = AlignType_Left;
-			align.rhs.part = root;
-			align.rhs.type = AlignType_Right;
-		}
-
-		div.display.text = str8l("$1 * $2");
-		div.display.s_expression = str8l("(* $1 $2)");
-	}
+	// 	div.display.text = str8l("$1 * $2");
+	// 	div.display.s_expression = str8l("(* $1 $2)");
+	// }
 
 	//compile_math_objects(str8l("scratch"));
 

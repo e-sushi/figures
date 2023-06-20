@@ -111,29 +111,178 @@ local const char* context_dropdown_option_strings[] = {
 };
 
 
-struct{
-	uiItem* item; // the item we are drawing into 
-}drawcontext;
 
-struct RenderContext{
 
+struct RenderPart{
+	vec2   position; // the position of this part
+	vec2        bbx; // the bounding box formed by child nodes
+	f32     midline; // 
+	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
+	u32*     istart;
+	u32 vcount, icount;
 };
 
-RenderContext render_term(Term* term) {
-	switch((spt)term->mathobj) {
-		case (spt)&math_objects.addition:{
+struct{
+	uiItem* item; // the item we are drawing into 
+	Vertex2* vertexes; // vertices created by current render pass
+	u32* indexes; // indicies created by current render pass
 
-		}break;
+	// a stack of RenderParts that the user can refer to 
+	RenderPart* stack;
+}drawcontext;
+
+void scale_render_part(RenderPart* part, vec2 scale) {
+	part->bbx.x *= scale.x;
+	part->bbx.y *= scale.y;
+	forI(part->vcount) {
+		(part->vstart + i)->pos.x *= scale.x;
+		(part->vstart + i)->pos.y *= scale.y;
 	}
+}
+
+void offset_render_part(RenderPart* part, vec2 offset) {
+	part->position += offset;
+	forI(part->vcount) {
+		(part->vstart + i)->pos.x += offset.x;
+		(part->vstart + i)->pos.y += offset.y;
+	}
+}
+
+vec2 get_position(RenderPart* part, Position position) {
+	switch(position) {
+		case Position_Bottom: return Vec2(0, part->position.y+part->bbx.y);
+		case Position_Left: return Vec2(part->position.x, 0);
+		case Position_Top: return Vec2(0, part->position.y);
+		case Position_Right: return Vec2(part->position.x+part->bbx.x, 0);
+		case Position_CenterX: return Vec2(part->position.x+part->bbx.x/2, 0);
+		case Position_CenterY: return Vec2(0, part->position.y+part->bbx.y/2);
+		case Position_OriginX: return Vec2(part->position.x+part->bbx.x/2, 0);
+		case Position_OriginY: return Vec2(0, part->position.y+part->bbx.y/2);
+	}
+	return {0,0};
+}
+
+/*
+	Rendering a term consists of creating RenderParts, which represent the position, bounding box, 
+	vertexes and indexes required to render the Term. 
+
+	When a Term is to be rendered, it pushes all of the render parts it will need onto the 'stack'
+	and then further instructions give an index to which render part it will be dealing with.
+
+*/
+
+RenderPart render_term(Term* term) {
+	struct DrawnTerm{
+		RenderPart context;
+		Term* term;
+	};
+
+	DrawnTerm self = {};
+	self.term = term;
+	self.context.vstart = drawcontext.vertexes+1;
+	self.context.istart = drawcontext.indexes+1;
+
+	// stack of rendered parts for this term's MathObject
+	DrawnTerm* stack; array_init(stack, term->mathobj->display.n_parts, deshi_allocator);
+	forI(term->mathobj->display.n_parts) array_push(stack);
+	defer{array_deinit(stack);};
+
+	// for(Term* t = term->first_child; t; t->next) {
+	// 	RenderPart ret = render_term(term);
+	// 	*array_push(stack) = {ret, term};
+	// }
+	
+	Instruction* instructions = term->mathobj->display.instructions;
+	forI(array_count(instructions)){
+		Instruction instruction = instructions[i];
+		switch(instruction.type) {
+			case InstructionType_RenderChild: {
+				Term* node = term->first_child;
+				forI(instruction.renderchild.child) node = node->next;
+				DrawnTerm* dt = stack + instruction.part;
+				dt->context = render_term(node);
+				dt->term = node;
+			}break;
+			case InstructionType_Text: {
+				TextInstruction& text = instruction.text;
+				str8 s;
+				switch(text.type) {
+					case Text_Literal: s = text.literal; break;
+					case Text_TermRaw: {
+						DrawnTerm dt = stack[text.term];
+						Assert(dt.term, "TermRaw Text Instruction was given an index into the stack that does not belong to a Term.");
+						s = dt.term->raw.buffer.fin;
+					}break;
+				}
+				vec2i counts = render_make_text_counts(str8_length(s));
+				RenderPart* rp = &(stack + instruction.part)->context;
+				rp->bbx = rp->position = {};
+				rp->vcount = counts.x;
+				rp->vstart = array_push(drawcontext.vertexes);
+				rp->icount = counts.y;
+				rp->istart = array_push(drawcontext.indexes);
+				forI(counts.x-1) array_push(drawcontext.vertexes);
+				forI(counts.y-1) array_push(drawcontext.indexes);
+				render_make_text(rp->vstart, rp->istart, {}, s, canvas.ui.font.debug, {0,0}, Color_White, {1,1});
+				forI(counts.x) {
+					if(rp->vstart[i].pos.x > rp->bbx.x) rp->bbx.x = rp->vstart[i].pos.x;
+					if(rp->vstart[i].pos.y > rp->bbx.y) rp->bbx.y = rp->vstart[i].pos.y;
+				}
+			}break;
+			case InstructionType_Align: {
+				AlignInstruction& align = instruction.align;
+				RenderPart* lhs = &stack[align.lhs.part].context;
+				RenderPart* rhs = &stack[align.rhs.part].context;
+				
+				vec2 offset0 = get_position(lhs, align.lhs.position);
+				vec2 offset1 = get_position(rhs, align.rhs.position);
+				offset_render_part(lhs, offset1-offset0);
+			}break;
+		}
+	}
+
+	// collect all render parts into one for returning
+	forI(array_count(stack)) {
+		DrawnTerm* dt = stack + i;
+		RenderPart& rp = dt->context; 
+		self.context.position = Min(self.context.position, rp.position);
+		self.context.bbx = Max(self.context.bbx, self.context.position+rp.position+rp.bbx);
+		self.context.vcount += rp.vcount;
+		self.context.icount += rp.icount;
+	}
+
+	return self.context;
 }
 
 
 void render_element(Element* element) {
+	if(!element->item) {
+		element->item = ui_make_item(0);
+		forI(element->item->drawcmd_count) {
+			ui_drawcmd_remove(&element->item->drawcmds[i]);
+		}
+		element->item->drawcmd_count = 1;
+		element->item->drawcmds = ui_make_drawcmd(1);
+		element->item->id = str8l("hiii");
+	}
 	switch(element->type) {
 		case ElementType_Expression: {
-
+			if(element->expression.root.mathobj){
+				array_init(drawcontext.vertexes, 4, deshi_allocator);
+				array_init(drawcontext.indexes, 6, deshi_allocator); 
+				RenderPart rp = render_term(&element->expression.root);
+				ui_drawcmd_alloc(element->item->drawcmds, Vec2i(rp.vcount, rp.icount));
+				element->item->drawcmds->texture = canvas.ui.font.debug->tex;
+				CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, rp.vstart, rp.vcount*sizeof(Vertex2));
+				CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, rp.istart, rp.icount*sizeof(Vertex2));
+				element->item->dirty = 1;
+				element->item->style.size = {rp.bbx.x,rp.bbx.y};
+			}
 		}break;
 		case ElementType_Graph: {
+
+		}break;
+		case ElementType_NULL: {
 
 		}break;
 	}
@@ -1331,8 +1480,10 @@ void update_canvas(){
 			}
 
 			
-			if(any_key_pressed() && canvas.element.selected) 
+			if(any_key_pressed() && canvas.element.selected){
 				ast_input(&canvas.element.selected->expression);
+				render_element(canvas.element.selected);
+			}
 			
 			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
 			// 	Expression* expr = &canvas.element.selected->expression;

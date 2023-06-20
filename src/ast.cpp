@@ -1018,6 +1018,16 @@ b32 is_digit(u32 codepoint){
 	}
 }
 
+MathObject* math_object_from_string(str8 s) {
+#define str8case(str) case str8_static_hash64(str8_static_t(str))
+	u64 hash = str8_hash64(s);
+	switch(hash) {
+		str8case("+"): return &math_objects.addition;
+	}
+	return 0;
+#undef str8case
+}
+
 // abstracting this out because it can be used in multiple places
 // such as when we make a new placeholder on splitting a number
 // we can call this immediately instead of needing to wait until the 
@@ -1036,57 +1046,44 @@ b32 attempt_to_resolve_placeholder(Expression* expr) {
 		cursor->mathobj = &math_objects.number;
 		return true; // we've already inserted the character for this frame, so we must quit early so we dont do it again below
 	} else {
-		// // check if the current string belongs to any known symbol
-		// auto [idx, found] = mathobj_table_find(&math_objects, str8_hash64(cursor->raw.buffer.fin));
-		// if(found) {
-		// 	// if we find a math object pertaining to the string, we attach the MathObject to this node
-		// 	// and then, if it is a function, create child nodes as placeholders for its arguments
-		// 	cursor->mathobj = (math_objects + idx)->mathobj;
-		// 	switch(cursor->mathobj->type) {
-		// 		case MathObject_Function: {
-		// 			Term** temp;
-		// 			array_init(temp, array_count(cursor->mathobj->parts), deshi_temp_allocator);
-		// 			cursor->part = cursor->mathobj->parts;
-		// 			*array_push(temp) = cursor;
-		// 			forI(cursor->mathobj->func.arity) {
-		// 				Term* t = create_term();
-		// 				ast_insert_last(cursor, t);
-		// 				t->mathobj = math_objects.placeholder;
-		// 				t->part = cursor->mathobj->parts + i + 1;
-		// 				*array_push(temp) = t;
-		// 			}
+		MathObject* mo = math_object_from_string(cursor->raw.buffer.fin);
+		if(!mo) return true;
+		cursor->mathobj = mo;
+		switch(mo->type) {
+			case MathObject_Function: {
+				Term** temp;
+				array_init(temp, mo->func.arity, deshi_temp_allocator);
+				*array_push(temp) = cursor;
+				forI(cursor->mathobj->func.arity) {
+					Term* t = create_term();
+					ast_insert_last(cursor, t);
+					t->mathobj = &math_objects.placeholder;
+					//t->part = cursor->mathobj->parts + i + 1;
+					*array_push(temp) = t;
+				}
 
-		// 			forI(array_count(cursor->mathobj->parts)) {
-		// 				Term* t = temp[i];
-		// 				Part* p = cursor->mathobj->parts + i;
-		// 				if(p->movement.left) {
-		// 					if(p->movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
-		// 					else{
-		// 						t->movement.left = temp[p->movement.left-cursor->mathobj->parts];
-		// 					}
-		// 				}
-		// 				if(p->movement.right) {
-		// 					if(p->movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
-		// 					else{
-		// 						t->movement.right = temp[p->movement.right-cursor->mathobj->parts];
-		// 					}
-		// 				}
-		// 				if(p->movement.up) {
-		// 					if(p->movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
-		// 					else{
-		// 						t->movement.up = temp[p->movement.up-cursor->mathobj->parts];
-		// 					}
-		// 				}
-		// 				if(p->movement.down) {
-		// 					if(p->movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
-		// 					else{
-		// 						t->movement.down = temp[p->movement.down-cursor->mathobj->parts];
-		// 					}
-		// 				}
-		// 			}
-		// 		}break;
-		// 	}
-		// } else return true; // if we still dont have a MathObject, there's nothing more to do
+				forI(array_count(cursor->mathobj->movements)) {
+					Term* t = temp[i];
+					Movement movement = cursor->mathobj->movements[i];
+					if(movement.left) {
+						if(movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
+						else t->movement.left = temp[movement.left];
+					}
+					if(movement.right) {
+						if(movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
+						else t->movement.right = temp[movement.right];
+					}
+					if(movement.up) {
+						if(movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
+						else t->movement.up = temp[movement.up];
+					}
+					if(movement.down) {
+						if(movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
+						else t->movement.down = temp[movement.down];
+					}
+				}
+			}break;
+		}
 	}
 	return false;
 }
