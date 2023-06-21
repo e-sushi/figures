@@ -117,34 +117,50 @@ struct RenderPart{
 	vec2   position; // the position of this part
 	vec2        bbx; // the bounding box formed by child nodes
 	f32     midline; // 
-	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
+	s32      vstart; // index into vertex arena 
+	s32      istart; // index into index arena
+	s32 vcount, icount;
+};
+
+struct DrawChunk {
+	Node node;
+	Vertex2* vstart;
+	s32      vcount;
 	u32*     istart;
-	u32 vcount, icount;
+	s32      icount;
 };
 
 struct{
-	uiItem* item; // the item we are drawing into 
+	uiItem*  item; // the item we are drawing into 
 	Vertex2* vertexes; // vertices created by current render pass
-	u32* indexes; // indicies created by current render pass
-
-	// a stack of RenderParts that the user can refer to 
-	RenderPart* stack;
+	s32      vcount;
+	u32*     indexes; // indicies created by current render pass
+	s32      icount;
 }drawcontext;
+
+vec2i alloc_drawdata(s32 vcount, s32 icount) {
+	vec2i out = {drawcontext.vcount, drawcontext.icount};
+	drawcontext.vcount += vcount;
+	drawcontext.icount += icount;
+	drawcontext.vertexes = (Vertex2*)memrealloc(drawcontext.vertexes, sizeof(Vertex2)*drawcontext.vcount);
+	drawcontext.indexes = (u32*)memrealloc(drawcontext.indexes, sizeof(u32)*drawcontext.icount);
+	return out;
+}
 
 void scale_render_part(RenderPart* part, vec2 scale) {
 	part->bbx.x *= scale.x;
 	part->bbx.y *= scale.y;
 	forI(part->vcount) {
-		(part->vstart + i)->pos.x *= scale.x;
-		(part->vstart + i)->pos.y *= scale.y;
+		(drawcontext.vertexes + part->vstart + i)->pos.x *= scale.x;
+		(drawcontext.vertexes + part->vstart + i)->pos.y *= scale.y;
 	}
 }
 
 void offset_render_part(RenderPart* part, vec2 offset) {
 	part->position += offset;
 	forI(part->vcount) {
-		(part->vstart + i)->pos.x += offset.x;
-		(part->vstart + i)->pos.y += offset.y;
+		(drawcontext.vertexes + part->vstart + i)->pos.x += offset.x;
+		(drawcontext.vertexes + part->vstart + i)->pos.y += offset.y;
 	}
 }
 
@@ -179,19 +195,14 @@ RenderPart render_term(Term* term) {
 
 	DrawnTerm self = {};
 	self.term = term;
-	self.context.vstart = drawcontext.vertexes+1;
-	self.context.istart = drawcontext.indexes+1;
+	self.context.vstart = drawcontext.vcount;
+	self.context.istart = drawcontext.icount;
 
 	// stack of rendered parts for this term's MathObject
 	DrawnTerm* stack; array_init(stack, term->mathobj->display.n_parts, deshi_allocator);
 	forI(term->mathobj->display.n_parts) array_push(stack);
 	defer{array_deinit(stack);};
 
-	// for(Term* t = term->first_child; t; t->next) {
-	// 	RenderPart ret = render_term(term);
-	// 	*array_push(stack) = {ret, term};
-	// }
-	
 	Instruction* instructions = term->mathobj->display.instructions;
 	forI(array_count(instructions)){
 		Instruction instruction = instructions[i];
@@ -217,16 +228,16 @@ RenderPart render_term(Term* term) {
 				vec2i counts = render_make_text_counts(str8_length(s));
 				RenderPart* rp = &(stack + instruction.part)->context;
 				rp->bbx = rp->position = {};
+				vec2i offset = alloc_drawdata(counts.x, counts.y);
 				rp->vcount = counts.x;
-				rp->vstart = array_push(drawcontext.vertexes);
+				rp->vstart = offset.x;
 				rp->icount = counts.y;
-				rp->istart = array_push(drawcontext.indexes);
-				forI(counts.x-1) array_push(drawcontext.vertexes);
-				forI(counts.y-1) array_push(drawcontext.indexes);
-				render_make_text(rp->vstart, rp->istart, {}, s, canvas.ui.font.debug, {0,0}, Color_White, {1,1});
+				rp->istart = offset.y;
+				render_make_text(drawcontext.vertexes, drawcontext.indexes, offset, s, canvas.ui.font.debug, {0,0}, Color_White, {1,1});
+				Vertex2* vstart = drawcontext.vertexes + rp->vstart;
 				forI(counts.x) {
-					if(rp->vstart[i].pos.x > rp->bbx.x) rp->bbx.x = rp->vstart[i].pos.x;
-					if(rp->vstart[i].pos.y > rp->bbx.y) rp->bbx.y = rp->vstart[i].pos.y;
+					if(vstart[i].pos.x > rp->bbx.x) rp->bbx.x = vstart[i].pos.x;
+					if(vstart[i].pos.y > rp->bbx.y) rp->bbx.y = vstart[i].pos.y;
 				}
 			}break;
 			case InstructionType_Align: {
@@ -255,28 +266,44 @@ RenderPart render_term(Term* term) {
 }
 
 
-void render_element(Element* element) {
-	if(!element->item) {
-		element->item = ui_make_item(0);
-		forI(element->item->drawcmd_count) {
-			ui_drawcmd_remove(&element->item->drawcmds[i]);
-		}
-		element->item->drawcmd_count = 1;
-		element->item->drawcmds = ui_make_drawcmd(1);
-		element->item->id = str8l("hiii");
-	}
+void render_element(uiItem* item) {
+	Element* element = (Element*)item->userVar;
 	switch(element->type) {
 		case ElementType_Expression: {
 			if(element->expression.root.mathobj){
-				array_init(drawcontext.vertexes, 4, deshi_allocator);
-				array_init(drawcontext.indexes, 6, deshi_allocator); 
+				drawcontext.vcount = 0;
+				drawcontext.icount = 0;
+				drawcontext.vertexes = (Vertex2*)memalloc(drawcontext.vcount*sizeof(Vertex2));
+				drawcontext.indexes = (u32*)memalloc(drawcontext.icount*sizeof(u32));
 				RenderPart rp = render_term(&element->expression.root);
-				ui_drawcmd_alloc(element->item->drawcmds, Vec2i(rp.vcount, rp.icount));
-				element->item->drawcmds->texture = canvas.ui.font.debug->tex;
-				CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, rp.vstart, rp.vcount*sizeof(Vertex2));
-				CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, rp.istart, rp.icount*sizeof(Vertex2));
+				// reallocate render data if necessary
+				if(rp.vcount != item->drawcmds->counts_reserved.x || rp.icount != item->drawcmds->counts_reserved.y) {
+					Log("", "reserving ", rp.vcount, " vertices and ", rp.icount, " indices.");
+					uiDrawCmd* old = item->drawcmds;
+					item->drawcmds = ui_make_drawcmd(1);
+					ui_drawcmd_remove(old);
+					ui_drawcmd_alloc(item->drawcmds, {rp.vcount, rp.icount});
+					item->drawcmds->texture = canvas.ui.font.debug->tex;
+				}
+				Log("", "have ", element->item->drawcmds->counts_reserved.x, " vertices and ", element->item->drawcmds->counts_reserved.y, " indicies.");
+				Log("", "copying vertices to ", (void*)((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset));
+				Log("", "copying indices to ", (void*)((Vertex2*)g_ui->index_arena->start+element->item->drawcmds->index_offset));
+
+				dstr8 out; dstr8_init(&out, str8l("["), deshi_temp_allocator);
+				forI(drawcontext.icount) {
+					dstr8_append(&out, *(drawcontext.indexes+i), ", ");
+				}
+				dstr8_append(&out, "]");
+				Log("", "indicies: ", out.fin);
+
+				CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, drawcontext.vertexes, drawcontext.vcount*sizeof(Vertex2));
+				CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, drawcontext.indexes, drawcontext.icount*sizeof(Vertex2));
+				element->item->drawcmds->counts_used.x = rp.vcount;
+				element->item->drawcmds->counts_used.y = rp.icount;
+
 				element->item->dirty = 1;
 				element->item->style.size = {rp.bbx.x,rp.bbx.y};
+
 			}
 		}break;
 		case ElementType_Graph: {
@@ -1466,15 +1493,19 @@ void update_canvas(){
 				element->height    = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
 				element->width     = element->height / 2.0;
 				element->type      = ElementType_Expression;
+				ui_push_item(canvas.ui.root);
 				element->item = ui_make_item(0);
 				// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
-				element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.expression", array_count(canvas.element.arr)).fin; 
+				element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.element", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
+				element->item->__generate = render_element;
+				element->item->style.background_color = Color_Grey;
+				element->item->userVar = (u64)element;
+				ui_pop_item(1);
 				element->expression.term_cursor_start = &element->expression.root;
 				element->expression.raw_cursor_start  = 1;
 				dstr8_init(&element->expression.raw, str8l(""), deshi_allocator);
 				element->expression.root.raw = text_init(str8l(""), deshi_allocator);
-				
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
 			}
@@ -1482,7 +1513,7 @@ void update_canvas(){
 			
 			if(any_key_pressed() && canvas.element.selected){
 				ast_input(&canvas.element.selected->expression);
-				render_element(canvas.element.selected);
+				canvas.element.selected->item->dirty = 1;
 			}
 			
 			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){

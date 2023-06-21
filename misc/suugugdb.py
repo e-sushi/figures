@@ -34,7 +34,6 @@ gdb.printing.register_pretty_printer(gdb.current_objfile(), pp)
 class PrintTermTree(gdb.Command):
     def __init__(self):
         super(PrintTermTree, self).__init__("ptt", gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
-        self.layers = 0
 
     def print_tree(self, node:gdb.Value):
         self.dot.node(str(node), str(node['raw']))
