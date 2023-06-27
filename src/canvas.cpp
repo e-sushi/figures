@@ -111,56 +111,29 @@ local const char* context_dropdown_option_strings[] = {
 };
 
 
-
-
-struct RenderPart{
-	vec2   position; // the position of this part
-	vec2        bbx; // the bounding box formed by child nodes
-	f32     midline; // 
-	s32      vstart; // index into vertex arena 
-	s32      istart; // index into index arena
-	s32 vcount, icount;
-};
-
-struct DrawChunk {
-	Node node;
-	Vertex2* vstart;
-	s32      vcount;
-	u32*     istart;
-	s32      icount;
-};
-
-struct{
-	uiItem*  item; // the item we are drawing into 
-	Vertex2* vertexes; // vertices created by current render pass
-	s32      vcount;
-	u32*     indexes; // indicies created by current render pass
-	s32      icount;
-}drawcontext;
-
-vec2i alloc_drawdata(s32 vcount, s32 icount) {
-	vec2i out = {drawcontext.vcount, drawcontext.icount};
-	drawcontext.vcount += vcount;
-	drawcontext.icount += icount;
-	drawcontext.vertexes = (Vertex2*)memrealloc(drawcontext.vertexes, sizeof(Vertex2)*drawcontext.vcount);
-	drawcontext.indexes = (u32*)memrealloc(drawcontext.indexes, sizeof(u32)*drawcontext.icount);
+vec2i alloc_drawdata(Element* element, s32 vcount, s32 icount) {
+	vec2i out = {element->drawdata.vcount, element->drawdata.icount};
+	element->drawdata.vcount += vcount;
+	element->drawdata.icount += icount;
+	element->drawdata.vertexes = (Vertex2*)memrealloc(element->drawdata.vertexes, sizeof(Vertex2)*element->drawdata.vcount);
+	element->drawdata.indexes = (u32*)memrealloc(element->drawdata.indexes, sizeof(u32)*element->drawdata.icount);
 	return out;
 }
 
-void scale_render_part(RenderPart* part, vec2 scale) {
+void scale_render_part(Element* element, RenderPart* part, vec2 scale) {
 	part->bbx.x *= scale.x;
 	part->bbx.y *= scale.y;
 	forI(part->vcount) {
-		(drawcontext.vertexes + part->vstart + i)->pos.x *= scale.x;
-		(drawcontext.vertexes + part->vstart + i)->pos.y *= scale.y;
+		(element->drawdata.vertexes + part->vstart + i)->pos.x *= scale.x;
+		(element->drawdata.vertexes + part->vstart + i)->pos.y *= scale.y;
 	}
 }
 
-void offset_render_part(RenderPart* part, vec2 offset) {
+void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
 	part->position += offset;
 	forI(part->vcount) {
-		(drawcontext.vertexes + part->vstart + i)->pos.x += offset.x;
-		(drawcontext.vertexes + part->vstart + i)->pos.y += offset.y;
+		(element->drawdata.vertexes + part->vstart + i)->pos.x += offset.x;
+		(element->drawdata.vertexes + part->vstart + i)->pos.y += offset.y;
 	}
 }
 
@@ -187,124 +160,146 @@ vec2 get_position(RenderPart* part, Position position) {
 
 */
 
-RenderPart render_term(Term* term) {
-	struct DrawnTerm{
-		RenderPart context;
-		Term* term;
-	};
+#if 0
+#define RenderLog(...) Log("suugu_render", __VA_ARGS__)
+#else
+#define RenderLog(...)
+#endif
 
-	DrawnTerm self = {};
-	self.term = term;
-	self.context.vstart = drawcontext.vcount;
-	self.context.istart = drawcontext.icount;
 
-	// stack of rendered parts for this term's MathObject
-	DrawnTerm* stack; array_init(stack, term->mathobj->display.n_parts, deshi_allocator);
-	forI(term->mathobj->display.n_parts) array_push(stack);
-	defer{array_deinit(stack);};
+RenderPart render_term(Term* term, Element* element) {
+	logger_push_indent(1);
+	defer{logger_pop_indent(1);};
+
+	u32 self = array_count(element->expression.rendered_parts);
+	array_push(element->expression.rendered_parts);
+	u32 part_start;
+	if(term->mathobj->display.n_parts > 1) {
+		part_start = self + 1;
+		array_push(element->expression.rendered_parts);
+		(element->expression.rendered_parts + self)->type = RenderPart_Group;
+		(element->expression.rendered_parts + self + 1)->term = term;
+	} else {
+		part_start = self;
+		(element->expression.rendered_parts + self)->type = RenderPart_Individual;
+	} 
+
+	(element->expression.rendered_parts + self)->term = term;
+	(element->expression.rendered_parts + self)->vstart = MAX_S32;
+	(element->expression.rendered_parts + self)->istart = MAX_S32;
+
+	u32* proper_indexes;
+	array_init(proper_indexes, 1, deshi_allocator);
+	defer{array_deinit(proper_indexes);};
+	*array_push(proper_indexes) = part_start;
 
 	Instruction* instructions = term->mathobj->display.instructions;
 	forI(array_count(instructions)){
 		Instruction instruction = instructions[i];
 		switch(instruction.type) {
 			case InstructionType_RenderChild: {
+				RenderLog("rendering child ", instruction.part);
 				Term* node = term->first_child;
 				forI(instruction.renderchild.child) node = node->next;
-				DrawnTerm* dt = stack + instruction.part;
-				dt->context = render_term(node);
-				dt->term = node;
+				RenderPart* dt = element->expression.rendered_parts + part_start + instruction.part;
+				*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
+				render_term(node, element);
 			}break;
 			case InstructionType_Text: {
+				RenderLog("drawing text");
 				TextInstruction& text = instruction.text;
 				str8 s;
 				switch(text.type) {
 					case Text_Literal: s = text.literal; break;
 					case Text_TermRaw: {
-						DrawnTerm dt = stack[text.term];
-						Assert(dt.term, "TermRaw Text Instruction was given an index into the stack that does not belong to a Term.");
-						s = dt.term->raw.buffer.fin;
+						RenderPart rp = element->expression.rendered_parts[part_start + text.term];
+						Assert(rp.term, "TermRaw Text Instruction was given an index into the stack that does not belong to a Term.");
+						s = rp.term->raw.buffer.fin;
 					}break;
 				}
 				vec2i counts = render_make_text_counts(str8_length(s));
-				RenderPart* rp = &(stack + instruction.part)->context;
+				RenderPart* rp = element->expression.rendered_parts + proper_indexes[instruction.part];
 				rp->bbx = rp->position = {};
-				vec2i offset = alloc_drawdata(counts.x, counts.y);
+				vec2i offset = alloc_drawdata(element, counts.x, counts.y);
 				rp->vcount = counts.x;
 				rp->vstart = offset.x;
 				rp->icount = counts.y;
 				rp->istart = offset.y;
-				render_make_text(drawcontext.vertexes, drawcontext.indexes, offset, s, canvas.ui.font.debug, {0,0}, Color_White, {1,1});
-				Vertex2* vstart = drawcontext.vertexes + rp->vstart;
+				render_make_text(element->drawdata.vertexes, element->drawdata.indexes, offset, s, canvas.ui.font.debug, {0,0}, Color_White, vec2::ONE*element->item->style.font_height / element->item->style.font->max_height);
+				Vertex2* vstart = element->drawdata.vertexes + rp->vstart;
 				forI(counts.x) {
 					if(vstart[i].pos.x > rp->bbx.x) rp->bbx.x = vstart[i].pos.x;
 					if(vstart[i].pos.y > rp->bbx.y) rp->bbx.y = vstart[i].pos.y;
 				}
 			}break;
 			case InstructionType_Align: {
+				RenderLog("aligning");
 				AlignInstruction& align = instruction.align;
-				RenderPart* lhs = &stack[align.lhs.part].context;
-				RenderPart* rhs = &stack[align.rhs.part].context;
-				
+				RenderPart* lhs = element->expression.rendered_parts + proper_indexes[align.lhs.part];
+				RenderPart* rhs = element->expression.rendered_parts + proper_indexes[align.rhs.part];
+				RenderLog("  ", lhs->term->raw.buffer.fin, "  ->  ", rhs->term->raw.buffer.fin);
+
 				vec2 offset0 = get_position(lhs, align.lhs.position);
 				vec2 offset1 = get_position(rhs, align.rhs.position);
-				offset_render_part(lhs, offset1-offset0);
+				offset_render_part(element, lhs, offset1-offset0);
+				RenderLog("  by offset ", offset1-offset0);
 			}break;
 		}
 	}
 
-	// collect all render parts into one for returning
-	forI(array_count(stack)) {
-		DrawnTerm* dt = stack + i;
-		RenderPart& rp = dt->context; 
-		self.context.position = Min(self.context.position, rp.position);
-		self.context.bbx = Max(self.context.bbx, self.context.position+rp.position+rp.bbx);
-		self.context.vcount += rp.vcount;
-		self.context.icount += rp.icount;
-	}
+	RenderPart* fin = element->expression.rendered_parts + self;
+	if(term->mathobj->display.n_parts > 1) {
+		RenderPart* iter = fin + 1;
+		forI(term->mathobj->display.n_parts) {
+			RenderLog("child ", i);
+			RenderLog("  raw: ", iter->term->raw.buffer.fin);
+			RenderLog("  pos: ", iter->position);
+			RenderLog("  bbx: ", iter->bbx);
+			RenderLog("  vco: ", iter->vcount);
+			RenderLog("  ico: ", iter->icount);
+			fin->position = Min(fin->position, iter->position);
+			fin->bbx = Max(fin->bbx, fin->position+iter->position+iter->bbx);
+			fin->vcount += iter->vcount;
+			fin->icount += iter->icount;
+			fin->vstart = Min(fin->vstart, iter->vstart);
+			fin->istart = Min(fin->istart, iter->istart);
+			if(iter->type == RenderPart_Group) {
+				iter += iter->term->mathobj->display.n_parts+1;
+			} else iter += 1;
+		}
+	} 
 
-	return self.context;
+	RenderLog("finished ", fin->term->raw);
+	RenderLog("  raw: ", fin->term->raw.buffer.fin);
+	RenderLog("  pos: ", fin->position);
+	RenderLog("  bbx: ", fin->bbx);
+	RenderLog("  vco: ", fin->vcount);
+	RenderLog("  ico: ", fin->icount);
+
+	return *fin;
 }
-
 
 void render_element(uiItem* item) {
 	Element* element = (Element*)item->userVar;
 	switch(element->type) {
 		case ElementType_Expression: {
-			if(element->expression.root.mathobj){
-				drawcontext.vcount = 0;
-				drawcontext.icount = 0;
-				drawcontext.vertexes = (Vertex2*)memalloc(drawcontext.vcount*sizeof(Vertex2));
-				drawcontext.indexes = (u32*)memalloc(drawcontext.icount*sizeof(u32));
-				RenderPart rp = render_term(&element->expression.root);
-				// reallocate render data if necessary
-				if(rp.vcount != item->drawcmds->counts_reserved.x || rp.icount != item->drawcmds->counts_reserved.y) {
-					Log("", "reserving ", rp.vcount, " vertices and ", rp.icount, " indices.");
-					uiDrawCmd* old = item->drawcmds;
-					item->drawcmds = ui_make_drawcmd(1);
-					ui_drawcmd_remove(old);
-					ui_drawcmd_alloc(item->drawcmds, {rp.vcount, rp.icount});
-					item->drawcmds->texture = canvas.ui.font.debug->tex;
-				}
-				Log("", "have ", element->item->drawcmds->counts_reserved.x, " vertices and ", element->item->drawcmds->counts_reserved.y, " indicies.");
-				Log("", "copying vertices to ", (void*)((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset));
-				Log("", "copying indices to ", (void*)((Vertex2*)g_ui->index_arena->start+element->item->drawcmds->index_offset));
-
-				dstr8 out; dstr8_init(&out, str8l("["), deshi_temp_allocator);
-				forI(drawcontext.icount) {
-					dstr8_append(&out, *(drawcontext.indexes+i), ", ");
-				}
-				dstr8_append(&out, "]");
-				Log("", "indicies: ", out.fin);
-
-				CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, drawcontext.vertexes, drawcontext.vcount*sizeof(Vertex2));
-				CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, drawcontext.indexes, drawcontext.icount*sizeof(Vertex2));
-				element->item->drawcmds->counts_used.x = rp.vcount;
-				element->item->drawcmds->counts_used.y = rp.icount;
-
-				element->item->dirty = 1;
-				element->item->style.size = {rp.bbx.x,rp.bbx.y};
-
+			if(element->drawdata.vcount != item->drawcmds->counts_reserved.x || element->drawdata.icount != item->drawcmds->counts_reserved.y) {
+				uiDrawCmd* old = item->drawcmds;
+				item->drawcmds = ui_make_drawcmd(1);
+				ui_drawcmd_remove(old);
+				ui_drawcmd_alloc(item->drawcmds, {element->drawdata.vcount, element->drawdata.icount});
+				item->drawcmds->texture = canvas.ui.font.debug->tex;
 			}
+			CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, element->drawdata.vertexes, element->drawdata.vcount*sizeof(Vertex2));
+			CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, element->drawdata.indexes, element->drawdata.icount*sizeof(u32));
+			Vertex2* arr = (Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset;
+			forI(element->drawdata.vcount) {
+				Vertex2* v = arr + i;
+				v->pos.x += item->pos_screen.x;
+				v->pos.y += item->pos_screen.y;
+			}
+			memzfree(element->drawdata.vertexes);
+			memzfree(element->drawdata.indexes);
 		}break;
 		case ElementType_Graph: {
 
@@ -315,530 +310,94 @@ void render_element(uiItem* item) {
 	}
 }
 
-////////////////////
-//// @draw_term ////
-////////////////////
-struct DrawContext{
-	vec2        bbx; // the bounding box formed by child nodes
-	f32     midline; // 
-	Vertex2* vstart; // we must save these for the parent node to readjust what the child node makes
-	u32*     istart;
-	u32 vcount, icount;
-};
+void evaluate_element(uiItem* item) {
+	RenderLog("", "-------------------------------- render start");
+	Element* element = (Element*)item->userVar;
+	array_deinit(element->expression.rendered_parts);
+	array_init(element->expression.rendered_parts, 4, deshi_allocator);
+	array_deinit(element->expression.position_map.x);
+	array_deinit(element->expression.position_map.y);
+	array_init(element->expression.position_map.x, 4, deshi_allocator);
+	array_init(element->expression.position_map.y, 4, deshi_allocator);
 
-struct{ //information for the current instance of draw_term, this will need to be its own thing if we ever do multithreading here somehow
-	// TODO(sushi) convert to new ui
-	//UIItem_old* item;
-	//UIDrawCmd drawCmd = UIDrawCmd(1);
-	vec2 cursor_start;
-	f32 cursor_y;
-	b32 initialized = false;
-}drawinfo;
+	switch(element->type) {
+		case ElementType_Expression:{ 
+			if(element->expression.handle.root.mathobj){
+				element->drawdata.vcount = 0;
+				element->drawdata.icount = 0;
+				element->drawdata.vertexes = (Vertex2*)memalloc(sizeof(Vertex2));
+				element->drawdata.indexes = (u32*)memalloc(sizeof(u32));
+				RenderPart rp = render_term(&element->expression.handle.root, element);
+				element->item->drawcmds->counts_used.x = rp.vcount;
+				element->item->drawcmds->counts_used.y = rp.icount;
+				element->item->size = {rp.bbx.x, rp.bbx.y};
 
-struct{
-	f32  additive_padding = 5;                 //padding between + or - and it's operands
-	f32  multiplication_explicit_padding = 3;  //padding between * and it's operands
-	f32  multiplication_implicit_padding = 3;  //padding between implicit multiplication operands
-	f32  division_padding = 0;                 //padding between division's line and it's operands
-	f32  division_scale = 0.8;                 //how much to scale division's operands by 
-	f32  division_line_overreach = 3;          //how many pixels of over reach the division line has in both directions
-	f32  division_line_thickness = 3;          //how thick the division line is 
-	vec2 exponential_offset = Vec2(-4,-10);    //offset of exponent
-	f32  exponential_scaling = 0.7;            //amount to scale the exponent by
-}drawcfg;
+				forI(array_count(element->expression.rendered_parts)) {
+					RenderPart rp = element->expression.rendered_parts[i];
+					if(rp.type == RenderPart_Group) {
+						RenderLog(i, " group");
+					} else {
+						RenderLog(i, " indiv");
+					}
+					RenderLog("  raw: ", rp.term->raw.buffer.fin);
+					RenderLog("  pos: ", rp.position);
+					RenderLog("  bbx: ", rp.bbx);
+					RenderLog("    v: ", rp.vstart, " -> ", rp.vstart + rp.vcount);
+					RenderLog("    i: ", rp.istart, " -> ", rp.istart + rp.icount);
 
-//NOTE(sushi): in this setup we are depth-first drawing things and readjusting in parent nodes
-//			   this means the memory is organized backwards and when we readjust we just interate from the start of
-//			   the drawCmd's vertices to the overall count
-//NOTE(sushi): we also dont abide by UIDRAWCMD_MAX_* macros here either, which may cause issues later. this is due 
-//             to the setup described above and avoids chunking the data of UIDrawCmds and making readjusting them awkward
-//NOTE(delle): the cursor is drawn to the right of the character it represents
-//TODO(sushi) remove the expr arg and make it part of drawinfo
-//TODO(sushi) copy how an empty expression looks from draw_term_old()
-DrawContext draw_term(Expression* expr, Term* mathobj){DPZoneScoped;
-	FixMe;
-	// using namespace UI;
-	// DPTracyDynMessage(toStr("initialized: ", drawinfo.initialized));
-	// if(mathobj == 0) return DrawContext();
-	// if(!drawinfo.initialized) return DrawContext();
-	// //initializing internally has some issues so for now drawinfo must be initialized before calling this function
-	// //if(!drawinfo.initialized){
-	// //	drawinfo.item = BeginCustomItem();
-	// //	drawinfo.drawCmd = UIDrawCmd();
-	// //	drawinfo.initialized = true;
-	// //	drawinfo.item->position = GetWinCursor();
-	// //}
-	// //drawcfg.additive_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
-	// //drawcfg.division_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
-	// //drawcfg.multiplication_explicit_padding = 10 * (sin(DeshTotalTime/1000)+1)/2;
-	
-	// UIItem_old* item   = drawinfo.item; //:)
-	// UIDrawCmd& drawCmd = drawinfo.drawCmd;
-	// UIStyle_old style  = GetStyle();
-	// f32 fontHeight = style.fontHeight;
-	// DrawContext drawContext;
-	// drawContext.vcount = 0;
-	// drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-	// drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
-	
-	// const color textColor = style.colors[UIStyleCol_Text];
-	// const vec2  textScale = vec2::ONE * style.fontHeight / (f32)style.font->max_height;
-	// const vec2  spaceSize = CalcTextSize(str8l(" "));
-	
-	// //this function checks that the shape we are about to add to the drawcmd does not overrun its buffers
-	// //if it will we just add the drawcmd to the item and make a new one
-	// auto check_drawcmd = [&](u32 vcount, u32 icount){
-	// 	if(drawCmd.counts.x + vcount > UIDRAWCMD_MAX_VERTICES || drawCmd.counts.y + icount > UIDRAWCMD_MAX_INDICES){
-	// 		CustomItem_AddDrawCmd(item, drawCmd);
-	// 		drawCmd.vertices = (Vertex2*)memtrealloc(drawCmd.vertices, drawCmd.counts.x*2);
-	// 		drawCmd.indices  = (u32*)memtrealloc(drawCmd.indices, drawCmd.counts.y*2);
-	// 		drawContext.vstart = drawCmd.vertices;
-	// 		drawContext.istart = drawCmd.indices;
-	// 	}
-	// };
-	
-	// auto debug_rect = [&](vec2 pos, vec2 size){
-	// 	check_drawcmd(8,24);
-	// 	drawContext.vcount += 8;
-	// 	drawContext.icount += 24;
-	// 	CustomItem_DCMakeRect(drawCmd, pos, size, 1, Color_Red);
-	// };
-	
-	// auto debug_line = [&](vec2 start, vec2 end){
-	// 	check_drawcmd(4,6);
-	// 	drawContext.vcount += 4;
-	// 	drawContext.icount += 6;
-	// 	CustomItem_DCMakeLine(drawCmd, start, end, 1, Color_Cyan);
-	// };
-	
-	// switch(mathobj->type){
-	// 	case TermType_Expression:{
-	// 		Expression* expr = ExpressionFromTerm(mathobj);
-	// 		vec2 mmbbx = vec2::ZERO; //expression bounding box
-			
-	// 		//draw leading space
-	// 		check_drawcmd(4,6);
-	// 		CustomItem_DCMakeText(drawCmd, str8l(" "), vec2::ZERO, textColor, textScale);
-	// 		mmbbx.x += spaceSize.x;
-	// 		mmbbx.y  = Max(mmbbx.y, spaceSize.y);
-			
-	// 		//draw right paren if its the cursor character
-	// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-	// 			str8 rightParen = str8l(")");
-	// 			vec2 rightParenSize = CalcTextSize(rightParen);
-	// 			check_drawcmd(4,6);
-	// 			u32 voffset = (u32)drawCmd.counts.x;
-	// 			CustomItem_DCMakeText(drawCmd, rightParen, vec2::ZERO, textColor, textScale);
-	// 			drawCmd.vertices[voffset+0].pos.x += mmbbx.x;
-	// 			drawCmd.vertices[voffset+1].pos.x += mmbbx.x;
-	// 			drawCmd.vertices[voffset+2].pos.x += mmbbx.x;
-	// 			drawCmd.vertices[voffset+3].pos.x += mmbbx.x;
-	// 			mmbbx.x += rightParenSize.x;
-	// 			mmbbx.y  = Max(mmbbx.y, rightParenSize.y);
-	// 		}
-			
-	// 		if(mathobj->child_count){
-	// 			//draw first mathobj
-	// 			drawContext = draw_term(expr, mathobj->first_child);
-	// 			forI(drawContext.vcount){
-	// 				(drawContext.vstart + i)->pos.x += mmbbx.x;
-	// 			}
-	// 			mmbbx.x += drawContext.bbx.x;
-	// 			mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
-				
-	// 			//draw other terms separated by spaces if the expression is invalid
-	// 			for_node(mathobj->first_child->next){
-	// 				check_drawcmd(4,6);
-	// 				CustomItem_DCMakeText(drawCmd, str8l(" "), vec2::ZERO, textColor, textScale);
-	// 				mmbbx.x += spaceSize.x;
-	// 				mmbbx.y  = Max(mmbbx.y, spaceSize.y);
-					
-	// 				drawContext = draw_term(expr, it);
-	// 				forI(drawContext.vcount){
-	// 					(drawContext.vstart + i)->pos.x += mmbbx.x;
-	// 				}
-	// 				mmbbx.x += drawContext.bbx.x;
-	// 				mmbbx.y = Max(mmbbx.y, drawContext.bbx.y);
-	// 			}
-	// 		}
-			
-	// 		//draw solution if it's valid
-	// 		//TODO this
-			
-	// 		//draw trailing space
-	// 		check_drawcmd(4,6);
-	// 		CustomItem_DCMakeText(drawCmd, str8l(" "), vec2::ZERO, textColor, textScale);
-	// 		mmbbx.x += spaceSize.x;
-	// 		mmbbx.y  = Max(mmbbx.y, spaceSize.y);
-			
-	// 		//expression is the topmost node so drawing will always be finished when it finishes (i hope)
-	// 		item->size = mmbbx;
-	// 		CustomItem_AdvanceCursor(item);
-	// 		CustomItem_AddDrawCmd(item, drawCmd);
-			
-	// 		//EndCustomItem();
-	// 		//drawinfo.initialized = false;			
-	// 	}break;
-		
-	// 	case TermType_Operator:{
-	// 		switch(mathobj->op_type){
-	// 			case OpType_Parentheses:{
-	// 				str8 syml = str8_lit("(");
-	// 				str8 symr = str8_lit(")");
-	// 				f32  ratio = 1; //ratio of parenthesis to drawn child nodes over y
-	// 				vec2 symsize = CalcTextSize(syml); // i sure hope theres no font with different sizes for these
-	// 				drawContext.vstart = drawCmd.vertices + u32(drawCmd.counts.x);
-	// 				drawContext.istart = drawCmd.indices  + u32(drawCmd.counts.y);
-	// 				if(mathobj->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					ratio = ret.bbx.y / symsize.y;
-	// 					forI(ret.vcount){
-	// 						(ret.vstart + i)->pos.x += symsize.x;
-	// 					}
-	// 					drawContext.bbx.x = ret.bbx.x + 2*symsize.x;
-	// 					drawContext.bbx.y = Max(symsize.y, ret.bbx.y);
-	// 					drawContext.vcount = ret.vcount+8;
-	// 					drawContext.icount = ret.icount+12;
-	// 					check_drawcmd(8,12);
-	// 					CustomItem_DCMakeText(drawCmd, syml, Vec2(0, 0), textColor, Vec2(1, ratio) * textScale);
-	// 					if(HasFlag(mathobj->flags, TermFlag_LeftParenHasMatchingRightParen)){
-	// 						CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x + ret.bbx.x, 0), textColor, Vec2(1, ratio) * textScale);
-	// 					}
-	// 					else{
-	// 						CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x + ret.bbx.x, 0), textColor * 0.3, Vec2(1, ratio) * textScale);
-	// 					}
-	// 					drawContext.midline = ret.midline;
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					drawContext.bbx.x = symsize.x*2;
-	// 					drawContext.bbx.y = symsize.y;
-	// 					drawContext.vcount = 8;
-	// 					drawContext.icount = 12;
-	// 					drawContext.midline = drawContext.bbx.y/2;
-	// 					check_drawcmd(8,12);
-	// 					CustomItem_DCMakeText(drawCmd, syml, Vec2(0, (drawContext.bbx.y - symsize.y) / 2), textColor, Vec2(1, ratio) * textScale);
-	// 					CustomItem_DCMakeText(drawCmd, symr, Vec2(symsize.x, (drawContext.bbx.y - symsize.y) / 2), textColor, Vec2(1, ratio) * textScale);
-	// 				}
-	// 				else{
-	// 					Log("", "Parenthesis has more than 1 child");
-	// 				}
-					
-	// 			}break;
-				
-	// 			case OpType_Exponential:{
-	// 				if(mathobj->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
-	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
-	// 					retr.bbx *= drawcfg.exponential_scaling;
-	// 					forI(retr.vcount){
-	// 						(retr.vstart + i)->pos.x *= drawcfg.exponential_scaling;
-	// 						(retr.vstart + i)->pos.y *= drawcfg.exponential_scaling;
-	// 						(retr.vstart + i)->pos.x += retl.bbx.x + drawcfg.exponential_offset.x;
-	// 					}
-	// 					forI(retl.vcount){
-	// 						(retl.vstart + i)->pos.y += retr.bbx.y + drawcfg.exponential_offset.y;
-	// 					}
-	// 					drawContext.bbx.x = retl.bbx.x + retr.bbx.x + drawcfg.exponential_offset.x;
-	// 					drawContext.bbx.y = retl.bbx.y + retr.bbx.y + drawcfg.exponential_offset.y;
-	// 					drawContext.vcount = retl.vcount + retr.vcount;
-	// 					drawContext.midline = retl.bbx.y/2 + retr.bbx.y + drawcfg.exponential_offset.y;
-	// 				}
-	// 				else if(mathobj->child_count == 1){
-	// 					vec2 size = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
-	// 						forI(ret.vcount){
-	// 							(ret.vstart + i)->pos.y += size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
-	// 						}
-	// 						check_drawcmd(4,6);
-	// 						CustomItem_DCMakeFilledRect(drawCmd, Vec2(ret.bbx.x+drawcfg.exponential_offset.x, 0), size*drawcfg.exponential_scaling, Color_DarkGrey);
-	// 						drawContext.vcount = ret.vcount + 4;
-	// 						drawContext.bbx.x = ret.bbx.x + size.x * drawcfg.exponential_scaling + drawcfg.exponential_offset.x;
-	// 						drawContext.bbx.y = ret.bbx.y + size.y * drawcfg.exponential_scaling + drawcfg.exponential_offset.y;
-	// 						drawContext.midline = ret.bbx.y/2 + size.y*drawcfg.exponential_scaling + drawcfg.exponential_offset.y; 
-	// 					}
-	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
-	// 						Assert(!"The AST should not support placing a ^ when it's not preceeded by a valid mathobj");
-	// 					}
-						
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					Assert(!"why did this happen");
-	// 				}
-	// 			}break;
-				
-	// 			case OpType_Negation:{
-	// 				str8 sym = str8_lit("-");
-	// 				vec2 symsize = CalcTextSize(sym);
-	// 				if(mathobj->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					forI(ret.vcount){
-	// 						(ret.vstart + i)->pos.x += symsize.x;
-	// 					}
-	// 					drawContext.bbx.x = ret.bbx.x + symsize.x;
-	// 					drawContext.bbx.y = Max(ret.bbx.y, symsize.y);
-	// 					drawContext.vcount += ret.vcount + 4;
-	// 					check_drawcmd(4,6);
-	// 					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					drawContext.bbx = symsize;
-	// 					drawContext.vcount = 4;
-	// 					check_drawcmd(4,6);
-	// 					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
-	// 				}
-	// 				else Assert(!"unary op has more than 1 child");
-	// 				return drawContext;
-	// 			}break;
-				
-	// 			case OpType_ImplicitMultiplication:{
-	// 				if(mathobj->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
-	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
-	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
-	// 					forI(retl.vcount){
-	// 						(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
-	// 					}
-	// 					forI(retr.vcount){
-	// 						(retr.vstart + i)->pos.x += retl.bbx.x + drawcfg.multiplication_implicit_padding;
-	// 						(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
-	// 					}
-	// 					drawContext.vcount = retl.vcount + retr.vcount;
-	// 					drawContext.bbx.x = retl.bbx.x+retr.bbx.x+drawcfg.multiplication_implicit_padding;
-	// 					drawContext.bbx.y = Max(retl.bbx.y, retr.bbx.y);
-	// 				}
-	// 				else{
-	// 					Assert(!"please tell me (sushi) if this happens");
-	// 				}
-	// 			}break;
-				
-	// 			case OpType_ExplicitMultiplication:{
-	// 				f32 radius = 4;
-	// 				if(mathobj->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
-	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
-	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
-	// 					forI(retl.vcount){
-	// 						(retl.vstart + i)->pos.y += (refbbx.y - retl.bbx.y)/2;
-	// 					}
-	// 					forI(retr.vcount){
-	// 						(retr.vstart + i)->pos.x += retl.bbx.x + 2*radius + drawcfg.multiplication_explicit_padding*2;
-	// 						(retr.vstart + i)->pos.y += (refbbx.y - retr.bbx.y) / 2;
-	// 					}
-	// 					drawContext.vcount = retl.vcount + retr.vcount + render_make_circle_counts(15).x;
-	// 					drawContext.bbx.x = retl.bbx.x + retr.bbx.r + 2*radius + 2*drawcfg.multiplication_explicit_padding;
-	// 					drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y, radius*2));
-	// 					check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
-	// 					CustomItem_DCMakeFilledCircle(drawCmd, Vec2(retl.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor); 
-	// 				}
-	// 				else if(mathobj->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					drawContext.bbx = Vec2(ret.bbx.x+radius*2+drawcfg.additive_padding*2, Max(radius*2, ret.bbx.y));
-	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
-	// 						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
-	// 						CustomItem_DCMakeFilledCircle(drawCmd, Vec2(ret.bbx.x+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
-	// 					}
-	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
-	// 						forI(ret.vcount){
-	// 							(ret.vstart + i)->pos.x += radius*2+drawcfg.additive_padding*2;
-	// 						}
-	// 						check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
-	// 						CustomItem_DCMakeFilledCircle(drawCmd, Vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
-	// 					}
-	// 					drawContext.vcount = ret.vcount + render_make_circle_counts(15).x;
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio,style.fontHeight);
-	// 					check_drawcmd(render_make_circle_counts(15).x,render_make_circle_counts(15).y);
-	// 					drawContext.vcount = render_make_circle_counts(15).x;
-	// 					CustomItem_DCMakeFilledCircle(drawCmd, Vec2(radius+drawcfg.multiplication_explicit_padding, drawContext.bbx.y/2), radius, 15, textColor);
-	// 				}
-	// 			}break;
-				
-	// 			case OpType_Division:{
-	// 				if(mathobj->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
-	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
-	// 					retl.bbx *= drawcfg.division_scale;
-	// 					retr.bbx *= drawcfg.division_scale; 
-	// 					vec2 refbbx = Max(retl.bbx, retr.bbx);
-	// 					refbbx.x += drawcfg.division_line_overreach*2;
-	// 					for(Vertex2* v = retl.vstart; v != retr.vstart; v++){
-	// 						v->pos.x *= drawcfg.division_scale;
-	// 						v->pos.y *= drawcfg.division_scale;
-	// 						v->pos.x += (refbbx.x - retl.bbx.x) / 2; 
-	// 					}
-	// 					forI(retr.vcount){
-	// 						(retr.vstart + i)->pos.x *= drawcfg.division_scale;
-	// 						(retr.vstart + i)->pos.y *= drawcfg.division_scale;
-	// 						(retr.vstart + i)->pos.x += (refbbx.x - retr.bbx.x) / 2;
-	// 						(retr.vstart + i)->pos.y += retl.bbx.y + drawcfg.division_padding;
-	// 					}
-	// 					drawContext.vcount = retl.vcount + retr.vcount + 4;
-	// 					drawContext.bbx = Vec2(refbbx.x, retl.bbx.y+drawcfg.division_padding+retr.bbx.y);
-	// 					check_drawcmd(4,6);
-	// 					f32 liney = retl.bbx.y+(drawcfg.division_padding-drawcfg.division_line_thickness/2);
-	// 					drawContext.midline = liney;
-	// 					CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),  Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
-	// 				}
-	// 				else if(mathobj->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					drawContext.bbx = Vec2(ret.bbx.x+drawcfg.division_line_overreach*2, ret.bbx.y*2+drawcfg.division_padding);
-	// 					f32 liney = (drawContext.bbx.y-drawcfg.division_line_thickness)/2;
-	// 					drawContext.midline = liney;
-	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
-	// 						forI(ret.vcount){
-	// 							(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
-	// 						}
-	// 						check_drawcmd(4,6);
-	// 						CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
-	// 					}
-	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
-	// 						forI(ret.vcount){
-	// 							(ret.vstart + i)->pos.x += (drawContext.bbx.x-ret.bbx.x)/2;
-	// 							(ret.vstart + i)->pos.y += drawContext.bbx.y-ret.bbx.y;
-	// 						}
-	// 						check_drawcmd(4,6);
-	// 						CustomItem_DCMakeLine(drawCmd, Vec2(0, liney),Vec2(drawContext.bbx.x, liney), drawcfg.division_line_thickness, textColor);
-	// 					}
-	// 					drawContext.vcount = ret.vcount + 4;
-	// 					drawContext.icount = ret.icount + 6;
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					drawContext.bbx = Vec2(style.fontHeight*style.font->aspect_ratio+2*drawcfg.division_line_overreach, style.fontHeight*2+drawcfg.division_padding);
-	// 					drawContext.vcount = 4;
-	// 					drawContext.icount = 6;
-	// 					drawContext.midline = drawContext.bbx.y / 2;
-	// 					check_drawcmd(4,6);
-	// 					CustomItem_DCMakeLine(drawCmd, Vec2(0, drawContext.bbx.y/2),Vec2(drawContext.bbx.x, drawContext.bbx.y/2), 1, textColor);
-	// 				}
-	// 			}break;
-				
-	// 			case OpType_Modulo:
-	// 			case OpType_Addition:
-	// 			case OpType_Subtraction:{
-	// 				str8 sym;
-	// 				if(mathobj->op_type == OpType_Addition)         sym = STR8("+");
-	// 				else if(mathobj->op_type == OpType_Subtraction) sym = STR8("−");
-	// 				else if(mathobj->op_type == OpType_Modulo)      sym = STR8("%");
-	// 				vec2 symsize = CalcTextSize(sym);
-					
-	// 				//this can maybe be a switch
-	// 				//both children exist so proceed normally
-	// 				if(mathobj->child_count == 2){
-	// 					DrawContext retl = draw_term(expr, mathobj->first_child);
-	// 					DrawContext retr = draw_term(expr, mathobj->last_child);
-	// 					b32 leftdominant = retl.midline > retr.midline;
-	// 					f32 maxmidl = (leftdominant ? retl.midline : retr.midline);
-	// 					vec2 refbbx = Max(retl.bbx,retr.bbx);
-	// 					f32 loffset = retr.midline - retl.midline;
-	// 					f32 roffset = -loffset;
-	// 					//if the left side isnt the largest we dont need to worry about adjusting the left side at all
-	// 					if(!leftdominant)
-	// 						forI(retl.vcount)
-	// 					(retl.vstart + i)->pos.y += loffset;
-						
-	// 					forI(retr.vcount){
-	// 						(retr.vstart + i)->pos.x += retl.bbx.x + symsize.x + drawcfg.additive_padding*2;
-	// 						if(leftdominant) 
-	// 						(retr.vstart + i)->pos.y += roffset;
-	// 					}
-	// 					drawContext.bbx.x = retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2;
-	// 					if(leftdominant){
-	// 						drawContext.bbx.y = Max(retl.bbx.y, Max(retr.bbx.y+roffset, symsize.y));
-	// 					}else{
-	// 						drawContext.bbx.y = Max(retl.bbx.y+loffset, Max(retr.bbx.y, symsize.y));
-	// 					}
-	// 					//drawContext.bbx = Vec2(retl.bbx.x+retr.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(retl.bbx.y, Max(retr.bbx.y, symsize.y)));
-	// 					drawContext.vcount = retl.vcount + retr.vcount + 4;
-	// 					drawContext.icount = retl.icount + retr.icount + 6; 
-	// 					drawContext.midline = maxmidl;
-	// 					check_drawcmd(4,6);
-	// 					CustomItem_DCMakeText(drawCmd, sym, Vec2(retl.bbx.x+drawcfg.additive_padding, maxmidl - symsize.y/2), textColor, textScale);
-	// 				}
-	// 				//operator has a first child but it isnt followed by anything
-	// 				else if(mathobj->child_count == 1){
-	// 					DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 					drawContext.bbx = Vec2(ret.bbx.x+symsize.x+drawcfg.additive_padding*2, Max(symsize.y, ret.bbx.y));
-	// 					if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)){
-	// 						check_drawcmd(4,6);
-	// 						CustomItem_DCMakeText(drawCmd, sym, Vec2(ret.bbx.x+drawcfg.additive_padding, ret.midline - symsize.y/2), textColor, textScale);
-	// 					}
-	// 					else if(HasFlag(mathobj->first_child->flags, TermFlag_OpArgRight)){
-	// 						forI(ret.vcount){
-	// 							(ret.vstart + i)->pos.x += symsize.x+drawcfg.additive_padding*2;
-	// 						}
-	// 						check_drawcmd(4,6);
-	// 						CustomItem_DCMakeText(drawCmd, sym, Vec2(0, ret.midline - symsize.y/2), textColor, textScale);
-	// 					}
-	// 					drawContext.vcount = ret.vcount + 4;
-	// 					drawContext.icount = ret.icount + 6;
-	// 				}
-	// 				else if(!mathobj->child_count){
-	// 					drawContext.bbx = symsize;
-	// 					drawContext.vcount = 4;
-	// 					drawContext.icount = 6;
-	// 					drawContext.midline = drawContext.bbx.y / 2;
-	// 					check_drawcmd(4,6);
-	// 					CustomItem_DCMakeText(drawCmd, sym, vec2::ZERO, textColor, textScale);
-	// 				}
-	// 				else Assert(!"binop has more than 2 children");
-	// 			}break;
-				
-	// 			case OpType_ExpressionEquals:{
-					
-	// 			}break;
-				
-	// 			default: Assert(!"operator type drawing not setup"); break;
-	// 		}
-	// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-				
-	// 		}
-	// 	}break;
-		
-	// 	case TermType_Literal:
-	// 	case TermType_Variable:{
-	// 		s64 term_raw_length = str8_length(mathobj->raw);
-	// 		drawContext.bbx = CalcTextSize(mathobj->raw);
-	// 		drawContext.vcount = term_raw_length * 4;
-	// 		drawContext.icount = term_raw_length * 6;
-	// 		drawContext.midline = drawContext.bbx.y / 2;
-	// 		check_drawcmd(drawContext.vcount,drawContext.icount);
-	// 		CustomItem_DCMakeText(drawCmd, mathobj->raw, vec2::ZERO, textColor, textScale);
-	// 	}break;
-		
-	// 	case TermType_FunctionCall:{
-	// 		//TODO(sushi) support multi arg functions when implemented
-	// 		if(mathobj->first_child){
-	// 			s64 term_raw_length = str8_length(mathobj->raw);
-	// 			DrawContext ret = draw_term(expr, mathobj->first_child);
-	// 			drawContext.vcount = term_raw_length * 4 + ret.vcount;
-	// 			drawContext.icount = term_raw_length * 6 + ret.icount;
-	// 			check_drawcmd(drawContext.vcount, drawContext.icount);
-	// 			vec2 tsize = UI::CalcTextSize(mathobj->raw);
-	// 			forI(ret.vcount){
-	// 				(ret.vstart + i)->pos.x += tsize.x;
-	// 			}
-	// 			CustomItem_DCMakeText(drawCmd, mathobj->raw, Vec2(0, (ret.bbx.y-tsize.y)/2), textColor, textScale);
-	// 			drawContext.bbx.x = tsize.x + ret.bbx.x;
-	// 			drawContext.bbx.y = Max(tsize.y, ret.bbx.y);
-	// 			drawContext.midline = drawContext.bbx.y / 2;
-	// 		}else{
-	// 			Assert(!"huh?");
-	// 		}
-	// 		return drawContext;
-	// 	}break;
-		
-	// 	case TermType_Logarithm:{
-			
-	// 	}break;
-		
-	// 	default: LogE("exrend", "Custom rendering does not support mathobj type:", OpTypeStrs(mathobj->type)); break;//Assert(!"mathobj type drawing not setup"); break;
-	// }
-	////debug_rect(vec2::ZERO, drawContext.bbx);
-	////debug_line(Vec2(0, drawContext.midline), Vec2(drawContext.bbx.x, drawContext.midline));
-	//return drawContext;
-	return {};
+
+					if(rp.type == RenderPart_Group) continue;
+					position_map_insert(element, rp.term, (element->drawdata.vertexes + rp.vstart)->pos);
+				}
+
+				RenderLog("", "pos x: ");
+				forI(array_count(element->expression.position_map.x)) {
+					RenderLog("", "  ", element->expression.position_map.x[i].pos, " ", element->expression.position_map.x[i].term->raw.buffer.fin);
+					TermPos* curr = element->expression.position_map.x + i;
+					TermPos* prev = (i? curr - 1 : 0);
+					TermPos* next = (i != array_count(element->expression.position_map.x) - 1? curr + 1 : 0);
+					if(next) {
+						curr->term->movement.right = next->term;
+						next->term->movement.left  = curr->term;
+					}
+					if(prev) {
+						curr->term->movement.left  = prev->term;
+						prev->term->movement.right = curr->term;
+					}
+				}
+
+				RenderLog("", "pos y: ");
+				forI(array_count(element->expression.position_map.y)) {
+					RenderLog("", "  ", element->expression.position_map.y[i].pos, " ", element->expression.position_map.y[i].term->raw.buffer.fin);
+					TermPos* curr = element->expression.position_map.y + i;
+					TermPos* prev = 0;
+					TermPos* next = 0;
+					forX_reverse(j, i-1) {
+						TermPos* scan = element->expression.position_map.y + j;
+						if(scan->pos != curr->pos) prev = scan;
+					}
+					forX(j, array_count(element->expression.position_map.y) - i - 1) {
+						TermPos* scan = element->expression.position_map.y + j;
+						if(scan->pos != curr->pos) next = scan;
+					}
+					if(next) {
+						curr->term->movement.up   = next->term;
+						next->term->movement.down = curr->term;
+					}
+					if(prev) {
+						curr->term->movement.down = prev->term;
+						prev->term->movement.up   = curr->term;
+					}
+				}
+			}
+		}break;
+		case ElementType_Graph: {
+
+		}break;
+		case ElementType_NULL: {
+
+		}break;
+	}
 }
 
 //NOTE(delle) raw cursor is drawn to the left of the character
@@ -1037,6 +596,7 @@ void debug_draw_term_tree(Expression* expr, Term* mathobj){DPZoneScoped;
 // 	if(mathobj == 0) return;
 	
 // 	str8 term_text{};
+
 // 	switch(mathobj->type){
 // 		case TermType_Expression:{
 // 			//reset the context
@@ -1391,11 +951,12 @@ void update_canvas(){
 			// TODO(sushi) fix the deshi_ui_allocator bug and then use it here
 			ui_make_text(to_dstr8v(deshi_allocator, "elements: ", array_count(canvas.element.arr)).fin, 0);
 			if(canvas.element.selected) {
-				ui_make_text(to_dstr8v(deshi_temp_allocator,
+				uiItem* text = ui_make_text(to_dstr8v(deshi_temp_allocator,
 					"selected: ", canvas.element.selected, "\n",
 					"position: ", canvas.element.selected->pos, "\n",
 					"size:     ", canvas.element.selected->size, "\n"
 				).fin, 0);
+				text->id = str8l("suugu.canvas.debug.expression.selected_text");
 			}
 			ui_end_item();
 		}ui_end_immediate_branch();	
@@ -1488,31 +1049,38 @@ void update_canvas(){
 				Element* element = create_element();
 				*array_push(canvas.element.arr) = element;
 				element->type = ElementType_Expression;
-				element->x         = canvas.world.mouse_pos.x;
-				element->y         = canvas.world.mouse_pos.y;
-				element->height    = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
-				element->width     = element->height / 2.0;
-				element->type      = ElementType_Expression;
+				element->x      = canvas.world.mouse_pos.x;
+				element->y      = canvas.world.mouse_pos.y;
+				element->height = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
+				element->width  = element->height / 2.0;
+				element->type   = ElementType_Expression;
 				ui_push_item(canvas.ui.root);
 				element->item = ui_make_item(0);
 				// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
 				element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.element", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
+				element->item->style.font = canvas.ui.font.debug;
+				element->item->style.font_height = 11;
+				element->item->style.pos = {100,100}; //{element->x, element->y};
 				element->item->__generate = render_element;
+				element->item->__evaluate = evaluate_element;
 				element->item->style.background_color = Color_Grey;
 				element->item->userVar = (u64)element;
 				ui_pop_item(1);
-				element->expression.term_cursor_start = &element->expression.root;
-				element->expression.raw_cursor_start  = 1;
-				dstr8_init(&element->expression.raw, str8l(""), deshi_allocator);
-				element->expression.root.raw = text_init(str8l(""), deshi_allocator);
+				element->expression.handle.term_cursor_start = &element->expression.handle.root;
+				element->expression.handle.raw_cursor_start  = 1;
+				dstr8_init(&element->expression.handle.raw, str8l(""), deshi_allocator);
+				element->expression.handle.root.raw = text_init(str8l(""), deshi_allocator);
+				array_init(element->expression.position_map.x, 1, deshi_allocator);
+				array_init(element->expression.position_map.y, 1, deshi_allocator);
+				array_init(element->expression.rendered_parts, 1, deshi_allocator);
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
 			}
 
 			
-			if(any_key_pressed() && canvas.element.selected){
-				ast_input(&canvas.element.selected->expression);
+			if(any_key_down() && canvas.element.selected){
+				ast_input(&canvas.element.selected->expression.handle);
 				canvas.element.selected->item->dirty = 1;
 			}
 			

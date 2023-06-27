@@ -1023,6 +1023,8 @@ MathObject* math_object_from_string(str8 s) {
 	u64 hash = str8_hash64(s);
 	switch(hash) {
 		str8case("+"): return &math_objects.addition;
+		str8case("-"): return &math_objects.subtraction;
+		str8case("*"): return &math_objects.multiplication;
 	}
 	return 0;
 #undef str8case
@@ -1035,11 +1037,6 @@ MathObject* math_object_from_string(str8 s) {
 // returns true if the calling function should stop
 b32 attempt_to_resolve_placeholder(Expression* expr) {
 	Term* cursor = expr->term_cursor_start;
-
-	// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
-	if(DeshInput->charCount){
-		text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
-	}
 
 	// if the first character is a digit this must be an integer
 	if(is_digit(cursor->raw.buffer.str[0])) {
@@ -1054,34 +1051,21 @@ b32 attempt_to_resolve_placeholder(Expression* expr) {
 				Term** temp;
 				array_init(temp, mo->func.arity, deshi_temp_allocator);
 				*array_push(temp) = cursor;
-				forI(cursor->mathobj->func.arity) {
-					Term* t = create_term();
-					ast_insert_last(cursor, t);
-					t->mathobj = &math_objects.placeholder;
-					//t->part = cursor->mathobj->parts + i + 1;
-					*array_push(temp) = t;
-				}
+				
+				if(cursor->child_count == mo->func.arity) {
+					// arguments to function already exist, so just put them in the temp array
+					for(Term* t = cursor->first_child; t; t = t->next) {
+						*array_push(temp) = t;
+					}
+				} else if(cursor->child_count != mo->func.arity) { // TODO(sushi) better check for already existing children (there could be more or less than arity)
+					forI(cursor->mathobj->func.arity) {
+						Term* t = create_term();
+						ast_insert_last(cursor, t);
+						t->mathobj = &math_objects.placeholder;
+						*array_push(temp) = t;
+					}
+				} 
 
-				forI(array_count(cursor->mathobj->movements)) {
-					Term* t = temp[i];
-					Movement movement = cursor->mathobj->movements[i];
-					if(movement.left) {
-						if(movement.left == MOVEMENT_OUT) t->movement.left = (Term*)-1;
-						else t->movement.left = temp[movement.left];
-					}
-					if(movement.right) {
-						if(movement.right == MOVEMENT_OUT) t->movement.right = (Term*)-1;
-						else t->movement.right = temp[movement.right];
-					}
-					if(movement.up) {
-						if(movement.up == MOVEMENT_OUT) t->movement.up = (Term*)-1;
-						else t->movement.up = temp[movement.up];
-					}
-					if(movement.down) {
-						if(movement.down == MOVEMENT_OUT) t->movement.down = (Term*)-1;
-						else t->movement.down = temp[movement.down];
-					}
-				}
 			}break;
 		}
 	}
@@ -1095,47 +1079,39 @@ void ast_input(Expression* expr) {
 
 	// handle movements
 	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
-		if(text_cursor_at_start(&cursor->raw) && cursor->movement.left) {
-			if(cursor->movement.left == (Term*)MOVEMENT_OUT){
-				// TODO(sushi) logic for moving out of a MathObject
-			}else{
+		if(text_cursor_at_start(&cursor->raw)) {
+			if(cursor->movement.left){
 				cursor = expr->term_cursor_start = cursor->movement.left;
-			}
+				text_move_cursor_to_end(&cursor->raw);
+			} 
 		}else{
 			text_move_cursor_left(&cursor->raw);
 		}
 	}
 	if(key_pressed(CanvasBind_Expression_CursorRight)) {
-		if(text_cursor_at_end(&cursor->raw) && cursor->movement.right) {
-			if(cursor->movement.right == (Term*)MOVEMENT_OUT) {
-				// TODO(sushi) logic for moving out of a MathObject
-			}else{
+		if(text_cursor_at_end(&cursor->raw)) {
+			if(cursor->movement.right){
 				cursor = expr->term_cursor_start = cursor->movement.right;
-			}
+				text_move_cursor_to_start(&cursor->raw);
+			} 
 		}else{
 			text_move_cursor_right(&cursor->raw);
 		}
 	}
 	if(key_pressed(CanvasBind_Expression_CursorUp)) {
 		if(cursor->movement.up) {
-			if(cursor->movement.up == (Term*)MOVEMENT_OUT) {
-				// TODO(sushi) logic for moving out of a MathObject
-			} else {
-				cursor = expr->term_cursor_start = cursor->movement.up;
-			}
+			cursor = expr->term_cursor_start = cursor->movement.up;
 		}		
 	}
 	if(key_pressed(CanvasBind_Expression_CursorDown)) {
 		if(cursor->movement.down) {
-			if(cursor->movement.down == (Term*)MOVEMENT_OUT) {
-				// TODO(sushi) logic for moving out of a MathObject
-			} else {
-				cursor = expr->term_cursor_start = cursor->movement.down;
-			}
+			cursor = expr->term_cursor_start = cursor->movement.down;
 		}		
 	}
 
 	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder) {
+		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
+		if(DeshInput->charCount) text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
 		if(attempt_to_resolve_placeholder(expr)) return;
 	}
 
@@ -1162,16 +1138,11 @@ void ast_input(Expression* expr) {
 						text_clear_and_replace(&front->raw, str8{cursor->raw.buffer.str, cursor->raw.cursor.pos});
 						text_clear_and_replace(&back->raw, str8{cursor->raw.buffer.str+cursor->raw.cursor.pos, cursor->raw.buffer.count-cursor->raw.cursor.pos});
 						front->mathobj = back->mathobj = &math_objects.number;
+						
 						ast_insert_last(cursor, front);
 						ast_insert_last(cursor, back);
 						cursor->mathobj = &math_objects.placeholder;
 						text_clear_and_replace(&cursor->raw, str8{(u8*)DeshInput->charIn,1});
-						cursor->movement.left = front;
-						cursor->movement.right = back;
-						front->movement.left = (Term*)MOVEMENT_OUT;
-						front->movement.right = cursor;
-						back->movement.left = cursor;
-						back->movement.right = (Term*)MOVEMENT_OUT;
 						// we need to try and resolve the place holder here incase it is a single symbol
 						// representing a MathObject
 						if(attempt_to_resolve_placeholder(expr)) return;

@@ -266,6 +266,11 @@ struct Term{
 		Term* left, *right, *up, *down;
 	}movement;
 
+	// wasteful, we should probably just use the information on the MathObject for this
+	struct{
+		Term* left, *right, *up, *down;
+	}movement_in;
+
 	//syntax tree
 	Term* prev;
 	Term* next;
@@ -388,7 +393,6 @@ global void linear_remove(Term* term){
 	}
 }
 
-
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @expression
 //expression: collection of terms in the form of a syntax tree
@@ -428,6 +432,40 @@ enum ElementType : u32{
 	//ElementType_Text,
 };
 
+// represents data pertaining to a discrete visual element on screen
+struct Visual {
+
+};
+
+struct DrawData {
+	Vertex2* vertexes; // vertices created by current render pass
+	s32      vcount;
+	u32*     indexes; // indicies created by current render pass
+	s32      icount;
+	vec2     bbx;
+};
+
+struct TermPos {
+	Term* term;
+	f32 pos;
+};
+
+enum {
+	RenderPart_Individual,
+	RenderPart_Group,
+};
+
+struct RenderPart{
+	Type type;
+	vec2   position; // the position of this part
+	vec2        bbx; // the bounding box formed by child nodes
+	f32     midline; // 
+	s32      vstart; // index into vertex arena 
+	s32      istart; // index into index arena
+	s32 vcount, icount;
+	Term* term; // the term that was rendered
+};
+
 // element: anything with position, size, coordinate space, and display info
 struct Element{
 	union{struct{f32 x,y,z;};
@@ -439,12 +477,73 @@ struct Element{
 	//CoordinateSpace space;
 	ElementType type;
 	uiItem* item; // handle to the uiItem representing this Element
+	DrawData drawdata;
 
 	union{
-		Expression expression;
+		struct {
+			Expression handle;
+			RenderPart* rendered_parts;
+			// sorted lists of Terms over each axes so that 
+			// we may move the cursor between them
+			struct{
+				TermPos* x;
+				TermPos* y;
+			}position_map; // TODO(sushi) better name, this isn't really a map
+		}expression;
+		
 		uiGraphCartesian cartesian_graph;
 	};
 };
+
+// returns the index in the x and y arrays where the term belongs based on the given position
+pair<spt,spt> position_map_find(Element* element, vec2 pos) {
+	spt x_idx; 
+	{
+		spt index = -1, middle = -1;
+		spt left = 0;
+		spt right = array_count(element->expression.position_map.x)-1;
+		while(left <= right){
+			middle = left+((right-left)/2);
+			if(element->expression.position_map.x[middle].pos < pos.x){
+				left = middle+1;
+				middle = left+((right-left)/2);
+			}else{
+				right = middle-1;
+			}
+		}
+		x_idx = middle;
+	}
+	spt y_idx;
+	{
+		spt index = -1, middle = -1;
+		spt left = 0;
+		spt right = array_count(element->expression.position_map.y)-1;
+		while(left <= right){
+			middle = left+((right-left)/2);
+			if(element->expression.position_map.y[middle].pos < pos.y){
+				left = middle+1;
+				middle = left+((right-left)/2);
+			}else{
+				right = middle-1;
+			}
+		}
+		y_idx = middle;
+	}
+
+	return {x_idx, y_idx};
+}
+
+void position_map_insert(Element* element, Term* term, vec2 pos) {
+	Assert(element->type == ElementType_Expression);
+	auto [x,y] = position_map_find(element, pos);
+	if(x == -1) x = 0;
+	if(y == -1) y = 0;
+	TermPos xpos = {term, pos.x};
+	TermPos ypos = {term, pos.y};
+	*array_insert(element->expression.position_map.x, x) = xpos;
+	element->expression.position_map.y = kigu__array_insert_wrapper((element->expression.position_map.y), sizeof(*(element->expression.position_map.y)), (y));
+	*((element->expression.position_map.y)+(y)) = ypos;
+}
 
 // NOTE(sushi) this compiles on clang, need to know if it compiles on MSVC as well
 /*
@@ -460,7 +559,7 @@ const uiStyle element_default_style = {
 const uiStyle element_default_style = {
 	/*positioning*/ pos_relative,
 	/*anchor*/ anchor_top_left,
-	/*sizing*/ size_auto,
+	/*sizing*/ 0,
 	/*pos*/ {0,0},
 	/*size*/ {0,0},
 	/*min_size*/ {0,0},
@@ -591,35 +690,6 @@ struct ShapePart {
 };
 
 enum{
-    PartType_Child,
-    PartType_StaticText, // static text retrieved from the text var on Part
-    PartType_TermRawText, // raw text retrieved from the Term this part represents
-    PartType_MathObject,
-	PartType_Shape,
-};
-
-struct Part {
-    str8 name;
-	MathObject* parent; // the MathObject this Part belongs to, 0 if it doesnt belong to one
-
-    Type type;
-    union{
-        u32 child_idx;
-        str8 text;
-        MathObject* mathobj;
-		ShapePart shape;
-    };
-
-	struct{ // index into the MathObject's parts array indicating which part to move to when a movement key is pressed
-		s32 left, right, up, down;
-	}movement;
-};
-typedef Part* PartArray;
-
-#define MOVEMENT_NONE -1
-#define MOVEMENT_OUT  -2
-
-enum{
 	Text_Literal,
 	Text_TermRaw,
 };
@@ -644,7 +714,6 @@ enum{
 	InstructionType_Text,
 	InstructionType_Number,
 	InstructionType_RenderChild,
-	InstructionType_PushParts,
 };
 
 struct Instruction {
@@ -744,7 +813,17 @@ struct MathObject {
 	str8 description;
 	Type type;
 	Display display; // how to display this MathObject in various ways.
+	// a movement for each part that determines how the cursor should move between them
 	MovementArray movements;
+
+	// TODO(sushi) this is pretty limited, for instance, in a case like 
+	//                 (1+2)/(3+4+5) 
+	//             when the cursor moves up from '5', it should to the end of the numerator
+	//             and up from '3' should go to the beginning.
+	//             we should probably add some kind of rules that determine how the cursor should seek where it should
+	//             go visually
+	// which part should the cursor go to when the MathObject is moved into from some direction
+	Movement movement_in;
 
 	union{
 		Function func;

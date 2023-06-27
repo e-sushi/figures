@@ -99,6 +99,100 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #endif
 
 
+void test_single_addition() {
+	Element* element = create_element();
+	*array_push(canvas.element.arr) = element;
+	element->type = ElementType_Expression;
+	element->x      = canvas.world.mouse_pos.x;
+	element->y      = canvas.world.mouse_pos.y;
+	element->height = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
+	element->width  = element->height / 2.0;
+	element->type   = ElementType_Expression;
+	ui_push_item(canvas.ui.root);
+	element->item = ui_make_item(0);
+	// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
+	element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.element", array_count(canvas.element.arr)).fin; 
+	element->item->style = element_default_style;
+	element->item->style.font_height = 30;
+	element->item->style.font = canvas.ui.font.debug;
+	element->item->style.pos = {100,100}; //{element->x, element->y};
+	element->item->__generate = render_element;
+	element->item->__evaluate = evaluate_element;
+	element->item->style.background_color = Color_Grey;
+	element->item->userVar = (u64)element;
+	ui_pop_item(1);
+	element->expression.handle.term_cursor_start = &element->expression.handle.root;
+	element->expression.handle.raw_cursor_start  = 1;
+	dstr8_init(&element->expression.handle.raw, str8l(""), deshi_allocator);
+	element->expression.handle.root.raw = text_init(str8l(""), deshi_allocator);
+	array_init(element->expression.position_map.x, 1, deshi_allocator);
+	array_init(element->expression.position_map.y, 1, deshi_allocator);
+	array_init(element->expression.rendered_parts, 1, deshi_allocator);
+	*array_push(canvas.element.arr) = element;
+	canvas.element.selected = element;
+
+	element->expression.handle.root.mathobj = &math_objects.addition;
+	text_clear_and_replace(&element->expression.handle.root.raw, str8l("+"));
+
+	Term* lhs = create_term(), *rhs = create_term();
+	lhs->mathobj = &math_objects.number;
+	rhs->mathobj = &math_objects.number;
+	text_clear_and_replace(&rhs->raw, str8l("456"));
+	text_clear_and_replace(&lhs->raw, str8l("123"));
+	ast_insert_last(&element->expression.handle.root, lhs);
+	ast_insert_last(&element->expression.handle.root, rhs);
+}
+
+void test_double_addition() {
+	Element* element = create_element();
+	*array_push(canvas.element.arr) = element;
+	element->type = ElementType_Expression;
+	element->x      = canvas.world.mouse_pos.x;
+	element->y      = canvas.world.mouse_pos.y;
+	element->height = (320*canvas.camera.zoom) / (f32)canvas.ui.root->width;
+	element->width  = element->height / 2.0;
+	element->type   = ElementType_Expression;
+	ui_push_item(canvas.ui.root);
+	element->item = ui_make_item(0);
+	// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
+	element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.element", array_count(canvas.element.arr)).fin; 
+	element->item->style = element_default_style;
+	element->item->style.font_height = 11;
+	element->item->style.font = canvas.ui.font.debug;
+	element->item->style.pos = {100,100}; //{element->x, element->y};
+	element->item->__generate = render_element;
+	element->item->__evaluate = evaluate_element;
+	element->item->style.background_color = Color_Grey;
+	element->item->userVar = (u64)element;
+	ui_pop_item(1);
+	element->expression.handle.term_cursor_start = &element->expression.handle.root;
+	element->expression.handle.raw_cursor_start  = 1;
+	dstr8_init(&element->expression.handle.raw, str8l(""), deshi_allocator);
+	element->expression.handle.root.raw = text_init(str8l(""), deshi_allocator);
+	array_init(element->expression.position_map.x, 1, deshi_allocator);
+	array_init(element->expression.position_map.y, 1, deshi_allocator);
+	array_init(element->expression.rendered_parts, 1, deshi_allocator);
+	*array_push(canvas.element.arr) = element;
+	canvas.element.selected = element;
+
+	element->expression.handle.root.mathobj = &math_objects.addition;
+	text_clear_and_replace(&element->expression.handle.root.raw, str8l("+"));
+
+	Term* lhs = create_term(), *rhs = create_term();
+	lhs->mathobj = &math_objects.number;
+	rhs->mathobj = &math_objects.addition;
+	text_clear_and_replace(&rhs->raw, str8l("+"));
+	Term* rhslhs = create_term(), *rhsrhs = create_term();
+	rhslhs->mathobj = rhsrhs->mathobj = &math_objects.number;
+	text_clear_and_replace(&lhs->raw, str8l("123"));
+	text_clear_and_replace(&rhslhs->raw, str8l("456"));
+	text_clear_and_replace(&rhsrhs->raw, str8l("789"));
+	ast_insert_last(&element->expression.handle.root, lhs);
+	ast_insert_last(&element->expression.handle.root, rhs);
+	ast_insert_last(rhs, rhslhs);
+	ast_insert_last(rhs, rhsrhs);
+}
+
 int main(int args_count, char** args){
 	profiler_init();
 
@@ -236,12 +330,6 @@ int main(int args_count, char** args){
 		placeholder.type = MathObject_Placeholder;
 		placeholder.display.text = str8l("□");
 
-		array_init(placeholder.movements, 1, deshi_allocator);
-		Movement* mov = array_push(placeholder.movements);
-		mov->left = MOVEMENT_OUT;
-		mov->right = MOVEMENT_OUT;
-
-		placeholder.display.mathobj = &placeholder;
 		array_init(placeholder.display.instructions, 1, deshi_allocator);
 		placeholder.display.n_parts = 1;
 
@@ -250,7 +338,7 @@ int main(int args_count, char** args){
 		instr->part = 0;
 		TextInstruction& text = instr->text;
 		text.type = Text_Literal;
-		text.literal = str8l("□");
+		text.literal = str8l("hi");
 	}
 
     {
@@ -258,19 +346,14 @@ int main(int args_count, char** args){
 		num.name = str8l("Number");
     	num.description = str8l("A mathematical object used to count, measure, and label.");
     	num.type = MathObject_Number;
-		array_init(num.movements, 1, deshi_allocator);
-		Movement* mov = array_push(num.movements);
-		mov->left = MOVEMENT_OUT;
-		mov->right = MOVEMENT_OUT;
-
-		/*
-			stack:
-				0: root
-		*/
 
 		array_init(num.display.instructions, 1, deshi_allocator);
-
-
+		num.display.n_parts = 1;
+		Instruction* instr = array_push(num.display.instructions);
+		instr->type = InstructionType_Text;
+		instr->part = 0;
+		TextInstruction& text = instr->text;
+		text.type = Text_TermRaw;
 	}
 
 	{
@@ -281,25 +364,11 @@ int main(int args_count, char** args){
 		add.func.arity = 2;
 		array_init(add.movements, 3, deshi_allocator);
 
-		Movement* movement;
-		// root
-		movement = array_push(add.movements);
-		movement->left = 1;
-		movement->right = 2;
-		// lhs
-		movement = array_push(add.movements);
-		movement->left = MOVEMENT_OUT;
-		movement->right = 0;
-		// rhs
-		movement = array_push(add.movements);
-		movement->left = 0;
-		movement->right = MOVEMENT_OUT;  
-
 		add.display.mathobj = &add;
 		add.display.n_parts = 3;
 		array_init(add.display.instructions, 7, deshi_allocator);
 
-		{ // add text "+", assing to part 0
+		{ // add text "+", assigning to part 0
 			Instruction* instr = array_push(add.display.instructions);
 			instr->type = InstructionType_Text;
 			instr->part = 0;
@@ -366,203 +435,172 @@ int main(int args_count, char** args){
 		add.display.s_expression = str8l("(+ $1 $2)");
 	}
 
-	// {
-	// 	MathObject& sub = math_objects.subtraction;
-	// 	sub.name = str8l("Subtraction");
-	// 	sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
-	// 	array_init(sub.parts, 3, deshi_allocator);
+	{
+		MathObject& sub = math_objects.subtraction;
+		sub.name = str8l("Subtraction");
+		sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
+		sub.type = MathObject_Function;
+		sub.func.arity = 2;
 
-	// 	Part* root = array_push(sub.parts);
-	// 	root->name = str8l("subtract");
-	// 	root->type = PartType_MathObject;
-	// 	root->parent = &sub;
+		sub.display.mathobj = &sub;
+		sub.display.n_parts = 3;
+		array_init(sub.display.instructions, 7, deshi_allocator);
+
+		{ // add text "+", assigning to part 0
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_Text;
+			instr->part = 0;
+			TextInstruction& text = instr->text;
+			text.type = Text_Literal;
+			text.literal = str8l("-");
+		}
+
+		{ // render the lhs, assigning to part 1 
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 1;
+			instr->renderchild.child = 0;
+		}
+
+		{ // render the rhs, assinging to part 2
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 2;
+			instr->renderchild.child = 1;
+		}
+
+		{ // align lhs origin.y to root center.y
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 1;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
+		}
+
+		{ // align root left to lhs right
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 0;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 1;
+			align.rhs.position = Position_Right;
+		}
+
+		{ // align rhs origin.y to root center.y
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 2;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
+		}
 		
-	// 	Part* lhs = array_push(sub.parts);
-	// 	lhs->name = str8l("lhs");
-	// 	lhs->type = PartType_Child;
-	// 	lhs->parent = &sub;
+		{ // align rhs left to root right
+			Instruction* instr = array_push(sub.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 2;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 0;
+			align.rhs.position = Position_Right;
+		}
 
-	// 	Part* rhs = array_push(sub.parts);
-	// 	rhs->name = str8l("rhs");
-	// 	rhs->type = PartType_Child;
-	// 	rhs->parent = &sub;
+		sub.display.text = str8l("$1 - $2");
+		sub.display.s_expression = str8l("(- $1 $2)");
+	}
 
-	// 	root->movement.right = 2;
-	// 	root->movement.left = 1;
+	{
+		MathObject& mul = math_objects.multiplication;
+		mul.name = str8l("Multiplication");
+		mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
+		mul.type = MathObject_Function;
+		mul.func.arity = 2;
 
-	// 	rhs->movement.right = MOVEMENT_OUT;
-	// 	rhs->movement.left = 0;
+		mul.display.mathobj = &mul;
+		mul.display.n_parts = 3;
+		array_init(mul.display.instructions, 7, deshi_allocator);
 
-	// 	lhs->movement.right = 0;
-	// 	lhs->movement.left = MOVEMENT_OUT;
+		{ // add text "+", assigning to part 0
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_Text;
+			instr->part = 0;
+			TextInstruction& text = instr->text;
+			text.type = Text_Literal;
+			text.literal = str8l("*");
+		}
 
-	// 	sub.display.mathobj = &sub;
-	// 	array_init(sub.display.instructions, 4, deshi_allocator);
+		{ // render the lhs, assigning to part 1 
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 1;
+			instr->renderchild.child = 0;
+		}
 
-	// 	/*
-	// 		align lhs origin.y to root center.y
+		{ // render the rhs, assinging to part 2
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_RenderChild;
+			instr->part = 2;
+			instr->renderchild.child = 1;
+		}
 
+		{ // align lhs origin.y to root center.y
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 1;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
+		}
 
-	// 	*/
+		{ // align root left to lhs right
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 0;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 1;
+			align.rhs.position = Position_Right;
+		}
 
-	// 	{ // align lhs origin.y to root center.y
-	// 		Instruction* instr = array_push(sub.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 1;
-	// 		align.lhs.position= Position_OriginY;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_CenterY;
-	// 	}
+		{ // align rhs origin.y to root center.y
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 2;
+			align.lhs.position = Position_OriginY;
+			align.rhs.part = 0;
+			align.rhs.position = Position_CenterY;
+		}
 		
-	// 	{ // align lhs right to root left
-	// 		Instruction* instr = array_push(sub.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 1;
-	// 		align.lhs.position= Position_Right;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_Left;
-	// 	}
+		{ // align rhs left to root right
+			Instruction* instr = array_push(mul.display.instructions);
+			instr->type = InstructionType_Align;
+			AlignInstruction& align = instr->align;
+			align.lhs.part = 2;
+			align.lhs.position = Position_Left;
+			align.rhs.part = 0;
+			align.rhs.position = Position_Right;
+		}
 
-	// 	{ // align rhs origin.y to root center.y
-	// 		Instruction* instr = array_push(sub.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 2;
-	// 		align.lhs.position= Position_OriginY;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_CenterY;
-	// 	}
+		mul.display.text = str8l("$1 * $2");
+		mul.display.s_expression = str8l("(* $1 $2)");
+	}
 
-	// 	{ // align rhs left to root right
-	// 		Instruction* instr = array_push(sub.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 2;
-	// 		align.lhs.position= Position_Left;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_Right;
-	// 	}
-
-	// 	sub.display.text = str8l("$1 - $2");
-	// 	sub.display.s_expression = str8l("(- $1 $2)");
-	// }
-
-	// {
-	// 	MathObject& mul = math_objects.multiplication;
-	// 	mul.name = str8l("Multiplication");
-	// 	mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
-	// 	array_init(mul.parts, 3, deshi_allocator);
-
-	// 	Part* root = array_push(mul.parts);
-	// 	root->name = str8l("multiply");
-	// 	root->type = PartType_MathObject;
-	// 	root->parent = &mul;
-		
-	// 	Part* lhs = array_push(mul.parts);
-	// 	lhs->name = str8l("lhs");
-	// 	lhs->type = PartType_Child;
-	// 	lhs->parent = &mul;
-
-	// 	Part* rhs = array_push(mul.parts);
-	// 	rhs->name = str8l("rhs");
-	// 	rhs->type = PartType_Child;
-	// 	rhs->parent = &mul;
-
-	// 	root->movement.right = 2;
-	// 	root->movement.left = 1;
-
-	// 	rhs->movement.right = MOVEMENT_OUT;
-	// 	rhs->movement.left = 0;
-
-	// 	lhs->movement.right = 0;
-	// 	lhs->movement.left = MOVEMENT_OUT;
-
-	// 	mul.display.mathobj = &mul;
-	// 	array_init(mul.display.instructions, 4, deshi_allocator);
-
-	// 	{ // align lhs origin.y to root center.y
-	// 		Instruction* instr = array_push(mul.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 1;
-	// 		align.lhs.position= Position_OriginY;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_CenterY;
-	// 	}
-		
-	// 	{ // align lhs right to root left
-	// 		Instruction* instr = array_push(mul.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 1;
-	// 		align.lhs.position= Position_Right;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_Left;
-	// 	}
-
-	// 	{ // align rhs origin.y to root center.y
-	// 		Instruction* instr = array_push(mul.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 2;
-	// 		align.lhs.position= Position_OriginY;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_CenterY;
-	// 	}
-
-	// 	{ // align rhs left to root right
-	// 		Instruction* instr = array_push(mul.display.instructions);
-	// 		instr->type = InstructionType_Align;
-	// 		AlignInstruction& align = instr->align;
-	// 		align.lhs.part = 2;
-	// 		align.lhs.position= Position_Left;
-	// 		align.rhs.part = 0;
-	// 		align.rhs.position= Position_Right;
-	// 	}
-
-	// 	mul.display.text = str8l("$1 * $2");
-	// 	mul.display.s_expression = str8l("(* $1 $2)");
-	// }
-
-	// {
-	// 	MathObject& div = math_objects.division;
-	// 	div.name = str8l("Division");
-	// 	div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
-	// 	array_init(div.parts, 3, deshi_allocator);
-
-	// 	Part* root = array_push(div.parts);
-	// 	root->name = str8l("divide");
-	// 	root->type = PartType_MathObject;
-	// 	root->parent = &div;
-		
-	// 	Part* numerator = array_push(div.parts);
-	// 	numerator->name = str8l("numerator");
-	// 	numerator->type = PartType_Child;
-	// 	numerator->parent = &div;
-
-	// 	Part* denominator = array_push(div.parts);
-	// 	denominator->name = str8l("denominator");
-	// 	denominator->type = PartType_Child;
-	// 	denominator->parent = &div;
-
-	// 	denominator->movement.right = MOVEMENT_OUT;
-	// 	denominator->movement.left = MOVEMENT_OUT;
-	// 	denominator->movement.up = 1;
-
-	// 	numerator->movement.right = MOVEMENT_OUT;
-	// 	numerator->movement.left = MOVEMENT_OUT;
-	// 	numerator->movement.down = 2;
-
-	// 	div.display.mathobj = &div;
-	// 	array_init(div.display.instructions, 4, deshi_allocator);
+	{
+		MathObject& div = math_objects.division;
+		div.name = str8l("Division");
+		div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
 
 
 
-	// 	div.display.text = str8l("$1 * $2");
-	// 	div.display.s_expression = str8l("(* $1 $2)");
-	// }
+		div.display.text = str8l("$1 / $2");
+		div.display.s_expression = str8l("(/ $1 $2)");
+	}
 
 	//compile_math_objects(str8l("scratch"));
 
@@ -594,23 +632,56 @@ int main(int args_count, char** args){
 		CanvasBind_SetTool_Expression,
 		CanvasBind_Expression_Create,
 		Key_EQUALS|InputMod_AnyShift,
-		Key_RIGHT,
+		CanvasBind_Expression_CursorRight,
 		Key_1,
 		Key_2,
 		Key_3,
-		Key_LEFT,
-		Key_EQUALS|InputMod_AnyShift
+		CanvasBind_Expression_CursorLeft,
+		Key_MINUS,
+		CanvasBind_Expression_CursorRight,
+		Key_1,
+		Key_2,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_2,
+		CanvasBind_Expression_CursorLeft,
+		Key_8|InputMod_AnyShift,
 	};
-	
+
+	//test_single_addition();
+	//test_double_addition();
+	Log("", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
-
 		if(DeshTime->frame < ArrayCount(inputs)+1) {
+			Log("", "key: ", input_keycode_to_str8(inputs[DeshTime->frame-1]));
 			simulate_key_press(inputs[DeshTime->frame-1]);
 		}
 
 		update_canvas();
+
+		// Element* selected = canvas.element.selected;
+		// if(array_count(selected->expression.rendered_parts) ) {
+		// 	static u32 iter = 0;
+		// 	vec2 pos = selected->item->pos_screen;
+		// 	iter = (iter + 1) % array_count(selected->expression.rendered_parts);
+		// 	render_start_cmd2(5, 0, vec2::ZERO, DeshWindow->dimensions.toVec2());
+
+		// 	//forI(array_count(selected->expression.rendered_parts)) {
+		// 		RenderPart part = selected->expression.rendered_parts[iter];
+		// 		render_quad2(pos + part.position, part.bbx, Color_Red);
+		// 	//}
+		// }
+
 		// //update deshi
 		// console_update();
 		ui_update();
