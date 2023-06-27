@@ -600,16 +600,26 @@ enum {
 	Token_right,
 	Token_top,
 	Token_bottom,
+	Token_center,
 	Token_center_x,
 	Token_center_y,
+	Token_origin,
 	Token_origin_x,
 	Token_origin_y,
 	Token_child,
 	Token_term_raw,
+	Token_avg,
+	Token_max,
+	Token_min,
+	Token_shape,
+	Token_line,
 
 	Token_Integer,
 	Token_Backtick,
 	Token_String,
+	Token_OpenParen,
+	Token_CloseParen,
+	Token_Comma,
 };
 
 struct Token {
@@ -681,6 +691,9 @@ case c: {                        \
 	while(stream) {
 		switch(*stream.str) {
 			charcase('`', Token_Backtick);
+			charcase(',', Token_Comma);
+			charcase('(', Token_OpenParen);
+			charcase(')', Token_CloseParen);
 			case '\'': {
 				advance_stream();
 				str8 start = stream;
@@ -702,7 +715,7 @@ case c: {                        \
 					is_word = false;
 					while(isdigit(*stream.str)) advance_stream();
 				} else while(stream) {
-					if(is_whitespace(*stream.str) || match_any(*stream.str, '`', '\'')) {
+					if(is_whitespace(*stream.str) || match_any(*stream.str, '`', '\'', ',', '(', ')')) {
 						break;
 					}
 					advance_stream();
@@ -729,6 +742,11 @@ case c: {                        \
 						str8case("origin_y"): t->type = Token_origin_y; break;
 						str8case("child"): t->type = Token_child; break;
 						str8case("term_raw"): t->type = Token_term_raw; break;
+						str8case("avg"): t->type = Token_avg; break;
+						str8case("max"): t->type = Token_max; break;
+						str8case("min"): t->type = Token_min; break;
+						str8case("shape"): t->type = Token_shape; break;
+						str8case("line"): t->type = Token_line; break;
 						default: {
 							LogE("instrcomp", "unknown word '", t->raw, "' on line ", t->line, " column ", t->column);
 							return 0;

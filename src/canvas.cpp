@@ -146,7 +146,7 @@ void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
 	offset_render_part_position(element, part, offset);
 }
 
-#if 0
+#if 1
 #define RenderLog(...) Log("suugu_render", __VA_ARGS__)
 #else
 #define RenderLog(...)
@@ -162,7 +162,7 @@ void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
 
 */
 
-#define RenderError(...) LogE("suugu_render", __VA_ARGS__)
+#define RenderError(...) LogE("suugu_render", term->mathobj->name, ":", curt->line, ":", curt->column, " ", __VA_ARGS__)
 
 RenderPart render_term(Term* term, Element* element) {
 	logger_push_indent(1);
@@ -175,46 +175,205 @@ RenderPart render_term(Term* term, Element* element) {
 	u32 parts_rendered = 0;
 
 	auto get_position = [&](RenderPart* part, Token* token) {
-		switch(token->type) {
-			case Token_bottom:   return Vec2(0, part->position.y+part->bbx.y);
-			case Token_left:     return Vec2(part->position.x, 0);
-			case Token_top:      return Vec2(0, part->position.y);
-			case Token_right:    return Vec2(part->position.x+part->bbx.x, 0);
-			case Token_center_x: return Vec2(part->position.x+part->bbx.x/2, 0);
-			case Token_center_y: return Vec2(0, part->position.y+part->bbx.y/2);
-			case Token_origin_x: return Vec2(part->position.x+part->bbx.x/2, 0);
-			case Token_origin_y: return Vec2(0, part->position.y+part->bbx.y/2);
-			default: {
-				RenderError("invalid position, expected one of (top, bottom, left, right, center_x, center_y, origin_x, origin_y), line ", token->line, " col ", token->column);
-				return vec2{};
-			}break;
-		}
+		
 	};
 
 	struct PositionReference {
+		b32 is_scalar;
 		RenderPart* part;
-		vec2 pos;
+		union {
+			f32 scalar;
+			vec2 vec;
+		};
 	};
 
 	const auto eval_position = [&]() {
 		RenderLog("eval_position");
-		auto impl = [&](auto& recur) {
+		enum{
+			State_Vector=1<<0,
+			State_Function=1<<1,
+		};
+		u32 state = 0;
+		auto impl = [&](auto& recur) -> PositionReference {
 			switch(curt->type) {
 				case Token_Backtick: {
 					curt++;
 					if(curt->type != Token_Integer) {
-						RenderError("need an integer after '`', line ", curt->line, " col ", curt->column);
+						RenderError("need an integer after '`'");
 						return PositionReference{0,{}};
 					}
 					RenderPart* part = element->expression.rendered_parts + proper_indexes[stoi(curt->raw)];
 					curt++;
-					PositionReference out = {part, get_position(part, curt)};
+					PositionReference out;
+					out.part = part;
+					switch(curt->type) {
+						case Token_bottom:   out.scalar = part->position.y+part->bbx.y;   out.is_scalar = true;  break;
+						case Token_left:     out.scalar = part->position.x;               out.is_scalar = true;  break;
+						case Token_top:      out.scalar = part->position.y;               out.is_scalar = true;  break;
+						case Token_right:    out.scalar = part->position.x+part->bbx.x;   out.is_scalar = true;  break;
+						case Token_center:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; break;
+						case Token_center_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  break;
+						case Token_center_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  break;
+						case Token_origin:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; break;
+						case Token_origin_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  break;
+						case Token_origin_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  break;
+
+						default: {
+							RenderError("invalid position, expected one of (top, bottom, left, right, center, center_x, center_y, origin, origin_x, origin_y)");
+							return {};
+						}break;
+					}
 					curt++;
 					return out;
 				}break;
 
+				case Token_OpenParen: {
+					if(HasFlag(state, State_Vector)) {
+						RenderError("cannot start a vector within a vector");
+						return {};
+					}
+					AddFlag(state, State_Vector);
+					curt++;
+					PositionReference out;
+					PositionReference l = recur(recur);
+					if(!l.is_scalar) {
+						RenderError("vector arguments must be scalars");
+						return {};
+					}
+					if(curt->type != Token_Comma) {
+						RenderError("expected a ',' after first parameter of vector");
+						return {};
+					}
+					curt++;
+					PositionReference r = recur(recur);
+					if(!r.is_scalar) {
+						RenderError("vector arguments must be scalars");
+						return {};
+					}
+					out.is_scalar = false;
+					out.vec.x = l.scalar;
+					out.vec.y = r.scalar;
+					if(curt->type != Token_CloseParen) {
+						RenderError("expected ')' to close vector");
+					}
+					curt++;
+					RemoveFlag(state, State_Vector);
+					return out;
+				}break;
+
+				case Token_max: {
+					curt++;
+					if(curt->type != Token_OpenParen) {
+						RenderError("expected '(' after token 'max'");
+						return {};
+					}
+					curt++;
+					PositionReference l = recur(recur);
+					if(curt->type != Token_Comma) {
+						RenderError("expected ',' after first parameter of max");
+						return {};
+					}
+					curt++;
+					PositionReference r = recur(recur);
+					if(curt->type != Token_CloseParen) {
+						RenderError("expected ')' to close function max");
+						return {};
+					}
+					curt++;
+					if(l.is_scalar != r.is_scalar) {
+						RenderError("cannot perform max between a vector and a scalar");
+						return {};
+					}
+					PositionReference out;
+					out.is_scalar = l.is_scalar;
+					if(l.is_scalar) {
+						if(l.scalar > r.scalar) {
+							out.scalar = l.scalar;
+							out.part = l.part;
+						} else {
+							out.scalar = r.scalar;
+							out.part = r.part;
+						}
+					} else { // NOTE(sushi) we cannot decide on either part when we take the max of 2 vectors
+						out.vec = Max(l.vec, r.vec);
+					}
+					return out;
+				}break; 
+
+				case Token_min: {
+					curt++;
+					if(curt->type != Token_OpenParen) {
+						RenderError("expected '(' after token 'min'");
+						return {};
+					}
+					curt++;
+					PositionReference l = recur(recur);
+					if(curt->type != Token_Comma) {
+						RenderError("expected ',' after first parameter of min");
+						return {};
+					}
+					curt++;
+					PositionReference r = recur(recur);
+					if(curt->type != Token_CloseParen) {
+						RenderError("expected ')' to close function min");
+						return {};
+					}
+					curt++;
+					if(l.is_scalar != r.is_scalar) {
+						RenderError("cannot perform min between a vector and a scalar");
+						return {};
+					}
+					PositionReference out;
+					out.is_scalar = l.is_scalar;
+					if(l.is_scalar) {
+						if(l.scalar < r.scalar) {
+							out.scalar = l.scalar;
+							out.part = l.part;
+						} else {
+							out.scalar = r.scalar;
+							out.part = r.part;
+						}
+					} else { // NOTE(sushi) we cannot decide on either part when we take the min of 2 vectors
+						out.vec = Min(l.vec, r.vec);
+					}
+					return out;
+				}break; 
+
+				case Token_avg: {
+					curt++;
+					if(curt->type != Token_OpenParen) {
+						RenderError("expected '(' after token 'avg'");
+						return {};
+					}
+					curt++;
+					PositionReference l = recur(recur);
+					if(curt->type != Token_Comma) {
+						RenderError("expected ',' after first parameter of avg");
+						return {};
+					}
+					curt++;
+					PositionReference r = recur(recur);
+					if(curt->type != Token_CloseParen) {
+						RenderError("expected ')' to close function avg");
+						return {};
+					}
+					curt++;
+					if(l.is_scalar != r.is_scalar) {
+						RenderError("cannot perform avg between a vector and a scalar");
+						return {};
+					}
+					PositionReference out;
+					out.is_scalar = l.is_scalar;
+					if(l.is_scalar) {
+						out.scalar = (l.scalar + r.scalar) / 2;
+					} else {
+						out.vec = (l.vec + r.vec) / 2;
+					}
+					return out;
+				}break;
+
 				default: {
-					RenderError("need a position expression, line ", curt->line, " col ", curt->column);
+					RenderError("need a position expression");
 				}break;
 			}
 			return PositionReference{0,{}};
@@ -231,7 +390,7 @@ RenderPart render_term(Term* term, Element* element) {
 						curt++;
 						RenderLog("rendering child ", stoi(curt->raw));
 						if(curt->type != Token_Integer) {
-							RenderError("need an integer after 'child' token. line ", curt->line, " col ", curt->column);
+							RenderError("need an integer after 'child' token.");
 							return {};
 						}
 						Term* node = term->first_child;
@@ -253,14 +412,13 @@ RenderPart render_term(Term* term, Element* element) {
 								s = term->raw.buffer.fin;
 							}break;
 							default: {
-								RenderError("need a string or 'term_raw' after 'text' token. line ", curt->line, " col ", curt->column);
+								RenderError("need a string or 'term_raw' after 'text' token");
 								return {};
 							}break;
 						}
 						*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
-						vec2i counts = render_make_text_counts(str8_length(s));
-						//RenderPart* rp = element->expression.rendered_parts + proper_indexes[parts_rendered++];
 						array_push(element->expression.rendered_parts);
+						vec2i counts = render_make_text_counts(str8_length(s));
 						RenderPart* rp = element->expression.rendered_parts + proper_indexes[parts_rendered++];
 						rp->bbx = rp->position = {};
 						vec2i offset = alloc_drawdata(element, counts.x, counts.y);
@@ -273,6 +431,35 @@ RenderPart render_term(Term* term, Element* element) {
 						rp->bbx = font_visual_size(element->item->style.font, s) * element->item->style.font_height / element->item->style.font->max_height;
 						curt++;
 					}break;
+					case Token_shape: {
+						curt++;
+						switch(curt->type){
+							case Token_line: {
+								RenderLog("drawing line");
+								curt++;
+								PositionReference start = eval_position();
+								PositionReference end = eval_position();
+								RenderLog(start.vec, " -> ", end.vec);
+								*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
+								array_push(element->expression.rendered_parts);
+								vec2i counts = render_make_line_counts();
+								RenderPart* rp = element->expression.rendered_parts + proper_indexes[parts_rendered++];
+								rp->bbx = rp->position = {};
+								vec2i offset = alloc_drawdata(element, counts.x, counts.y);
+								rp->vcount = counts.x;
+								rp->vstart = offset.x;
+								rp->icount = counts.y;
+								rp->istart = offset.y;
+								rp->term = term;
+								render_make_line(element->drawdata.vertexes, element->drawdata.indexes, offset, start.vec, end.vec, 1, Color_White);
+								forI(counts.x) {
+									rp->bbx.x = Max(rp->bbx.x, (element->drawdata.vertexes + offset.x + i)->pos.x);
+									rp->bbx.y = Max(rp->bbx.y, (element->drawdata.vertexes + offset.x + i)->pos.y);									
+								}
+								curt++;
+							}break;	
+						}						
+					}break;
 				}
 			}break;
 			case Token_align: {
@@ -281,8 +468,8 @@ RenderPart render_term(Term* term, Element* element) {
 				PositionReference offset0 = eval_position();
 				PositionReference offset1 = eval_position();
 				RenderLog("  ", offset0.part->term->mathobj->name, " ", offset0.part - element->expression.rendered_parts, "  ->  ", offset1.part->term->mathobj->name, " ", offset1.part - element->expression.rendered_parts);
-				offset_render_part(element, offset0.part, offset1.pos-offset0.pos);
-				RenderLog("  by offset ", offset1.pos-offset0.pos);
+				offset_render_part(element, offset0.part, offset1.vec-offset0.vec);
+				RenderLog("  by offset ", offset1.vec-offset0.vec);
 			}break;
 		}
 		if(curt->type == Token_EOF) break;

@@ -1017,6 +1017,7 @@ MathObject* math_object_from_string(str8 s) {
 		str8case("+"): return &math_objects.addition;
 		str8case("-"): return &math_objects.subtraction;
 		str8case("*"): return &math_objects.multiplication;
+		str8case("/"): return &math_objects.division;
 	}
 	return 0;
 #undef str8case
@@ -1103,7 +1104,8 @@ void ast_input(Expression* expr) {
 
 	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder) {
 		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
-		if(DeshInput->charCount) text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
+		if(DeshInput->charCount) 
+			text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
 		if(attempt_to_resolve_placeholder(expr)) return;
 	}
 
