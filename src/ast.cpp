@@ -1008,15 +1008,7 @@ void print_expression_text(Expression* expr){
 	Log("", out.fin);
 }
 
-b32 is_digit(u32 codepoint){
-	switch(codepoint){
-		case '0': case '1': case '2': case '3': case '4': 
-		case '5': case '6': case '7': case '8': case '9':
-			return true;
-		default:
-			return false;
-	}
-}
+
 
 MathObject* math_object_from_string(str8 s) {
 #define str8case(str) case str8_static_hash64(str8_static_t(str))
@@ -1039,7 +1031,7 @@ b32 attempt_to_resolve_placeholder(Expression* expr) {
 	Term* cursor = expr->term_cursor_start;
 
 	// if the first character is a digit this must be an integer
-	if(is_digit(cursor->raw.buffer.str[0])) {
+	if(isdigit(cursor->raw.buffer.str[0])) {
 		cursor->mathobj = &math_objects.number;
 		return true; // we've already inserted the character for this frame, so we must quit early so we dont do it again below
 	} else {
@@ -1120,7 +1112,7 @@ void ast_input(Expression* expr) {
 			forI(DeshInput->charCount) {
 				// scan the input array. if we find numbers, simply append them where the cursor is
 				// if we find anything else, we need to decide how to handle it
-				if(is_digit(DeshInput->charIn[i])) {
+				if(isdigit(DeshInput->charIn[i])) {
 					text_insert_string(&cursor->raw, str8{DeshInput->charIn+i,1});
 				} else {
 					// the user is probably inserting something inside the text, like another operator, or something.

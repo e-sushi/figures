@@ -330,15 +330,9 @@ int main(int args_count, char** args){
 		placeholder.type = MathObject_Placeholder;
 		placeholder.display.text = str8l("□");
 
-		array_init(placeholder.display.instructions, 1, deshi_allocator);
-		placeholder.display.n_parts = 1;
-
-		Instruction* instr = array_push(placeholder.display.instructions);
-		instr->type = InstructionType_Text;
-		instr->part = 0;
-		TextInstruction& text = instr->text;
-		text.type = Text_Literal;
-		text.literal = str8l("hi");
+		placeholder.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '□'"
+		));
 	}
 
     {
@@ -347,13 +341,9 @@ int main(int args_count, char** args){
     	num.description = str8l("A mathematical object used to count, measure, and label.");
     	num.type = MathObject_Number;
 
-		array_init(num.display.instructions, 1, deshi_allocator);
-		num.display.n_parts = 1;
-		Instruction* instr = array_push(num.display.instructions);
-		instr->type = InstructionType_Text;
-		instr->part = 0;
-		TextInstruction& text = instr->text;
-		text.type = Text_TermRaw;
+		num.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text term_raw"
+		));
 	}
 
 	{
@@ -362,74 +352,16 @@ int main(int args_count, char** args){
 		add.description = str8l("The result of taking two groups of objects, putting them together, and then counting the result.");
 		add.type = MathObject_Function;
 		add.func.arity = 2;
-		array_init(add.movements, 3, deshi_allocator);
 
-		add.display.mathobj = &add;
-		add.display.n_parts = 3;
-		array_init(add.display.instructions, 7, deshi_allocator);
-
-		{ // add text "+", assigning to part 0
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_Text;
-			instr->part = 0;
-			TextInstruction& text = instr->text;
-			text.type = Text_Literal;
-			text.literal = str8l("+");
-		}
-
-		{ // render the lhs, assigning to part 1 
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 1;
-			instr->renderchild.child = 0;
-		}
-
-		{ // render the rhs, assinging to part 2
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 2;
-			instr->renderchild.child = 1;
-		}
-
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 1;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-
-		{ // align root left to lhs right
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 0;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 1;
-			align.rhs.position = Position_Right;
-		}
-
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-		
-		{ // align rhs left to root right
-			Instruction* instr = array_push(add.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 0;
-			align.rhs.position = Position_Right;
-		}
+		add.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '+'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
 
 		add.display.text = str8l("$1 + $2");
 		add.display.s_expression = str8l("(+ $1 $2)");
@@ -442,72 +374,15 @@ int main(int args_count, char** args){
 		sub.type = MathObject_Function;
 		sub.func.arity = 2;
 
-		sub.display.mathobj = &sub;
-		sub.display.n_parts = 3;
-		array_init(sub.display.instructions, 7, deshi_allocator);
-
-		{ // add text "+", assigning to part 0
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Text;
-			instr->part = 0;
-			TextInstruction& text = instr->text;
-			text.type = Text_Literal;
-			text.literal = str8l("-");
-		}
-
-		{ // render the lhs, assigning to part 1 
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 1;
-			instr->renderchild.child = 0;
-		}
-
-		{ // render the rhs, assinging to part 2
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 2;
-			instr->renderchild.child = 1;
-		}
-
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 1;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-
-		{ // align root left to lhs right
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 0;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 1;
-			align.rhs.position = Position_Right;
-		}
-
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-		
-		{ // align rhs left to root right
-			Instruction* instr = array_push(sub.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 0;
-			align.rhs.position = Position_Right;
-		}
+		sub.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '-'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
 
 		sub.display.text = str8l("$1 - $2");
 		sub.display.s_expression = str8l("(- $1 $2)");
@@ -520,72 +395,15 @@ int main(int args_count, char** args){
 		mul.type = MathObject_Function;
 		mul.func.arity = 2;
 
-		mul.display.mathobj = &mul;
-		mul.display.n_parts = 3;
-		array_init(mul.display.instructions, 7, deshi_allocator);
-
-		{ // add text "+", assigning to part 0
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Text;
-			instr->part = 0;
-			TextInstruction& text = instr->text;
-			text.type = Text_Literal;
-			text.literal = str8l("*");
-		}
-
-		{ // render the lhs, assigning to part 1 
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 1;
-			instr->renderchild.child = 0;
-		}
-
-		{ // render the rhs, assinging to part 2
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_RenderChild;
-			instr->part = 2;
-			instr->renderchild.child = 1;
-		}
-
-		{ // align lhs origin.y to root center.y
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 1;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-
-		{ // align root left to lhs right
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 0;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 1;
-			align.rhs.position = Position_Right;
-		}
-
-		{ // align rhs origin.y to root center.y
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_OriginY;
-			align.rhs.part = 0;
-			align.rhs.position = Position_CenterY;
-		}
-		
-		{ // align rhs left to root right
-			Instruction* instr = array_push(mul.display.instructions);
-			instr->type = InstructionType_Align;
-			AlignInstruction& align = instr->align;
-			align.lhs.part = 2;
-			align.lhs.position = Position_Left;
-			align.rhs.part = 0;
-			align.rhs.position = Position_Right;
-		}
+		mul.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '*'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
 
 		mul.display.text = str8l("$1 * $2");
 		mul.display.s_expression = str8l("(* $1 $2)");
@@ -596,7 +414,7 @@ int main(int args_count, char** args){
 		div.name = str8l("Division");
 		div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
 
-
+		// TODO(sushi) div rendering instructions
 
 		div.display.text = str8l("$1 / $2");
 		div.display.s_expression = str8l("(/ $1 $2)");
@@ -631,28 +449,75 @@ int main(int args_count, char** args){
 	KeyCode inputs[] = {
 		CanvasBind_SetTool_Expression,
 		CanvasBind_Expression_Create,
-		Key_EQUALS|InputMod_AnyShift,
-		CanvasBind_Expression_CursorRight,
 		Key_1,
 		Key_2,
 		Key_3,
+		Key_4,
+		Key_5,
+		Key_6,
+		Key_7,
+		Key_8,
+		Key_9,
+		Key_0,
 		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		CanvasBind_Expression_CursorLeft,
+		Key_NONE,
+		Key_EQUALS|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		Key_8|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
 		Key_MINUS,
 		CanvasBind_Expression_CursorRight,
-		Key_1,
-		Key_2,
-		CanvasBind_Expression_CursorLeft,
 		Key_NONE,
-		CanvasBind_Expression_CursorLeft,
+		CanvasBind_Expression_CursorRight,
 		Key_NONE,
-		CanvasBind_Expression_CursorLeft,
+		Key_EQUALS|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
 		Key_NONE,
-		CanvasBind_Expression_CursorLeft,
+		CanvasBind_Expression_CursorRight,
 		Key_NONE,
-		CanvasBind_Expression_CursorLeft,
-		Key_2,
-		CanvasBind_Expression_CursorLeft,
 		Key_8|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		Key_MINUS,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		Key_EQUALS|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		Key_8|InputMod_AnyShift,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		CanvasBind_Expression_CursorRight,
+		Key_NONE,
+		Key_MINUS,
 	};
 
 	//test_single_addition();
@@ -668,19 +533,25 @@ int main(int args_count, char** args){
 		}
 
 		update_canvas();
+		Element* selected = canvas.element.selected;
+		if(selected && array_count(selected->expression.rendered_parts)) {
+			static u32 iter = 0;
+			if(key_pressed(Key_LEFT|InputMod_AnyCtrl) && iter) iter--;
+			if(key_pressed(Key_RIGHT|InputMod_AnyCtrl) && iter < array_count(selected->expression.rendered_parts)-1) iter++; 
 
-		// Element* selected = canvas.element.selected;
-		// if(array_count(selected->expression.rendered_parts) ) {
-		// 	static u32 iter = 0;
-		// 	vec2 pos = selected->item->pos_screen;
-		// 	iter = (iter + 1) % array_count(selected->expression.rendered_parts);
-		// 	render_start_cmd2(5, 0, vec2::ZERO, DeshWindow->dimensions.toVec2());
+			static Stopwatch watch = start_stopwatch();
 
-		// 	//forI(array_count(selected->expression.rendered_parts)) {
-		// 		RenderPart part = selected->expression.rendered_parts[iter];
-		// 		render_quad2(pos + part.position, part.bbx, Color_Red);
-		// 	//}
-		// }
+			vec2 pos = selected->item->pos_screen;
+			render_start_cmd2(5, 0, vec2::ZERO, DeshWindow->dimensions.toVec2());
+			RenderPart part = selected->expression.rendered_parts[iter];
+			render_quad2(pos + part.position, part.bbx, Color_Red);
+			ui_begin_immediate_branch(selected->item); {
+				uiItem* item = ui_make_text(part.term->raw.buffer.fin, 0);
+				item->style.positioning = pos_relative;
+				item->style.font_height = 11;
+				item->style.pos = part.position.yAdd(part.bbx.y);
+			} ui_end_immediate_branch();
+		}
 
 		// //update deshi
 		// console_update();

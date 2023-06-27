@@ -430,7 +430,6 @@ if config["use_pch"]:
             if os.path.getmtime(include) > pchlasttime:
                 return True
         return False
-
     if os.path.getmtime("src/pch.h") > pchlasttime or regen_pch():
         subprocess.Popen(f"clang -c -xc++-header -I. src/pch.h -o {folders['build']}/pch.h.pch {shared}".split(' ')).wait()
 

@@ -456,7 +456,8 @@ enum {
 };
 
 struct RenderPart{
-	Type type;
+	Type       type;
+	u32 group_children; // number of children parts a group has
 	vec2   position; // the position of this part
 	vec2        bbx; // the bounding box formed by child nodes
 	f32     midline; // 
@@ -589,150 +590,160 @@ const uiStyle element_default_style = {
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @Display
 
-enum {
-	Position_Top, // y value of top edge  
-	Position_Right, // x value of right edge
-	Position_Bottom, // y value of bottom edge
-	Position_Left, // x value of left edge
-	Position_OriginX,
-	Position_OriginY,
-	Position_CenterX,
-	Position_CenterY,
-};
-
-typedef Type Position;
 
 enum {
-	NumberInstruction_Min,
-	NumberInstruction_Max,
-	NumberInstruction_Average,
+	Token_EOF,
+	Token_align,
+	Token_render,
+	Token_text,
+	Token_left,
+	Token_right,
+	Token_top,
+	Token_bottom,
+	Token_center_x,
+	Token_center_y,
+	Token_origin_x,
+	Token_origin_y,
+	Token_child,
+	Token_term_raw,
+
+	Token_Integer,
+	Token_Backtick,
+	Token_String,
 };
 
-// any instruction that gives a number
-struct NumberInstruction{ 
+struct Token {
 	Type type;
-	union {
-		struct {
-			Position pos;
-		}unary;
-		struct {
-			Position lhs,rhs;
-		}binary;
+	str8 raw;
+	u64 hash;
+	u64 line, column;
+};
+
+
+Token* tokenize_instructions(str8 instructions) {
+#define str8case(str) case str8_static_hash64(str8_static_t(str))
+#define charcase(c, type_)       \
+case c: {                        \
+    Token* t = array_push(out);  \
+    t->line = line;              \
+    t->column = column;          \
+    t->raw = str8{stream.str, 1};\
+    t->type = type_;             \
+    advance_stream();            \
+    eat_whitespace();            \
+}break;
+
+	Token* out;
+	array_init(out, 1, deshi_allocator);
+
+	u64 line = 1, column = 1;
+	str8 stream = instructions;
+
+	auto advance_stream = [&]() {
+		if(*stream.str == '\n') {
+			column = 1;
+			line++;
+		}else{
+			column++;
+		}
+		str8_advance(&stream);
 	};
-};
 
-struct ScaleInstruction {
-	Type type;
-	union{
-		struct{
-			
-		}relative_to_part;
+	auto eat_whitespace = [&]() {
+		while(stream) {
+			if(!is_whitespace(utf8codepoint(stream.str))) {
+				break;
+			}
+			if(*stream.str == '\n') {
+				column = 1;
+				line++;
+			}else{
+				column++;
+			}
+			str8_advance(&stream);
+		}
 	};
-};
 
-// aligns two part positions to each other
-struct AlignInstruction {
-	struct {
-		Position position;
-		spt part; 
-	}lhs, rhs;
-};
-
-// static 
-struct OffsetInstruction {
-	
-};
-
-enum {
-	Positioning_align,
-	Positioning_number,
-};
-
-struct PositioningInstruction {
-	Type type;
-	union{
-		AlignInstruction alignment;
-		OffsetInstruction offset;
-		NumberInstruction number;
+	auto eat_word = [&]() {
+		str8 out = stream;
+		while(stream) {
+			if(is_whitespace(utf8codepoint(stream.str))) {
+				break;
+			}
+			column++;
+			str8_advance(&stream);
+		}
+		out.count = stream.str - out.str;
+		return out;
 	};
-};
 
-enum{
-	ShapeType_Circle,
-	ShapeType_Line,
-	ShapeType_Rectangle,
-};
-
-struct ShapePart {
-	Type type;
-	union{
-		struct{
-			PositioningInstruction offset_x;
-			PositioningInstruction offset_y;
-			PositioningInstruction radius_x;
-			PositioningInstruction radius_y;
-		}circle;
-
-		struct{
-			struct{
-				PositioningInstruction x,y;
-			}start;
-			struct{
-				PositioningInstruction x,y;
-			}end;
-		}line;
-
-		struct{
-			vec2 offset;
-			vec2 size;
-		}rect;
-	};
-};
-
-enum{
-	Text_Literal,
-	Text_TermRaw,
-};
-
-// make some text
-// this pushes a render part onto the stack
-struct TextInstruction {
-	Type type;
-	union {
-		str8 literal;
-		s32 term; // which term on the stack to extract text from
-	};
-};
-
-// draws a child node, pushing its data to the stack
-struct RenderChildInstruction {
-	spt child;
-};
-
-enum{
-	InstructionType_Align,
-	InstructionType_Text,
-	InstructionType_Number,
-	InstructionType_RenderChild,
-};
-
-struct Instruction {
-	Type type;
-	spt part; // which render part this instruction belongs to 
-	union{
-		AlignInstruction align;
-		NumberInstruction number;
-		TextInstruction text;
-		RenderChildInstruction renderchild;
-	};
-};
-
-struct DisplayContext {
-	vec2 bbx;
-	f32 baseline;
-	Vertex2* vertex_start; // kigu array
-	u32* index_start; // kigu array
-};
+	eat_whitespace();
+	while(stream) {
+		switch(*stream.str) {
+			charcase('`', Token_Backtick);
+			case '\'': {
+				advance_stream();
+				str8 start = stream;
+				u64 save_line = line, save_column = column;
+				while(stream && *stream.str != '\'') {
+					str8_advance(&stream);
+				}
+				Token* t = array_push(out);
+				t->raw = {start.str, stream.str-start.str};
+				t->type = Token_String;
+				t->line = save_line;
+				t->column = save_column;
+				advance_stream();
+			}break;
+			default: {
+				str8 start = stream;
+				b32 is_word = true;
+				if(isdigit(*start.str)) {
+					is_word = false;
+					while(isdigit(*stream.str)) advance_stream();
+				} else while(stream) {
+					if(is_whitespace(*stream.str) || match_any(*stream.str, '`', '\'')) {
+						break;
+					}
+					advance_stream();
+				}
+				Token* t = array_push(out);
+				t->raw = {start.str, stream.str-start.str};
+				t->line = line;
+				t->column = column;
+				if(!is_word) {
+					t->type = Token_Integer;
+				}else{
+					u64 hash = str8_hash64(t->raw);
+					switch(hash) {
+						str8case("align"): t->type = Token_align; break;
+						str8case("render"): t->type = Token_render; break;
+						str8case("text"): t->type = Token_text; break;
+						str8case("left"): t->type = Token_left; break;
+						str8case("right"): t->type = Token_right; break;
+						str8case("top"): t->type = Token_top; break;
+						str8case("bottom"): t->type = Token_bottom; break;
+						str8case("center_x"): t->type = Token_center_x; break;
+						str8case("center_y"): t->type = Token_center_y; break;
+						str8case("origin_x"): t->type = Token_origin_x; break;
+						str8case("origin_y"): t->type = Token_origin_y; break;
+						str8case("child"): t->type = Token_child; break;
+						str8case("term_raw"): t->type = Token_term_raw; break;
+						default: {
+							LogE("instrcomp", "unknown word '", t->raw, "' on line ", t->line, " column ", t->column);
+							return 0;
+						}break;
+					}
+				}
+			}break;
+		}
+		eat_whitespace();
+	}
+	Token* eof = array_push(out);
+	eof->type = Token_EOF;
+	return out;
+#undef str8case
+}
 
 // type containing data needed for displaying math in some way
 struct Display {
@@ -742,8 +753,7 @@ struct Display {
 
 	str8 text; // data used when displaying as text
 	str8 s_expression; //  data used when displaying as an s-expression
-	Instruction* instructions; // kigu array of instructions used when rendering
-	spt n_parts; // how many parts are used to render this Display
+	Token* instruction_tokens; // kigu array of instructions used when rendering
 
 };
 

@@ -129,27 +129,29 @@ void scale_render_part(Element* element, RenderPart* part, vec2 scale) {
 	}
 }
 
-void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
+void offset_render_part_position(Element* element, RenderPart* part, vec2 offset) {
 	part->position += offset;
+	if(part->type == RenderPart_Group) {
+		forI(part->group_children) {
+			offset_render_part_position(element, part + i + 1, offset);
+		}
+	} 
+}
+
+void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
 	forI(part->vcount) {
 		(element->drawdata.vertexes + part->vstart + i)->pos.x += offset.x;
 		(element->drawdata.vertexes + part->vstart + i)->pos.y += offset.y;
 	}
+	offset_render_part_position(element, part, offset);
 }
 
-vec2 get_position(RenderPart* part, Position position) {
-	switch(position) {
-		case Position_Bottom: return Vec2(0, part->position.y+part->bbx.y);
-		case Position_Left: return Vec2(part->position.x, 0);
-		case Position_Top: return Vec2(0, part->position.y);
-		case Position_Right: return Vec2(part->position.x+part->bbx.x, 0);
-		case Position_CenterX: return Vec2(part->position.x+part->bbx.x/2, 0);
-		case Position_CenterY: return Vec2(0, part->position.y+part->bbx.y/2);
-		case Position_OriginX: return Vec2(part->position.x+part->bbx.x/2, 0);
-		case Position_OriginY: return Vec2(0, part->position.y+part->bbx.y/2);
-	}
-	return {0,0};
-}
+#if 0
+#define RenderLog(...) Log("suugu_render", __VA_ARGS__)
+#else
+#define RenderLog(...)
+#endif
+
 
 /*
 	Rendering a term consists of creating RenderParts, which represent the position, bounding box, 
@@ -160,97 +162,142 @@ vec2 get_position(RenderPart* part, Position position) {
 
 */
 
-#if 0
-#define RenderLog(...) Log("suugu_render", __VA_ARGS__)
-#else
-#define RenderLog(...)
-#endif
-
+#define RenderError(...) LogE("suugu_render", __VA_ARGS__)
 
 RenderPart render_term(Term* term, Element* element) {
 	logger_push_indent(1);
 	defer{logger_pop_indent(1);};
+	Token* curt = term->mathobj->display.instruction_tokens;
 
 	u32 self = array_count(element->expression.rendered_parts);
-	array_push(element->expression.rendered_parts);
-	u32 part_start;
-	if(term->mathobj->display.n_parts > 1) {
-		part_start = self + 1;
-		array_push(element->expression.rendered_parts);
-		(element->expression.rendered_parts + self)->type = RenderPart_Group;
-		(element->expression.rendered_parts + self + 1)->term = term;
-	} else {
-		part_start = self;
-		(element->expression.rendered_parts + self)->type = RenderPart_Individual;
-	} 
-
-	(element->expression.rendered_parts + self)->term = term;
-	(element->expression.rendered_parts + self)->vstart = MAX_S32;
-	(element->expression.rendered_parts + self)->istart = MAX_S32;
-
 	u32* proper_indexes;
-	array_init(proper_indexes, 1, deshi_allocator);
-	defer{array_deinit(proper_indexes);};
-	*array_push(proper_indexes) = part_start;
+	array_init(proper_indexes, 1, deshi_allocator); defer{array_deinit(proper_indexes);};
+	u32 parts_rendered = 0;
 
-	Instruction* instructions = term->mathobj->display.instructions;
-	forI(array_count(instructions)){
-		Instruction instruction = instructions[i];
-		switch(instruction.type) {
-			case InstructionType_RenderChild: {
-				RenderLog("rendering child ", instruction.part);
-				Term* node = term->first_child;
-				forI(instruction.renderchild.child) node = node->next;
-				RenderPart* dt = element->expression.rendered_parts + part_start + instruction.part;
-				*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
-				render_term(node, element);
-			}break;
-			case InstructionType_Text: {
-				RenderLog("drawing text");
-				TextInstruction& text = instruction.text;
-				str8 s;
-				switch(text.type) {
-					case Text_Literal: s = text.literal; break;
-					case Text_TermRaw: {
-						RenderPart rp = element->expression.rendered_parts[part_start + text.term];
-						Assert(rp.term, "TermRaw Text Instruction was given an index into the stack that does not belong to a Term.");
-						s = rp.term->raw.buffer.fin;
-					}break;
-				}
-				vec2i counts = render_make_text_counts(str8_length(s));
-				RenderPart* rp = element->expression.rendered_parts + proper_indexes[instruction.part];
-				rp->bbx = rp->position = {};
-				vec2i offset = alloc_drawdata(element, counts.x, counts.y);
-				rp->vcount = counts.x;
-				rp->vstart = offset.x;
-				rp->icount = counts.y;
-				rp->istart = offset.y;
-				render_make_text(element->drawdata.vertexes, element->drawdata.indexes, offset, s, canvas.ui.font.debug, {0,0}, Color_White, vec2::ONE*element->item->style.font_height / element->item->style.font->max_height);
-				Vertex2* vstart = element->drawdata.vertexes + rp->vstart;
-				forI(counts.x) {
-					if(vstart[i].pos.x > rp->bbx.x) rp->bbx.x = vstart[i].pos.x;
-					if(vstart[i].pos.y > rp->bbx.y) rp->bbx.y = vstart[i].pos.y;
-				}
-			}break;
-			case InstructionType_Align: {
-				RenderLog("aligning");
-				AlignInstruction& align = instruction.align;
-				RenderPart* lhs = element->expression.rendered_parts + proper_indexes[align.lhs.part];
-				RenderPart* rhs = element->expression.rendered_parts + proper_indexes[align.rhs.part];
-				RenderLog("  ", lhs->term->raw.buffer.fin, "  ->  ", rhs->term->raw.buffer.fin);
-
-				vec2 offset0 = get_position(lhs, align.lhs.position);
-				vec2 offset1 = get_position(rhs, align.rhs.position);
-				offset_render_part(element, lhs, offset1-offset0);
-				RenderLog("  by offset ", offset1-offset0);
+	auto get_position = [&](RenderPart* part, Token* token) {
+		switch(token->type) {
+			case Token_bottom:   return Vec2(0, part->position.y+part->bbx.y);
+			case Token_left:     return Vec2(part->position.x, 0);
+			case Token_top:      return Vec2(0, part->position.y);
+			case Token_right:    return Vec2(part->position.x+part->bbx.x, 0);
+			case Token_center_x: return Vec2(part->position.x+part->bbx.x/2, 0);
+			case Token_center_y: return Vec2(0, part->position.y+part->bbx.y/2);
+			case Token_origin_x: return Vec2(part->position.x+part->bbx.x/2, 0);
+			case Token_origin_y: return Vec2(0, part->position.y+part->bbx.y/2);
+			default: {
+				RenderError("invalid position, expected one of (top, bottom, left, right, center_x, center_y, origin_x, origin_y), line ", token->line, " col ", token->column);
+				return vec2{};
 			}break;
 		}
+	};
+
+	struct PositionReference {
+		RenderPart* part;
+		vec2 pos;
+	};
+
+	const auto eval_position = [&]() {
+		RenderLog("eval_position");
+		auto impl = [&](auto& recur) {
+			switch(curt->type) {
+				case Token_Backtick: {
+					curt++;
+					if(curt->type != Token_Integer) {
+						RenderError("need an integer after '`', line ", curt->line, " col ", curt->column);
+						return PositionReference{0,{}};
+					}
+					RenderPart* part = element->expression.rendered_parts + proper_indexes[stoi(curt->raw)];
+					curt++;
+					PositionReference out = {part, get_position(part, curt)};
+					curt++;
+					return out;
+				}break;
+
+				default: {
+					RenderError("need a position expression, line ", curt->line, " col ", curt->column);
+				}break;
+			}
+			return PositionReference{0,{}};
+		};
+		return impl(impl);
+	};
+
+	while(1) {
+		switch(curt->type) {
+			case Token_render: {
+				curt++;
+				switch(curt->type) {
+					case Token_child: {
+						curt++;
+						RenderLog("rendering child ", stoi(curt->raw));
+						if(curt->type != Token_Integer) {
+							RenderError("need an integer after 'child' token. line ", curt->line, " col ", curt->column);
+							return {};
+						}
+						Term* node = term->first_child;
+						forI(stoi(curt->raw)) node = node->next;
+						*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
+						render_term(node, element);
+						parts_rendered++;
+						curt++;
+					}break;
+					case Token_text: {
+						RenderLog("drawing text");
+						curt++;
+						str8 s;
+						switch(curt->type) {
+							case Token_String: {
+								s = curt->raw;
+							}break;
+							case Token_term_raw:{
+								s = term->raw.buffer.fin;
+							}break;
+							default: {
+								RenderError("need a string or 'term_raw' after 'text' token. line ", curt->line, " col ", curt->column);
+								return {};
+							}break;
+						}
+						*array_push(proper_indexes) = array_count(element->expression.rendered_parts);
+						vec2i counts = render_make_text_counts(str8_length(s));
+						//RenderPart* rp = element->expression.rendered_parts + proper_indexes[parts_rendered++];
+						array_push(element->expression.rendered_parts);
+						RenderPart* rp = element->expression.rendered_parts + proper_indexes[parts_rendered++];
+						rp->bbx = rp->position = {};
+						vec2i offset = alloc_drawdata(element, counts.x, counts.y);
+						rp->vcount = counts.x;
+						rp->vstart = offset.x;
+						rp->icount = counts.y;
+						rp->istart = offset.y;
+						rp->term = term;
+						render_make_text(element->drawdata.vertexes, element->drawdata.indexes, offset, s, element->item->style.font, {0,0}, Color_White, vec2::ONE*element->item->style.font_height / element->item->style.font->max_height);
+						rp->bbx = font_visual_size(element->item->style.font, s) * element->item->style.font_height / element->item->style.font->max_height;
+						curt++;
+					}break;
+				}
+			}break;
+			case Token_align: {
+				curt++;
+				RenderLog("aligning");
+				PositionReference offset0 = eval_position();
+				PositionReference offset1 = eval_position();
+				RenderLog("  ", offset0.part->term->mathobj->name, " ", offset0.part - element->expression.rendered_parts, "  ->  ", offset1.part->term->mathobj->name, " ", offset1.part - element->expression.rendered_parts);
+				offset_render_part(element, offset0.part, offset1.pos-offset0.pos);
+				RenderLog("  by offset ", offset1.pos-offset0.pos);
+			}break;
+		}
+		if(curt->type == Token_EOF) break;
 	}
 
 	RenderPart* fin = element->expression.rendered_parts + self;
-	if(term->mathobj->display.n_parts > 1) {
+	if(parts_rendered > 1) {
+		RenderPart* group = array_insert(element->expression.rendered_parts, self);
+		group->type = RenderPart_Group;
+		group->term = term;
+		group->vstart = MAX_S32;
+		group->istart = MAX_S32;
+		group->group_children = parts_rendered;
 		RenderPart* iter = fin + 1;
-		forI(term->mathobj->display.n_parts) {
+		forI(parts_rendered) {
 			RenderLog("child ", i);
 			RenderLog("  raw: ", iter->term->raw.buffer.fin);
 			RenderLog("  pos: ", iter->position);
@@ -264,18 +311,11 @@ RenderPart render_term(Term* term, Element* element) {
 			fin->vstart = Min(fin->vstart, iter->vstart);
 			fin->istart = Min(fin->istart, iter->istart);
 			if(iter->type == RenderPart_Group) {
-				iter += iter->term->mathobj->display.n_parts+1;
+				iter += iter->group_children+1;
 			} else iter += 1;
 		}
-	} 
-
-	RenderLog("finished ", fin->term->raw);
-	RenderLog("  raw: ", fin->term->raw.buffer.fin);
-	RenderLog("  pos: ", fin->position);
-	RenderLog("  bbx: ", fin->bbx);
-	RenderLog("  vco: ", fin->vcount);
-	RenderLog("  ico: ", fin->icount);
-
+		return *group;
+	}
 	return *fin;
 }
 
@@ -288,7 +328,7 @@ void render_element(uiItem* item) {
 				item->drawcmds = ui_make_drawcmd(1);
 				ui_drawcmd_remove(old);
 				ui_drawcmd_alloc(item->drawcmds, {element->drawdata.vcount, element->drawdata.icount});
-				item->drawcmds->texture = canvas.ui.font.debug->tex;
+				item->drawcmds->texture = element->item->style.font->tex;
 			}
 			CopyMemory((Vertex2*)g_ui->vertex_arena->start+element->item->drawcmds->vertex_offset, element->drawdata.vertexes, element->drawdata.vcount*sizeof(Vertex2));
 			CopyMemory((u32*)g_ui->index_arena->start+element->item->drawcmds->index_offset, element->drawdata.indexes, element->drawdata.icount*sizeof(u32));
@@ -347,7 +387,7 @@ void evaluate_element(uiItem* item) {
 
 
 					if(rp.type == RenderPart_Group) continue;
-					position_map_insert(element, rp.term, (element->drawdata.vertexes + rp.vstart)->pos);
+					position_map_insert(element, rp.term, rp.position);
 				}
 
 				RenderLog("", "pos x: ");
@@ -1059,8 +1099,9 @@ void update_canvas(){
 				// TODO(sushi) fix the error with deshi_ui_allocator's resize and then use it here
 				element->item->id = to_dstr8v(deshi_allocator, "suugu.canvas.element", array_count(canvas.element.arr)).fin; 
 				element->item->style = element_default_style;
-				element->item->style.font = canvas.ui.font.debug;
-				element->item->style.font_height = 11;
+				element->item->style.sizing = size_auto;
+				element->item->style.font = canvas.ui.font.math;
+				element->item->style.font_height = 100;
 				element->item->style.pos = {100,100}; //{element->x, element->y};
 				element->item->__generate = render_element;
 				element->item->__evaluate = evaluate_element;
@@ -1081,7 +1122,6 @@ void update_canvas(){
 			
 			if(any_key_down() && canvas.element.selected){
 				ast_input(&canvas.element.selected->expression.handle);
-				canvas.element.selected->item->dirty = 1;
 			}
 			
 			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
