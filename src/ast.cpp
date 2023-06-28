@@ -1070,6 +1070,15 @@ void ast_input(Expression* expr) {
 	
 	defer{print_expression_text(expr);};
 
+	if(cursor->mathobj && !(cursor->movement.up || cursor->movement.down || cursor->movement.left || cursor->movement.right)) {
+		// if the cursor is at a node where there is no movement, we must force it to go elsewhere
+		// this happens when the root node is something that has no rendered part that the cursor can move into
+		// eg. division, which has a center line, but the cursor will never move there
+		// we just put the cursor at the first child
+		Assert(cursor->first_child); // this shouldn't happen in normal circumstances
+		cursor = expr->term_cursor_start = cursor->first_child;
+	}
+
 	// handle movements
 	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
 		if(text_cursor_at_start(&cursor->raw)) {

@@ -174,12 +174,9 @@ RenderPart render_term(Term* term, Element* element) {
 	array_init(proper_indexes, 1, deshi_allocator); defer{array_deinit(proper_indexes);};
 	u32 parts_rendered = 0;
 
-	auto get_position = [&](RenderPart* part, Token* token) {
-		
-	};
-
 	struct PositionReference {
 		b32 is_scalar;
+		u32 x_axis; // true if the scalar represents a value along the x_axis, false if over y
 		RenderPart* part;
 		union {
 			f32 scalar;
@@ -187,7 +184,8 @@ RenderPart render_term(Term* term, Element* element) {
 		};
 	};
 
-	const auto eval_position = [&]() {
+	// TODO(sushi) this needs to return a vec2 no matter what because aligning relies on it 
+	const auto eval_position = [&](b32 force_vector = false) {
 		RenderLog("eval_position");
 		enum{
 			State_Vector=1<<0,
@@ -207,16 +205,16 @@ RenderPart render_term(Term* term, Element* element) {
 					PositionReference out;
 					out.part = part;
 					switch(curt->type) {
-						case Token_bottom:   out.scalar = part->position.y+part->bbx.y;   out.is_scalar = true;  break;
-						case Token_left:     out.scalar = part->position.x;               out.is_scalar = true;  break;
-						case Token_top:      out.scalar = part->position.y;               out.is_scalar = true;  break;
-						case Token_right:    out.scalar = part->position.x+part->bbx.x;   out.is_scalar = true;  break;
-						case Token_center:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; break;
-						case Token_center_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  break;
-						case Token_center_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  break;
-						case Token_origin:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; break;
-						case Token_origin_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  break;
-						case Token_origin_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  break;
+						case Token_bottom:   out.scalar = part->position.y+part->bbx.y;   out.is_scalar = true;  out.x_axis = 0; break;
+						case Token_left:     out.scalar = part->position.x;               out.is_scalar = true;  out.x_axis = 1; break;
+						case Token_top:      out.scalar = part->position.y;               out.is_scalar = true;  out.x_axis = 0; break;
+						case Token_right:    out.scalar = part->position.x+part->bbx.x;   out.is_scalar = true;  out.x_axis = 1; break;
+						case Token_center:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; out.x_axis = 0; break;
+						case Token_center_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  out.x_axis = 1; break;
+						case Token_center_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  out.x_axis = 0; break;
+						case Token_origin:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; out.x_axis = 0; break;
+						case Token_origin_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  out.x_axis = 1; break;
+						case Token_origin_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  out.x_axis = 0; break;
 
 						default: {
 							RenderError("invalid position, expected one of (top, bottom, left, right, center, center_x, center_y, origin, origin_x, origin_y)");
@@ -288,11 +286,9 @@ RenderPart render_term(Term* term, Element* element) {
 					out.is_scalar = l.is_scalar;
 					if(l.is_scalar) {
 						if(l.scalar > r.scalar) {
-							out.scalar = l.scalar;
-							out.part = l.part;
+							out = l;
 						} else {
-							out.scalar = r.scalar;
-							out.part = r.part;
+							out = r;
 						}
 					} else { // NOTE(sushi) we cannot decide on either part when we take the max of 2 vectors
 						out.vec = Max(l.vec, r.vec);
@@ -327,11 +323,9 @@ RenderPart render_term(Term* term, Element* element) {
 					out.is_scalar = l.is_scalar;
 					if(l.is_scalar) {
 						if(l.scalar < r.scalar) {
-							out.scalar = l.scalar;
-							out.part = l.part;
+							out = l;
 						} else {
-							out.scalar = r.scalar;
-							out.part = r.part;
+							out = r;
 						}
 					} else { // NOTE(sushi) we cannot decide on either part when we take the min of 2 vectors
 						out.vec = Min(l.vec, r.vec);
@@ -369,6 +363,7 @@ RenderPart render_term(Term* term, Element* element) {
 					} else {
 						out.vec = (l.vec + r.vec) / 2;
 					}
+
 					return out;
 				}break;
 
@@ -451,6 +446,7 @@ RenderPart render_term(Term* term, Element* element) {
 								rp->icount = counts.y;
 								rp->istart = offset.y;
 								rp->term = term;
+								rp->cursor_ignore = true;
 								render_make_line(element->drawdata.vertexes, element->drawdata.indexes, offset, start.vec, end.vec, 1, Color_White);
 								forI(counts.x) {
 									rp->bbx.x = Max(rp->bbx.x, (element->drawdata.vertexes + offset.x + i)->pos.x);
@@ -467,9 +463,24 @@ RenderPart render_term(Term* term, Element* element) {
 				RenderLog("aligning");
 				PositionReference offset0 = eval_position();
 				PositionReference offset1 = eval_position();
+				vec2 o0, o1;
+				if(offset0.x_axis) {
+					o0.x = offset0.scalar;
+					o0.y = 0;
+				} else {
+					o0.x = 0;
+					o0.y = offset0.scalar;
+				}
+				if(offset1.x_axis) {
+					o1.x = offset1.scalar;
+					o1.y = 0;
+				} else {
+					o1.x = 0;
+					o1.y = offset1.scalar;;
+				}
 				RenderLog("  ", offset0.part->term->mathobj->name, " ", offset0.part - element->expression.rendered_parts, "  ->  ", offset1.part->term->mathobj->name, " ", offset1.part - element->expression.rendered_parts);
-				offset_render_part(element, offset0.part, offset1.vec-offset0.vec);
-				RenderLog("  by offset ", offset1.vec-offset0.vec);
+				offset_render_part(element, offset0.part, o1-o0);
+				RenderLog("  by offset ", o1-o0);
 			}break;
 		}
 		if(curt->type == Token_EOF) break;
@@ -572,8 +583,8 @@ void evaluate_element(uiItem* item) {
 					RenderLog("    v: ", rp.vstart, " -> ", rp.vstart + rp.vcount);
 					RenderLog("    i: ", rp.istart, " -> ", rp.istart + rp.icount);
 
-
-					if(rp.type == RenderPart_Group) continue;
+					
+					if(rp.type == RenderPart_Group || rp.cursor_ignore == true) continue;
 					position_map_insert(element, rp.term, rp.position);
 				}
 

@@ -465,6 +465,7 @@ struct RenderPart{
 	s32      istart; // index into index arena
 	s32 vcount, icount;
 	Term* term; // the term that was rendered
+	b32 cursor_ignore; // the cursor will not consider this RenderPart when moving
 };
 
 // element: anything with position, size, coordinate space, and display info
