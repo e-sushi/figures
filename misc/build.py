@@ -151,6 +151,9 @@ folders["misc"] = os.path.dirname(__file__)
 folders["root"] = os.path.abspath(f"{folders['misc']}/..")
 folders["build"] = f"{folders['root']}/build/{config['buildmode']}"
 
+if not os.path.exists(folders["build"]):
+    os.makedirs(folders["build"])
+
 os.chdir(folders["root"])
 
 # check if deshi has any source files newer than the last time it was built
@@ -509,7 +512,6 @@ if config["build_analysis"]:
     file = open(f"{folders['build']}/ctimeanalysis", "w")
     file.write(analysis)
     file.close()
-
 
 lproc = Thread(target=run_proc, args=("exe", full_link))
 lproc.start()
