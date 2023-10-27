@@ -57,7 +57,6 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #include "kigu/common.h"
 #include "kigu/cstring.h"
 #include "kigu/map.h"
-#include "kigu/string.h"
 
 //// deshi includes ////
 #include "core/assets.h"
@@ -99,7 +98,7 @@ Bug Board       //NOTE mark these with first-known active date [MM/DD/YY] and la
 #endif
 
 
-void test_single_addition() {
+void test_single_addition(){
 	Element* element = create_element();
 	*array_push(canvas.element.arr) = element;
 	element->type = ElementType_Expression;
@@ -130,10 +129,10 @@ void test_single_addition() {
 	array_init(element->expression.rendered_parts, 1, deshi_allocator);
 	*array_push(canvas.element.arr) = element;
 	canvas.element.selected = element;
-
+	
 	element->expression.handle.root.mathobj = &math_objects.addition;
 	text_clear_and_replace(&element->expression.handle.root.raw, str8l("+"));
-
+	
 	Term* lhs = create_term(), *rhs = create_term();
 	lhs->mathobj = &math_objects.number;
 	rhs->mathobj = &math_objects.number;
@@ -143,7 +142,7 @@ void test_single_addition() {
 	ast_insert_last(&element->expression.handle.root, rhs);
 }
 
-void test_double_addition() {
+void test_double_addition(){
 	Element* element = create_element();
 	*array_push(canvas.element.arr) = element;
 	element->type = ElementType_Expression;
@@ -174,10 +173,10 @@ void test_double_addition() {
 	array_init(element->expression.rendered_parts, 1, deshi_allocator);
 	*array_push(canvas.element.arr) = element;
 	canvas.element.selected = element;
-
+	
 	element->expression.handle.root.mathobj = &math_objects.addition;
 	text_clear_and_replace(&element->expression.handle.root.raw, str8l("+"));
-
+	
 	Term* lhs = create_term(), *rhs = create_term();
 	lhs->mathobj = &math_objects.number;
 	rhs->mathobj = &math_objects.addition;
@@ -193,9 +192,255 @@ void test_double_addition() {
 	ast_insert_last(rhs, rhsrhs);
 }
 
+void test_math_objects(){
+	{
+		MathObject& placeholder = math_objects.placeholder;
+		placeholder.name = str8l("Placeholder");
+		placeholder.description = str8l("suugu's placeholder object, anything may go here.");
+		placeholder.type = MathObject_Placeholder;
+		placeholder.display.text = str8l("□");
+		
+		placeholder.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '□'"
+		));
+	}
+	
+	{
+		MathObject& num = math_objects.number;
+		num.name = str8l("Number");
+		num.description = str8l("A mathematical object used to count, measure, and label.");
+		num.type = MathObject_Number;
+		
+		num.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text term_raw"
+		));
+	}
+	
+	{
+		MathObject& add = math_objects.addition;
+		add.name = str8l("Addition");
+		add.description = str8l("The result of taking two groups of objects, putting them together, and then counting the result.");
+		add.type = MathObject_Function;
+		add.func.arity = 2;
+		
+		add.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '+'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
+		
+		add.display.text = str8l("$1 + $2");
+		add.display.s_expression = str8l("(+ $1 $2)");
+	}
+	
+	{
+		MathObject& sub = math_objects.subtraction;
+		sub.name = str8l("Subtraction");
+		sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
+		sub.type = MathObject_Function;
+		sub.func.arity = 2;
+		
+		sub.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '-'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
+		
+		sub.display.text = str8l("$1 - $2");
+		sub.display.s_expression = str8l("(- $1 $2)");
+	}
+	
+	{
+		MathObject& mul = math_objects.multiplication;
+		mul.name = str8l("Multiplication");
+		mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
+		mul.type = MathObject_Function;
+		mul.func.arity = 2;
+		
+		mul.display.instruction_tokens = tokenize_instructions(str8l(
+			"render text '*'\n" // stack: 0
+			"render child 0\n"  // stack: 1
+			"render child 1\n"  // stack: 2
+			"align `1 origin_y `0 center_y\n"
+			"align `0 left `1 right\n"
+			"align `2 origin_y `0 center_y\n"
+			"align `2 left `0 right\n"
+		));
+		
+		mul.display.text = str8l("$1 * $2");
+		mul.display.s_expression = str8l("(* $1 $2)");
+	}
+	
+	{
+		MathObject& div = math_objects.division;
+		div.name = str8l("Division");
+		div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
+		div.type = MathObject_Function;
+		div.func.arity = 2;
+		
+		// TODO(sushi) div rendering instructions
+		div.display.instruction_tokens = tokenize_instructions(str8l(
+			"render child 0\n" // stack: 0
+			"render child 1\n" // stack: 1
+			"align `1 top `0 bottom\n"
+			"align min(`0 center_x, `1 center_x) max(`0 center_x, `1 center_x)\n"
+			"render shape line \n"
+			"		(min(`0 left, `1 left), avg(`0 bottom, `1 top))\n" 
+			"	    (max(`0 right, `1 right), avg(`0 bottom, `1 top))\n"
+		));
+		
+		div.display.text = str8l("$1 / $2");
+		div.display.s_expression = str8l("(/ $1 $2)");
+	}
+	
+	//compile_math_objects(str8l("scratch"));
+	
+	// forI(array_count(math_objects)) {
+	// 	Part s = math_objects[i];
+	// 	MathObject* mo = s.mathobj;
+	// 	Log("", 
+	// 		"name: ", mo->name, "\n",
+	// 		"desc: ", mo->description, "\n",
+	// 		"type: ", mo->type, "\n"
+	// 	);
+	// }
+}
+
+void test_mint(){
+	mint a = mint_init(20);
+	mint b = mint_init(127);
+	
+	forI(0xffff){
+		mint_add(&a, b);
+		if     (a.count == 0) Log("", 0);
+		else if(a.count == 1) Log("", *( u8*)&a.arr[0]);
+		else if(a.count == 2) Log("", *(u16*)&a.arr[0]);
+		else if(a.count == 3) Log("", *(u32*)&a.arr[0]);
+		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
+	}
+}
+
+void test_inputs(){
+	persist KeyCode inputs[] = {
+		// CanvasBind_SetTool_Expression,
+		// CanvasBind_Expression_Create,
+		// Key_1,
+		// Key_2,
+		// Key_3,
+		// Key_4,
+		// Key_5,
+		// Key_6,
+		// Key_7,
+		// Key_8,
+		// Key_9,
+		// Key_0,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorLeft,
+		// Key_NONE,
+		// Key_EQUALS|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_8|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_MINUS,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_EQUALS|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_8|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_MINUS,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_EQUALS|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_8|InputMod_AnyShift,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// CanvasBind_Expression_CursorRight,
+		// Key_NONE,
+		// Key_MINUS,
+		
+		CanvasBind_SetTool_Expression,
+		CanvasBind_Expression_Create,
+		Key_FORWARDSLASH,
+		Key_1,
+		Key_DOWN,
+		Key_2,
+	};
+	
+	if(DeshTime->frame < ArrayCount(inputs)+1) {
+		Log("", "key: ", input_keycode_to_str8(inputs[DeshTime->frame-1]));
+		simulate_key_press(inputs[DeshTime->frame-1]);
+	}
+}
+
+void test_selected(){
+	Element* selected = canvas.element.selected;
+	if(selected && array_count(selected->expression.rendered_parts)) {
+		static u32 iter = 0;
+		if(key_pressed(Key_LEFT|InputMod_AnyCtrl) && iter) iter--;
+		if(key_pressed(Key_RIGHT|InputMod_AnyCtrl) && iter < array_count(selected->expression.rendered_parts)-1) iter++; 
+		
+		static Stopwatch watch = start_stopwatch();
+		
+		vec2 pos = selected->item->pos_screen;
+		render_start_cmd2(5, 0, vec2::ZERO, DeshWindow->dimensions.toVec2());
+		RenderPart part = selected->expression.rendered_parts[iter];
+		render_quad2(pos + part.position, part.bbx, Color_Red);
+		ui_begin_immediate_branch(selected->item); {
+			uiItem* item = ui_make_text(part.term->raw.buffer.fin, 0);
+			item->style.positioning = pos_relative;
+			item->style.font_height = 11;
+			item->style.pos = part.position.yAdd(part.bbx.y);
+		}ui_end_immediate_branch();
+	}
+}
+
 int main(int args_count, char** args){
 	profiler_init();
-
+	
 	//parse cmd line args
 	b32 solve_mode = false;
 	b32 interactive_mode = false;
@@ -310,275 +555,35 @@ int main(int args_count, char** args){
 	render_init();
 	assets_init();
 	ui_init();
-	//console_init();
+	console_init();
 	cmd_init();
-	// window_show(DeshWindow);
+	window_show(DeshWindow);
 	render_use_default_camera();
-	// threader_init();
+	//threader_init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
 	
 	//init suugu
 	init_canvas();
 	init_suugu_commands();
-
 	
-
-	{
-		MathObject& placeholder = math_objects.placeholder;
-		placeholder.name = str8l("Placeholder");
-		placeholder.description = str8l("suugu's placeholder object, anything may go here.");
-		placeholder.type = MathObject_Placeholder;
-		placeholder.display.text = str8l("□");
-
-		placeholder.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '□'"
-		));
-	}
-
-    {
-		MathObject& num = math_objects.number;
-		num.name = str8l("Number");
-    	num.description = str8l("A mathematical object used to count, measure, and label.");
-    	num.type = MathObject_Number;
-
-		num.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text term_raw"
-		));
-	}
-
-	{
-		MathObject& add = math_objects.addition;
-		add.name = str8l("Addition");
-		add.description = str8l("The result of taking two groups of objects, putting them together, and then counting the result.");
-		add.type = MathObject_Function;
-		add.func.arity = 2;
-
-		add.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '+'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
-
-		add.display.text = str8l("$1 + $2");
-		add.display.s_expression = str8l("(+ $1 $2)");
-	}
-
-	{
-		MathObject& sub = math_objects.subtraction;
-		sub.name = str8l("Subtraction");
-		sub.description = str8l("The result of taking a group of objects, taking some amount of them away, then counting the group that was taken from.");
-		sub.type = MathObject_Function;
-		sub.func.arity = 2;
-
-		sub.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '-'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
-
-		sub.display.text = str8l("$1 - $2");
-		sub.display.s_expression = str8l("(- $1 $2)");
-	}
-
-	{
-		MathObject& mul = math_objects.multiplication;
-		mul.name = str8l("Multiplication");
-		mul.description = str8l("The result of taking a group of objects, adding some amount of groups of the same size to it, and then counting the result group.");
-		mul.type = MathObject_Function;
-		mul.func.arity = 2;
-
-		mul.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '*'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
-
-		mul.display.text = str8l("$1 * $2");
-		mul.display.s_expression = str8l("(* $1 $2)");
-	}
-
-	{
-		MathObject& div = math_objects.division;
-		div.name = str8l("Division");
-		div.description = str8l("The result of attempting to equally distribute a group of objects into some amount of groups.");
-		div.type = MathObject_Function;
-		div.func.arity = 2;
-
-
-		// TODO(sushi) div rendering instructions
-		div.display.instruction_tokens = tokenize_instructions(str8l(
-			"render child 0\n" // stack: 0
-			"render child 1\n" // stack: 1
-			"align `1 top `0 bottom\n"
-			"align min(`0 center_x, `1 center_x) max(`0 center_x, `1 center_x)\n"
-			"render shape line \n"
-			"		(min(`0 left, `1 left), avg(`0 bottom, `1 top))\n" 
-			"	    (max(`0 right, `1 right), avg(`0 bottom, `1 top))\n"
-		));
-
-		div.display.text = str8l("$1 / $2");
-		div.display.s_expression = str8l("(/ $1 $2)");
-	}
-
-	//compile_math_objects(str8l("scratch"));
-
-	// forI(array_count(math_objects)) {
-	// 	Part s = math_objects[i];
-	// 	MathObject* mo = s.mathobj;
-	// 	Log("", 
-	// 		"name: ", mo->name, "\n",
-	// 		"desc: ", mo->description, "\n",
-	// 		"type: ", mo->type, "\n"
-	// 	);
-	// }
-
-#if 0 //mint testing
-	mint a = mint_init(20);
-	mint b = mint_init(127);
-	
-	forI(0xffff){
-		mint_add(&a, b);
-		if     (a.count == 0) Log("", 0);
-		else if(a.count == 1) Log("", *( u8*)&a.arr[0]);
-		else if(a.count == 2) Log("", *(u16*)&a.arr[0]);
-		else if(a.count == 3) Log("", *(u32*)&a.arr[0]);
-		else if(a.count == 4) Log("", *(u64*)&a.arr[0]);
-	}
-#endif
-
-	KeyCode inputs[] = {
-		// CanvasBind_SetTool_Expression,
-		// CanvasBind_Expression_Create,
-		// Key_1,
-		// Key_2,
-		// Key_3,
-		// Key_4,
-		// Key_5,
-		// Key_6,
-		// Key_7,
-		// Key_8,
-		// Key_9,
-		// Key_0,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorLeft,
-		// Key_NONE,
-		// Key_EQUALS|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_8|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_MINUS,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_EQUALS|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_8|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_MINUS,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_EQUALS|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_8|InputMod_AnyShift,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// CanvasBind_Expression_CursorRight,
-		// Key_NONE,
-		// Key_MINUS,
-
-		CanvasBind_SetTool_Expression,
-		CanvasBind_Expression_Create,
-		Key_FORWARDSLASH,
-		Key_1,
-		Key_DOWN,
-		Key_2,
-	};
-
 	//test_single_addition();
 	//test_double_addition();
-
+	//test_math_objects();
+	//test_mint();
+	
 	//start main loop
 	while(platform_update()){DPZoneScoped;
 		//update suugu
-		if(DeshTime->frame < ArrayCount(inputs)+1) {
-			Log("", "key: ", input_keycode_to_str8(inputs[DeshTime->frame-1]));
-			simulate_key_press(inputs[DeshTime->frame-1]);
-		}
-
+		//test_inputs();
 		update_canvas();
-		Element* selected = canvas.element.selected;
-		if(selected && array_count(selected->expression.rendered_parts)) {
-			static u32 iter = 0;
-			if(key_pressed(Key_LEFT|InputMod_AnyCtrl) && iter) iter--;
-			if(key_pressed(Key_RIGHT|InputMod_AnyCtrl) && iter < array_count(selected->expression.rendered_parts)-1) iter++; 
-
-			static Stopwatch watch = start_stopwatch();
-
-			vec2 pos = selected->item->pos_screen;
-			render_start_cmd2(5, 0, vec2::ZERO, DeshWindow->dimensions.toVec2());
-			RenderPart part = selected->expression.rendered_parts[iter];
-			render_quad2(pos + part.position, part.bbx, Color_Red);
-			ui_begin_immediate_branch(selected->item); {
-				uiItem* item = ui_make_text(part.term->raw.buffer.fin, 0);
-				item->style.positioning = pos_relative;
-				item->style.font_height = 11;
-				item->style.pos = part.position.yAdd(part.bbx.y);
-			} ui_end_immediate_branch();
-		}
-
-		// //update deshi
-		// console_update();
+		//test_selected();
+		
+		//update deshi
+		console_update();
 		ui_update();
 		render_update();
 		logger_update();
 		memory_clear_temp();
-
-		
 	}
 	
 	//cleanup deshi
