@@ -2,13 +2,7 @@
 #_____________________________________________________________________________________________________
 #                                            Usage
 #_____________________________________________________________________________________________________
-# build.sh <command> [arguments...]
-#
-# Commands:
-#   (empty)       Compile and link (default)
-#   compile       Compile only
-#   link          Link with previously generated .obj/.o
-#   one <file>    Compile one file and link with previously generated .obj/.o
+# build.sh [arguments...]
 #
 # Arguments:
 #   --v    Echo build commands to the console
@@ -30,12 +24,9 @@
 #      it's the default program. Windows usage: "sh build.sh <command> [arguments...]"
 #
 # TODOs:
-#   >support the non-default commands
-#   >echo out when we successfully build things
-#   >early out when we don't successfully build
-#   > eventually support gcc in the code base when someone really wants it
-#       but push for them to use clang instead :)
-#   > make this script easy to use without deshi
+#   >setup gcc
+
+
 #_____________________________________________________________________________________________________
 #                                           Builder Vars
 #_____________________________________________________________________________________________________
@@ -72,11 +63,11 @@ else
   echo "Unhandled development platform: $OSTYPE"
   exit 1
 fi
+
+
 #_____________________________________________________________________________________________________
 #                                       Command Line Args
 #_____________________________________________________________________________________________________
-build_cmd=""
-build_cmd_one_file=""
 build_dir="debug"
 build_verbose=0
 build_release=0
@@ -96,23 +87,6 @@ for (( i=1; i<=$#; i++)); do
   if [ $skip_arg == 1 ]; then
     skip_arg=0
     continue
-  fi
-
-  #### parse <command>
-  if [ $i == 1 ]; then
-    if [ "${!i}" == "compile" ]; then
-      build_cmd="compile"
-      continue
-    elif [ "${!i}" == "link" ]; then
-      build_cmd="link"
-      continue
-    elif [ "${!i}" == "one" ]; then
-      build_cmd="one"
-      skip_arg=1
-      next_arg=$((i+1))
-      build_cmd_one_file="${!next_arg}"
-      continue
-    fi
   fi
 
   #### parse [arguments...]
@@ -173,12 +147,13 @@ for (( i=1; i<=$#; i++)); do
   fi
 done
 
-
 if [ "$build_compiler" == "cl" ]; then
   build_object="obj"
 else
   build_object="o"
 fi
+
+
 #_____________________________________________________________________________________________________
 #                                           Build Vars
 #_____________________________________________________________________________________________________
@@ -192,11 +167,9 @@ if [ $vulkan_override != 0 ]; then
   vulkan_folder=$vulkan_override
 fi
 
-
 #### Specify outputs ####
 build_folder="$root_folder/build"
 app_name="suugu"
-
 
 #### Specify sources ####
 includes="
@@ -207,7 +180,6 @@ includes="
   -I$tracy_folder"
 deshi_sources="deshi/src/deshi.cpp"
 app_sources="src/suugu.cpp"
-
 
 #### Specifiy libs ####
 lib_paths=(
@@ -261,6 +233,8 @@ else
   echo "Libs not setup for platform: $build_platform"
   exit 1
 fi
+
+
 #_____________________________________________________________________________________________________
 #                                         Global Defines
 #_____________________________________________________________________________________________________
@@ -304,6 +278,8 @@ elif [ "$build_profiler" == "wait and profile" ]; then
 fi
 
 defines="$defines_build $defines_platform $defines_graphics $defines_misc"
+
+
 #_____________________________________________________________________________________________________
 #                                           Build Flags
 #_____________________________________________________________________________________________________
@@ -311,19 +287,17 @@ compile_flags=""
 if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #__________________________________________cl
   #### -diagnostics:column (shows the file and column where the error is)
   #### -diagnostics:caret (shows the file, column, and code where the error is)
-  #### -EHsc   (enables exception handling)
+  #### -EHsc (enables exception handling)
   #### -nologo (prevents Microsoft copyright banner showing up)
-  #### -MD     (is used because vulkan's shader compilation lib requires dynamic linking with the CRT)
-  #### -MP     (enables building with multiple processors)
-  #### -Oi     (enables function inlining)
-  #### -GR     (enables RTTI and dynamic_cast<>())
-  #### -Gm-    (disables minimal rebuild (recompile all files))
+  #### -MD (enables dynamic linking with the CRT; required by vulkan's shader compilation lib)
+  #### -Oi (enables function inlining)
+  #### -GR (enables RTTI and dynamic_cast<>())
   #### -std:c++17 (specifies to use the C++17 standard)
-  #### -utf-8  (specifies that source files are in utf8)
-  compile_flags="$compile_flags -diagnostics:column -EHsc -nologo -MD  -Oi -GR  -std:c++17 -utf-8"
+  #### -utf-8 (specifies that source files are in utf8)
+  compile_flags="$compile_flags -diagnostics:column -EHsc -nologo -MD -Oi -GR -std:c++17 -utf-8"
 
   if [ $build_compiler == "clang-cl" ]; then
-    #### -msse3 (enable SSE)
+    #### -msse4.2 (enable SSE4.2)
     #### -Wno-unused-value ()
     #### -Wno-implicitly-unsigned-literal ()
     #### -Wno-nonportable-include-path ()
@@ -331,8 +305,10 @@ if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #_____
     #### -Wno-unused-function ()
     #### -Wno-unused-variable ()
     #### -Wno-undefined-inline ()
-    compile_flags="$compile_flags -msse3 -Wno-unused-value -Wno-implicitly-unsigned-literal -Wno-nonportable-include-path -Wno-writable-strings -Wno-unused-function -Wno-unused-variable -Wno-undefined-inline"
+    compile_flags="$compile_flags -msse4.2 -Wno-unused-value -Wno-implicitly-unsigned-literal -Wno-nonportable-include-path -Wno-writable-strings -Wno-unused-function -Wno-unused-variable -Wno-undefined-inline"
   else
+    #### -MP (enables building with multiple processors)
+    #### -Gm- (disables minimal rebuild (recompile all files))
     #### -W1 (is the warning level)
     #### -wd4100 (disables warning: unused function parameter)
     #### -wd4189 (disables warning: unused local variables)
@@ -345,7 +321,7 @@ if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #_____
   fi
 
   if [ $build_release == 0 ]; then
-    #### -Zi (produces a .pdb file containing debug information)
+    #### -Z7 (produces a .pdb file containing debug information)
     #### -Od (prevents all optimization)
     compile_flags="$compile_flags -Z7 -Od"
   else
@@ -359,12 +335,12 @@ if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #_____
   fi
 elif [ $build_compiler == "gcc" ]; then #____________________________________________________________________________gcc
   #### -exceptions (enables exception handling)
-  #### -std=c++17  (specifies use of the C++17 standard)
+  #### -std=c++17 (specifies use of the C++17 standard)
   compile_flags="$compile_flags -exceptions -std=c++17"
   
   if [ $build_release == 0 ]; then
     #### -ggdb3 (produces max debug info with extra stuff for gdb)
-    #### -Og    (optimize debugging experience, -O0 also disables some debug information so its not recommended for debugging)
+    #### -Og (optimize debugging experience, -O0 also disables some debug information so its not recommended for debugging)
     #### -fpermissive ()
     compile_flags="$compile_flags -ggdb3 -Og -fpermissive"
 
@@ -383,15 +359,13 @@ elif [ $build_compiler == "gcc" ]; then #_______________________________________
     compile_flags="$compile_flags -fanalysis"
   fi
 elif [ $build_compiler == "clang++" ]; then #__________________________________________________________________________clang++
-
-  compile_flags="$compile_flags 
-    -std=c++17 
-    -fexceptions 
-    -fcxx-exceptions 
-    -finline-functions 
-    -pipe 
-    -msse3"
-
+  #### -std=c++17 (specifies to use the C++17 standard)
+  #### -msse4.2 (enable SSE4.2)
+  #### -pipe ()
+  #### -fexceptions ()
+  #### -fcxx-exceptions ()
+  #### -finline-functions (enables function inlining)
+  #### -fno-caret-diagnostics ()
   #### -Wno-unused-value ()
   #### -Wno-implicitly-unsigned-literal ()
   #### -Wno-nonportable-include-path ()
@@ -399,25 +373,16 @@ elif [ $build_compiler == "clang++" ]; then #___________________________________
   #### -Wno-unused-function ()
   #### -Wno-unused-variable ()
   #### -Wno-undefined-inline ()
-  compile_flags="$compile_flags
-    -Wno-unused-value 
-    -Wno-implicitly-unsigned-literal 
-    -Wno-nonportable-include-path 
-    -Wno-writable-strings 
-    -Wno-unused-function 
-    -Wno-unused-variable 
-    -Wno-undefined-inline
-    -Wno-return-type-c-linkage 
-    -Wno-switch 
-    -fno-caret-diagnostics"
+  #### -Wno-return-type-c-linkage ()
+  compile_flags="$compile_flags -std=c++17 -msse4.2 -pipe -fexceptions -fcxx-exceptions -finline-functions -fno-caret-diagnostics -Wno-unused-value  -Wno-implicitly-unsigned-literal  -Wno-nonportable-include-path  -Wno-writable-strings  -Wno-unused-function  -Wno-unused-variable  -Wno-undefined-inline -Wno-return-type-c-linkage"
 
   if [ $build_release == 0 ]; then
     #### -ggdb3 (produces max debug info with extra stuff for gdb)
     #### -gcodeview ()
-    #### -O0 ()
+    #### -O0 (prevents all optimization)
     compile_flags="$compile_flags -fdebug-macro -ggdb3 -O0"
   else
-    #### -O2 ()
+    #### -O2 (maximizes speed (O1 minimizes size))
     compile_flags="$compile_flags -O2"
   fi
 
@@ -430,10 +395,9 @@ else
   exit 1
 fi
 
-
 link_flags=""
 link_libs=""
-if [ $build_linker == "link" ] || [ $build_linker == "lld-link" ]; then
+if [ $build_linker == "link" ] || [ $build_linker == "lld-link" ]; then #____________________________________________link, lld-link
   #### -nologo (prevents Microsoft copyright banner showing up)
   #### -opt:ref (eliminates functions and data that are never used)
   #### -incremental:no (disables incremental linking (relink all files))
@@ -453,9 +417,7 @@ if [ $build_linker == "link" ] || [ $build_linker == "lld-link" ]; then
     lib_lib=${libs[i]}
     link_libs="$link_libs $lib_lib.lib"
   done
-elif [ $build_linker == "ld" ] || [ $build_linker == "lld" ]; then
-
-
+elif [ $build_linker == "ld" ] || [ $build_linker == "lld" ]; then #_________________________________________________ld, lld
   for ((i=0; i<${#lib_paths[@]}; i++)); do
     lib_path=${lib_paths[i]}
     link_libs="$link_libs -L$lib_path"
@@ -477,6 +439,8 @@ elif ([ $build_compiler == "gcc" ] || [ $build_compiler == "clang++" ]) && ([ $b
   echo "[31mgcc/clang++ compilers are not compatible with link/lld-link linkers.[0m"
   exit 1
 fi
+
+
 #_____________________________________________________________________________________________________
 #                                           Execute Commands
 #_____________________________________________________________________________________________________
@@ -490,13 +454,13 @@ exe(){
 }
 
 echo "`date +'%a, %h %d %Y, %H:%M:%S'` ($build_compiler/$build_dir/$build_graphics) [$app_name]"
+if [ $build_time == 1 ]; then start_time=$(date +%s.%3N); fi
 if [ ! -e $build_folder ]; then mkdir $build_folder; fi
 if [ ! -e $build_folder/$build_dir ]; then mkdir $build_folder/$build_dir; fi
 pushd $root_folder > /dev/null
 build_dir="build/$build_dir"
+exit_code=1
 if [ $builder_platform == "win32" ]; then #_________________________________________________________________________________win32
-  if [ -e $misc_folder/ctime.exe ]; then ctime -begin $misc_folder/$app_name.ctm; fi
-  if [ $build_time == 1 ]; then start_time=$(date +%s.%3N); fi
   echo "---------------------------------"
   
   if [ $build_compiler == "cl" ] || [ $build_compiler == "clang-cl" ]; then #______________________________________cl
@@ -509,6 +473,7 @@ if [ $builder_platform == "win32" ]; then #_____________________________________
     
     if [ $? == 0 ] && [ -e $build_dir/$app_name.exe ]; then
       echo "[32m  $app_name.exe[0m"
+      exit_code=0
     else
       echo "[93mFailed to build: $app_name.exe[0m"
     fi
@@ -520,35 +485,36 @@ if [ $builder_platform == "win32" ]; then #_____________________________________
     
     if [ $? == 0 ] && [ -e $build_dir/$app_name.exe ]; then
       echo "[32m  $app_name.exe[0m"
+      exit_code=0
     else
       echo "[93mFailed to build: $app_name.exe[0m"
     fi
   fi
   
   echo "---------------------------------"
-  if [ -e $misc_folder/ctime.exe ]; then ctime -end $misc_folder/$app_name.ctm; fi
-  if [ $build_time == 1 ]; then printf "time: %f seconds" $(awk "BEGIN {print $(date +%s.%3N) - $start_time}"); fi
 elif [ $builder_platform == "mac" ]; then #_________________________________________________________________________________mac
   echo "Execute commands not setup for platform: $builder_platform"
 elif [ $builder_platform == "linux" ]; then #_______________________________________________________________________________linux
-  if [ $build_time == 1 ]; then start_time=$(date +%s.%3N); fi
   echo "---------------------------------"
   
-  # attempting to run clang on both sources at the same time
-  # this doesn't seem to have much of an effect though.
-  # ClangBuildAnalyzer --start /home/sushi/src/suugu/build/debug/
-  exe $build_compiler++ -c -ftime-trace $deshi_sources $includes $compile_flags $defines -o "$build_dir/deshi.o"\
-    && echo -e "  \033[0;32mdeshi\033[0m" || echo -e "\033[0;31mdeshi failed to build\033[0m" &
-  exe $build_compiler++ -c -ftime-trace $app_sources $includes $compile_flags $defines -o "$build_dir/$app_name.o"\
-    && echo -e "  \033[0;32m$app_name\033[0m" || echo -e "\033[0;31m$app_name failed to build\033[0m" &
-  wait
-  # ClangBuildAnalyzer --stop /home/sushi/src/suugu/build/debug/ out
-  exe $build_compiler++ $build_dir/${app_name}.o $build_dir/deshi.o $link_flags $link_libs -o"$build_dir/$app_name"
-  if [ $build_time == 1 ]; then printf "time: %f seconds" $(awk "BEGIN {print $(date +%s.%3N) - $start_time}"); fi
-  # ClangBuildAnalyzer --analyze out > ctimeanalysis
+  if [ $build_compiler == "clang++" ]; then #____________________________________________________________________clang++
+    #### compile app (generates app_name.exe)
+    exe $build_compiler $app_sources $deshi_sources $includes $compile_flags $defines -Fo"$build_dir/" $link_flags $link_libs -o"$build_dir/$app_name"
+
+    if [ $? == 0 ] && [ -e $build_dir/$app_name ]; then
+      echo "[32m  $app_name[0m"
+      exit_code=0
+    else
+      echo "[93mFailed to build: $app_name[0m"
+    fi
+  else
+    echo "[93mExecute commands not setup for the '$build_compiler' compiler on the 'linux' platform[0m"
+  fi
   
   echo "---------------------------------"
 else
   echo "Execute commands not setup for platform: $builder_platform"
 fi
+if [ $build_time == 1 ]; then printf "time: %.3f seconds" $(awk "BEGIN {print $(date +%s.%3N) - $start_time}"); fi
 popd > /dev/null
+exit $exit_code
