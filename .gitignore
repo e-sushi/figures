@@ -42,11 +42,11 @@ data/textures/*
 imgui.ini
 TODOs.txt
 debug.log
+/.gdbinit
+/gdb.txt
 misc/suugu.vcxproj.user
+suugu.smproj
+temp
 
 #delle specifics
 misc/shell.bat
-
-
-suugu.smproj
-temp

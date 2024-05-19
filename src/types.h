@@ -437,14 +437,6 @@ struct Visual {
 
 };
 
-struct DrawData {
-	Vertex2* vertexes; // vertices created by current render pass
-	s32      vcount;
-	u32*     indexes; // indicies created by current render pass
-	s32      icount;
-	vec2     bbx;
-};
-
 struct TermPos {
 	Term* term;
 	f32 pos;
@@ -479,7 +471,6 @@ struct Element{
 	//CoordinateSpace space;
 	ElementType type;
 	uiItem* item; // handle to the uiItem representing this Element
-	DrawData drawdata;
 
 	union{
 		struct {

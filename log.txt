@@ -1,0 +1,32 @@
+Sun May 19 01:25:38 2024
+
+[[32mDESHI-SUCCESS[0m] Finished DS_LOGGER module initialization in 1.3145ms
+[[32mDESHI-SUCCESS[0m] Finished DS_WINDOW module initialization in 16.9482ms
+[OPENGL] Starting OpenGL graphics backend initialization.
+[[32mDESHI-SUCCESS[0m] Finished DS_GRAPHICS module initialization in 0.0115ms
+[OPENGL] Loaded WGL 1.0
+[OPENGL] Loaded OpenGL 3.3
+[[32mDESHI-SUCCESS[0m] Finished DS_GRAPHICS module initialization in 266.152ms
+[ASSETS] assets_shader_load_from_source(): loading shader 'null.vert'.
+[ASSETS] assets_shader_load_from_source(): loading shader 'null.frag'.
+[ASSETS] assets_mesh_create_box(): creating box mesh 'null'
+[ASSETS] assets_texture_create_from_memory(): creating texture 'null'.
+[ASSETS] assets_material_create(): loading material 'null'.
+[ASSETS] assets_material_create(): created material {'null', 6601085983368743140}@0000028A93F25490
+[ASSETS] assets_texture_create_from_memory(): creating texture 'null font'.
+[[33mASSETS-WARNING[0m] assets_texture_create_from_memory(): non-rgba textures are currently reinterpreted as rgba (TODO(sushi) properly handle non-rgba formats)
+[[32mDESHI-SUCCESS[0m] Finished DS_ASSETS module initialization in 49.4795ms
+[ASSETS] assets_shader_load_from_source(): loading shader 'voxel.vert'.
+[ASSETS] assets_shader_load_from_source(): loading shader 'voxel.frag'.
+[ASSETS] assets_material_create(): loading material '<scene> voxels'.
+[ASSETS] assets_material_create(): created material {'<scene> voxels', 2557740135418406066}@0000028A93F254E0
+[[32mDESHI-SUCCESS[0m] Finished DS_RENDER module initialization in 13.0791ms
+[[32mDESHI-SUCCESS[0m] Finished DS_UI module initialization in 6.5752ms
+[ASSETS] assets_texture_create_from_memory(): creating texture 'gohufont-11.bdf'.
+[[33mASSETS-WARNING[0m] assets_texture_create_from_memory(): non-rgba textures are currently reinterpreted as rgba (TODO(sushi) properly handle non-rgba formats)
+[[32mDESHI-SUCCESS[0m] Finished DS_CONSOLE module initialization in 21.7585ms
+[[32mDESHI-SUCCESS[0m] Finished DS_CMD module initialization in 0.1649ms
+[[32mDESHI-SUCCESS[0m] Finished deshi initialization in 409.373ms
+[ASSETS] assets_texture_create_from_memory(): creating texture 'STIXTwoMath-Regular.otf'.
+[[33mASSETS-WARNING[0m] assets_texture_create_from_memory(): non-rgba textures are currently reinterpreted as rgba (TODO(sushi) properly handle non-rgba formats)
+[[33mASSETS-WARNING[0m] assets_font_create_from_path_bdf(): a Font resource with the name 'gohufont-11.bdf' already exists. All resources must be given a name unique among all other resources of the same type. The handle to the original resource will be returned.

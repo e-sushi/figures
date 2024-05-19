@@ -416,6 +416,7 @@ void test_inputs(){
 	}
 }
 
+/*
 void test_selected(){
 	Element* selected = canvas.element.selected;
 	if(selected && array_count(selected->expression.rendered_parts)) {
@@ -437,6 +438,7 @@ void test_selected(){
 		}ui_end_immediate_branch();
 	}
 }
+*/
 
 int main(int args_count, char** args){
 	profiler_init();
@@ -547,20 +549,27 @@ int main(int args_count, char** args){
 	// Regular Mode
 	//init deshi
 	Stopwatch deshi_watch = start_stopwatch();
-	memory_init(Gigabytes(4), Gigabytes(1));
+	memory_init(Gigabytes(1), Gigabytes(1));
 	platform_init();
 	logger_init();
 	suugu_memory_init();
-	window_create(str8l("suugu"));
+	g_window = window_create(str8l("suugu"));
+	graphics_init(g_window);
+	assets_init(g_window);
 	render_init();
-	assets_init();
-	ui_init();
+	ui_init(g_window);
 	console_init();
 	cmd_init();
-	window_show(DeshWindow);
-	render_use_default_camera();
+	window_show(g_window);
 	//threader_init();
 	LogS("deshi","Finished deshi initialization in ",peek_stopwatch(deshi_watch),"ms");
+	
+	Camera* camera = render_camera_create();
+	camera->forward = vec3{0,0,1};
+	render_camera_update_perspective_projection(camera, g_window->width, g_window->height, 90.0f, 0.1f, 1000.0f);
+	render_camera_update_view(camera);
+	render_set_active_camera(camera);
+	render_set_active_window(g_window);
 	
 	//init suugu
 	init_canvas();
@@ -568,7 +577,7 @@ int main(int args_count, char** args){
 	
 	//test_single_addition();
 	//test_double_addition();
-	//test_math_objects();
+	test_math_objects();
 	//test_mint();
 	
 	//start main loop
@@ -580,14 +589,14 @@ int main(int args_count, char** args){
 		
 		//update deshi
 		console_update();
-		ui_update();
+		ui_update(g_window);
 		render_update();
+		graphics_update(g_window);
 		logger_update();
 		memory_clear_temp();
 	}
 	
 	//cleanup deshi
-	render_cleanup();
 	logger_cleanup();
 	memory_cleanup();
 	return 0;
