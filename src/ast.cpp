@@ -41,7 +41,7 @@ void debug_print_term(Term* term){
 	// 		Log("ast","---------------------------------");
 	// 		expr = 0;
 	// 	}break;
-		
+	
 	// 	case TermType_Operator:{
 	// 		switch(term->op_type){
 	// 			case OpType_Parentheses:           { Log("ast", indent, "()", arg); }break;
@@ -58,17 +58,17 @@ void debug_print_term(Term* term){
 	// 		}
 	// 		for_node(term->first_child) debug_print_term(it);
 	// 	}break;
-		
+	
 	// 	case TermType_Literal: case TermType_Variable:{
 	// 		Log("ast", indent, term->raw, arg, cursor);
 	// 	}break;
-		
+	
 	// 	case TermType_FunctionCall:
 	// 	case TermType_Logarithm:{
 	// 		Log("ast", indent, term->raw, arg, cursor);
 	// 		for_node(term->first_child) debug_print_term(it);
 	// 	}break;
-		
+	
 	// 	default:{ Log("ast", indent, "?",  arg, cursor); }break;
 	// }
 	
@@ -78,785 +78,785 @@ void debug_print_term(Term* term){
 local b32 DEBUG_draw_term_simple_ = false;
 void debug_draw_term_simple(Term* term){
 	FixMe;
-// #define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
-// #define DDA_PrevLayer() layer -= 1;
-// #define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
-// 	persist arrayT<f32> layers;
-// 	persist s32 font_height = 32;
-// 	persist s32 vertical_padding = 16;
-// 	persist s32 horizontal_padding = 16;
-// 	persist s32 layer = -1;
-// 	persist Expression* expr = 0;
+	// #define DDA_NextLayer() layer += 1; if(layers.count <= layer) layers.add(5)
+	// #define DDA_PrevLayer() layer -= 1;
+	// #define DDA_AddToLayer(text) UI::TextOld(text, {layers[layer],(f32)((font_height+vertical_padding)*layer)+5}, UITextFlags_NoWrap); layers[layer] += UI::GetLastItemSize().x + horizontal_padding
+	// 	persist arrayT<f32> layers;
+	// 	persist s32 font_height = 32;
+	// 	persist s32 vertical_padding = 16;
+	// 	persist s32 horizontal_padding = 16;
+	// 	persist s32 layer = -1;
+	// 	persist Expression* expr = 0;
 	
-// 	switch(term->type){
-// 		case TermType_Expression:{
-// 			expr = ExpressionFromTerm(term);
-// 			if(term->child_count){
-// 				layer = -1;
-// 				layers = arrayT<f32>(deshi_temp_allocator);
-// 				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
-// 				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
-// 				UI::TextOld(str8l(" "));
-// 				DDA_NextLayer();
-// 				for_node(term->first_child) debug_draw_term_simple(it);
-// 				DDA_PrevLayer();
-// 				UI::End();
-// 				UI::PopVar();
-// 			}
-// 		}break;
-		
-// 		case TermType_Operator:{
-// 			switch(term->op_type){
-// 				case OpType_Parentheses:           { DDA_AddToLayer(str8l("()")); }break;
-// 				case OpType_Exponential:           { DDA_AddToLayer(str8l("^")); }break;
-// 				case OpType_Negation:              { DDA_AddToLayer(str8l("-")); }break;
-// 				case OpType_ImplicitMultiplication:{ DDA_AddToLayer(str8l("*i")); }break;
-// 				case OpType_ExplicitMultiplication:{ DDA_AddToLayer(str8l("*e")); }break;
-// 				case OpType_Division:              { DDA_AddToLayer(str8l("/")); }break;
-// 				case OpType_Modulo:                { DDA_AddToLayer(str8l("%")); }break;
-// 				case OpType_Addition:              { DDA_AddToLayer(str8l("+")); }break;
-// 				case OpType_Subtraction:           { DDA_AddToLayer(str8l("−")); }break;
-// 				case OpType_ExpressionEquals:      { DDA_AddToLayer(str8l("=")); }break;
-// 				default:                           { DDA_AddToLayer(str8l("?")); }break;
-// 			}
-// 			if(expr->term_cursor_start == term){
-// 				UI::Rect(UI::GetLastItemPos(), UI::GetLastItemSize(), Color_Yellow);
-// 			}
-			
-// 			//draw children and lines to them
-// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-// 			if(term->child_count){
-// 				DDA_NextLayer();
-// 				for_node(term->first_child){
-// 					f32 pre_width = layers[layer];
-// 					debug_draw_term_simple(it);
-// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-// 				}
-// 				DDA_PrevLayer();
-// 			}
-// 		}break;
-		
-// 		case TermType_Literal:
-// 		case TermType_Variable:{
-// 			DDA_AddToLayer(term->raw);
-// 		}break;
-		
-// 		case TermType_FunctionCall:
-// 		case TermType_Logarithm:{
-// 			DDA_AddToLayer(term->raw);
-			
-// 			//draw children and lines to them
-// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-// 			if(term->child_count){
-// 				DDA_NextLayer();
-// 				for_node(term->first_child){
-// 					f32 pre_width = layers[layer];
-// 					debug_draw_term_simple(it);
-// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-// 				}
-// 				DDA_PrevLayer();
-// 			}
-// 		}break;
-		
-// 		default:{ 
-// 			DDA_AddToLayer(str8l("?"));
-			
-// 			//draw children and lines to them
-// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
-// 			if(term->child_count){
-// 				DDA_NextLayer();
-// 				for_node(term->first_child){
-// 					f32 pre_width = layers[layer];
-// 					debug_draw_term_simple(it);
-// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
-// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
-// 				}
-// 				DDA_PrevLayer();
-// 			}
-// 		}break;
-// 	}
-// #undef DDA_NextLayer
-// #undef DDA_PrevLayer
-// #undef DDA_AddToLayer
+	// 	switch(term->type){
+	// 		case TermType_Expression:{
+	// 			expr = ExpressionFromTerm(term);
+	// 			if(term->child_count){
+	// 				layer = -1;
+	// 				layers = arrayT<f32>(deshi_temp_allocator);
+	// 				UI::PushVar(UIStyleVar_FontHeight, (f32)font_height);
+	// 				UI::Begin(str8l("debug_expression_ast"), UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);
+	// 				UI::TextOld(str8l(" "));
+	// 				DDA_NextLayer();
+	// 				for_node(term->first_child) debug_draw_term_simple(it);
+	// 				DDA_PrevLayer();
+	// 				UI::End();
+	// 				UI::PopVar();
+	// 			}
+	// 		}break;
+	
+	// 		case TermType_Operator:{
+	// 			switch(term->op_type){
+	// 				case OpType_Parentheses:           { DDA_AddToLayer(str8l("()")); }break;
+	// 				case OpType_Exponential:           { DDA_AddToLayer(str8l("^")); }break;
+	// 				case OpType_Negation:              { DDA_AddToLayer(str8l("-")); }break;
+	// 				case OpType_ImplicitMultiplication:{ DDA_AddToLayer(str8l("*i")); }break;
+	// 				case OpType_ExplicitMultiplication:{ DDA_AddToLayer(str8l("*e")); }break;
+	// 				case OpType_Division:              { DDA_AddToLayer(str8l("/")); }break;
+	// 				case OpType_Modulo:                { DDA_AddToLayer(str8l("%")); }break;
+	// 				case OpType_Addition:              { DDA_AddToLayer(str8l("+")); }break;
+	// 				case OpType_Subtraction:           { DDA_AddToLayer(str8l("−")); }break;
+	// 				case OpType_ExpressionEquals:      { DDA_AddToLayer(str8l("=")); }break;
+	// 				default:                           { DDA_AddToLayer(str8l("?")); }break;
+	// 			}
+	// 			if(expr->term_cursor_start == term){
+	// 				UI::Rect(UI::GetLastItemPos(), UI::GetLastItemSize(), Color_Yellow);
+	// 			}
+	
+	// 			//draw children and lines to them
+	// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+	// 			if(term->child_count){
+	// 				DDA_NextLayer();
+	// 				for_node(term->first_child){
+	// 					f32 pre_width = layers[layer];
+	// 					debug_draw_term_simple(it);
+	// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+	// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+	// 				}
+	// 				DDA_PrevLayer();
+	// 			}
+	// 		}break;
+	
+	// 		case TermType_Literal:
+	// 		case TermType_Variable:{
+	// 			DDA_AddToLayer(term->raw);
+	// 		}break;
+	
+	// 		case TermType_FunctionCall:
+	// 		case TermType_Logarithm:{
+	// 			DDA_AddToLayer(term->raw);
+	
+	// 			//draw children and lines to them
+	// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+	// 			if(term->child_count){
+	// 				DDA_NextLayer();
+	// 				for_node(term->first_child){
+	// 					f32 pre_width = layers[layer];
+	// 					debug_draw_term_simple(it);
+	// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+	// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+	// 				}
+	// 				DDA_PrevLayer();
+	// 			}
+	// 		}break;
+	
+	// 		default:{ 
+	// 			DDA_AddToLayer(str8l("?"));
+	
+	// 			//draw children and lines to them
+	// 			vec2 parent_center = UI::GetLastItemPos() + Vec2(UI::GetLastItemSize().x/2.f, UI::GetLastItemSize().y);
+	// 			if(term->child_count){
+	// 				DDA_NextLayer();
+	// 				for_node(term->first_child){
+	// 					f32 pre_width = layers[layer];
+	// 					debug_draw_term_simple(it);
+	// 					f32 center_xoffset = (layers[layer] - pre_width)/2.f;
+	// 					UI::Line(parent_center, Vec2(pre_width+center_xoffset, layer*(font_height+vertical_padding)), 2);
+	// 				}
+	// 				DDA_PrevLayer();
+	// 			}
+	// 		}break;
+	// 	}
+	// #undef DDA_NextLayer
+	// #undef DDA_PrevLayer
+	// #undef DDA_AddToLayer
 }
 
 
 //~///////////////////////////////////////////////////////////////////////////////////////////////
 //// @ast_parse
 b32 parse(Expression* expr){
-// 	expr->root = Term{TermType_Expression};
-
-// 	b32 valid = true;
-// 	Term* inside_this_paren = 0;
-// 	str8 stream = dstr8_peek(&expr->raw);
-// 	Term* cursor = &expr->root;
-// 	while(stream && *stream.str != '\0'){
-// 		u8* token_start = stream.str;
-// #define TOKEN_OFFSET (s64)(token_start - expr->raw.str)
-// #define TOKEN_LENGTH (s64)(stream.str - token_start)
-		
-// 		switch(*stream.str){
-// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @ast_parse_whitespace
-// 			case ' ': case '\n': case '\r': case '\t': case '\v':{
-// 				while(isspace(*stream.str)){ str8_advance(&stream); } //skip to non-whitespace
-// 			}continue; //skip token creation
-			
-// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @ast_parse_literal
-// 			case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.':{
-// 				f64 value = MAX_F64;
-				
-// 				while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
-// 				if(*stream.str == '.'){
-// 					str8_advance(&stream);
-// 					while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
-// 					value = atof((const char*)token_start);
-// 				}else if(*stream.str == 'x' || *stream.str == 'X'){
-// 					str8_advance(&stream);
-// 					while(isxdigit(*stream.str)){ str8_advance(&stream); } //skip to non-hexdigit
-// 					value = (f64)strtoll((const char*)token_start, 0, 16);
-// 				}else{
-// 					value = (f64)strtoll((const char*)token_start, 0, 10);
-// 				}
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Literal);
-// 				term->lit_value = value;
-				
-// 				if      (cursor->type == TermType_Expression){
-// 					ast_insert_last(cursor, term);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator){
-// 					if(cursor->op_type == OpType_Parentheses){
-// 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
-							
-// 							//loop until we find a lower precedence operator, then insert op below it
-// 							Term* lower = cursor;
-// 							while(   lower->parent->type == TermType_Operator
-// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 								  && lower->parent->op_type != OpType_Parentheses){
-// 								lower = lower->parent;
-// 							}
-// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 							ast_insert_last(lower->parent, implicit_multiply);
-// 							ast_change_parent_insert_first(implicit_multiply, lower);
-// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-							
-// 							ast_insert_last(implicit_multiply, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							linear_insert_right(cursor, term);
-// 						}else{
-// 							ast_insert_last(cursor, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							if(cursor->first_inside){
-// 								linear_insert_left(cursor->first_inside, term);
-// 							}else{
-// 								term->outside = cursor;
-// 								cursor->first_inside = cursor->last_inside = term;
-// 							}
-// 						}
-// 					}else{
-// 						ast_insert_last(cursor, term);
-// 						term->flags = TermFlag_OpArgRight;
-// 					}
-// 				}else if(cursor->type == TermType_Variable){
-// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 					implicit_multiply->op_type   = OpType_ImplicitMultiplication;
-					
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, implicit_multiply);
-// 					ast_change_parent_insert_first(implicit_multiply, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-// 					ast_insert_last(implicit_multiply, term);
-// 					term->flags = TermFlag_OpArgRight;
-// 					linear_insert_right(cursor, term);
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-			
-// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @ast_parse_letters
-// 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
-// 			case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
-// 			case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
-// 			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
-// 			case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
-// 			case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
-// 			case '_':{ //TODO hotstrings/constants
-// 				Term* func = 0;
-// 				str8 open_paren = stream;
-// 				while(open_paren && *open_paren.str != '(') str8_advance(&open_paren);
-// 				if(open_paren && *open_paren.str == '('){
-// 					//-///////////////////////////////////////////////////////////////////////////////////////////
-// 					//// @ast_parse_letters_logarithm
-// 					if(strncmp("log_", (const char*)token_start, 4) == 0){
-// 						b32 decimal_already = false;
-// 						u8* base_cursor = token_start+4;
-// 						while(isdigit(*base_cursor) || (*base_cursor == '.' && !decimal_already)){
-// 							if(*base_cursor == '.') decimal_already = true;
-// 							base_cursor++;
-// 						}
-// 						if(*base_cursor == '('){
-// 							stream = open_paren;
-// 							str8_advance(&stream);
-							
-// 							Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_Logarithm);
-// 							func->log_base = atof((const char*)token_start+4);
-// 						}
-// 					}
-					
-// 					//-///////////////////////////////////////////////////////////////////////////////////////////
-// 					//// @ast_parse_letters_function
-// 					if(func == 0){
-// 						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
-// 							//NOTE compare until the length of the larger string
-// 							if(strncmp((const char*)it->text.str, (const char*)token_start,
-// 									   (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
-// 								stream = open_paren;
-// 								str8_advance(&stream);
-								
-// 								Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_FunctionCall);
-// 								func->func = it;
-// 								break;
-// 							}
-// 						}
-// 					}
-// 				}
-				
-// 				if(func){
-// 					Term* paren = create_term(expr, {stream.str-1, 1}, TermType_Operator);
-// 					paren->op_type = OpType_Parentheses;
-// 					ast_insert_last(func, paren);
-// 					linear_insert_right(func, paren);
-					
-// 					if      (cursor->type == TermType_Expression){
-// 						ast_insert_last(cursor, func);
-// 						linear_insert_right(cursor, func);
-// 					}else if(cursor->type == TermType_Operator){
-// 						if(cursor->op_type == OpType_Parentheses){
-// 							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 								Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 								implicit_multiply->op_type = OpType_ImplicitMultiplication;
-								
-// 								//loop until we find a lower precedence operator, then insert op below it
-// 								Term* lower = cursor;
-// 								while(   lower->parent->type == TermType_Operator
-// 									  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 									  && lower->parent->op_type != OpType_Parentheses){
-// 									lower = lower->parent;
-// 								}
-// 								implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 								ast_insert_last(lower->parent, implicit_multiply);
-// 								ast_change_parent_insert_first(implicit_multiply, lower);
-// 								ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-								
-// 								ast_insert_last(implicit_multiply, func);
-// 								func->flags = TermFlag_OpArgRight;
-// 								linear_insert_right(cursor, func);
-// 							}else{
-// 								ast_insert_last(cursor, func);
-// 								func->flags = TermFlag_OpArgRight;
-// 								if(cursor->first_inside){
-// 									linear_insert_left(cursor->first_inside, func);
-// 								}else{
-// 									func->outside = cursor;
-// 									cursor->first_inside = cursor->last_inside = func;
-// 								}
-// 							}
-// 						}else{
-// 							ast_insert_last(cursor, func);
-// 							func->flags = TermFlag_OpArgRight;
-// 						}
-// 					}else if(cursor->type == TermType_Literal){
-// 						Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 						implicit_multiply->op_type = OpType_ImplicitMultiplication;
-						
-// 						//loop until we find a lower precedence operator, then insert op below it
-// 						Term* lower = cursor;
-// 						while(   lower->parent->type == TermType_Operator
-// 							  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 							  && lower->parent->op_type != OpType_Parentheses){
-// 							lower = lower->parent;
-// 						}
-// 						implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 						ast_insert_last(lower->parent, implicit_multiply);
-// 						ast_change_parent_insert_first(implicit_multiply, lower);
-// 						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-						
-// 						ast_insert_last(implicit_multiply, func);
-// 						func->flags = TermFlag_OpArgRight;
-// 						linear_insert_right(cursor, func);
-// 					}else{
-// 						valid = false;
-// 						linear_insert_right(cursor, func);
-// 						ast_insert_last((func->outside) ? func->outside : &expr->root, func);
-// 					}
-// 					cursor = paren;
-// 				}else{
-// 					//-////////////////////////////////////////////////////////////////////////////////////////////
-// 					//// @ast_parse_letters_term
-// 					str8_advance(&stream);
-					
-// 					forI(TOKEN_LENGTH){
-// 						Term* term = create_term(expr, {token_start, 1}, TermType_Variable);
-						
-// 						//TODO handle variable substitution, currently just assuming we're solving for it
-// 						expr->unknown_vars += 1;
-// 						term->var.name = term->raw;
-// 						//TODO variable unit
-// 						//TODO variable symbols
-// 						term->var.right_of_equals = expr->equals != 0; //if there is already an equals term, we are to the right of it
-						
-// 						if      (cursor->type == TermType_Expression){
-// 							ast_insert_last(cursor, term);
-// 							linear_insert_right(cursor, term);
-// 						}else if(cursor->type == TermType_Operator){
-// 							ast_insert_last(cursor, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 								linear_insert_right(cursor, term);
-// 							}else{
-// 								if(cursor->first_inside){
-// 									linear_insert_left(cursor->first_inside, term);
-// 								}else{
-// 									term->outside = cursor;
-// 									cursor->first_inside = cursor->last_inside = term;
-// 								}
-// 							}
-// 						}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
-							
-// 							//loop until we find a lower precedence operator, then insert op below it
-// 							Term* lower = cursor;
-// 							while(   lower->parent->type == TermType_Operator
-// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 								  && lower->parent->op_type != OpType_Parentheses){
-// 								lower = lower->parent;
-// 							}
-// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 							ast_insert_last(lower->parent, implicit_multiply);
-// 							ast_change_parent_insert_first(implicit_multiply, lower);
-// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-							
-// 							ast_insert_last(implicit_multiply, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							linear_insert_right(cursor, term);
-// 						}else{
-// 							valid = false;
-// 							linear_insert_right(cursor, term);
-// 							ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 						}
-// 						cursor = term;
-// 					}
-// 				}
-// 			}break;
-			
-// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @ast_parse_operator
-// 			case '(':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_Parentheses;
-				
-// 				if      (cursor->type == TermType_Expression){
-// 					ast_insert_last(cursor, term);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator){
-// 					if(cursor->op_type == OpType_Parentheses){
-// 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
-							
-// 							//loop until we find a lower precedence operator, then insert op below it
-// 							Term* lower = cursor;
-// 							while(   lower->parent->type == TermType_Operator
-// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 								  && lower->parent->op_type != OpType_Parentheses){
-// 								lower = lower->parent;
-// 							}
-// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 							ast_insert_last(lower->parent, implicit_multiply);
-// 							ast_change_parent_insert_first(implicit_multiply, lower);
-// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-							
-// 							ast_insert_last(implicit_multiply, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							linear_insert_right(cursor, term);
-// 						}else{
-// 							ast_insert_last(cursor, term);
-// 							term->flags = TermFlag_OpArgRight;
-// 							if(cursor->first_inside){
-// 								linear_insert_left(cursor->first_inside, term);
-// 							}else{
-// 								term->outside = cursor;
-// 								cursor->first_inside = cursor->last_inside = term;
-// 							}
-// 						}
-// 					}else{
-// 						ast_insert_last(cursor, term);
-// 						term->flags = TermFlag_OpArgRight;
-// 						linear_insert_right(cursor, term);
-// 					}
-// 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
-// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
-// 					implicit_multiply->op_type = OpType_ImplicitMultiplication;
-					
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(implicit_multiply, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, implicit_multiply);
-// 					ast_change_parent_insert_first(implicit_multiply, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-					
-// 					ast_insert_last(implicit_multiply, term);
-// 					term->flags = TermFlag_OpArgRight;
-// 					linear_insert_right(cursor, term);
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-// 			case ')':{
-// 				str8_advance(&stream);
-				
-// 				//find last parenthesis op and make it the cursor
-// 				FixMe; // removed the terms array from Expression
-// 				// for(s32 i = expr->terms.count-1; i >= 0; --i){
-// 				// 	if(   expr->terms[i].type == TermType_Operator
-// 				// 	   && expr->terms[i].op_type == OpType_Parentheses
-// 				// 	   && !HasFlag(expr->terms[i].flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 				// 		cursor = expr->terms.data + i;
-// 				// 		break;
-// 				// 	}
-// 				// }
-				
-// 				if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					cursor->raw.count = stream.str - cursor->raw.str - 1;
-// 					AddFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen);
-					
-// 					if(cursor->parent->type == TermType_FunctionCall){
-// 						cursor = cursor->parent;
-// 					}
-// 				}else{
-// 					//parenthesis was not found
-// 					valid = false;
-// 					AddFlag(cursor->flags, TermFlag_DanglingClosingParenToRight);
-// 				}
-// 			}break;
-			
-// 			case '^':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_Exponential;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesser(term, lower->parent) //NOTE right-to-left precedence
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_first(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-			
-// 			case '*':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_ExplicitMultiplication;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-// 			case '/':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_Division;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-// 			case '%':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_Modulo;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-			
-// 			case '+':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_Addition;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-// 			case '-':{
-// 				str8_advance(&stream);
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-				
-// 				if      (cursor->type == TermType_Expression){
-// 					term->op_type = OpType_Negation;
-					
-// 					ast_insert_last(cursor, term);
-// 					linear_insert_right(cursor, term);
-// 				}else if(   cursor->type == TermType_Literal
-// 						 || cursor->type == TermType_Variable
-// 						 || cursor->type == TermType_FunctionCall
-// 						 || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//NOTE do an additional check to see if this is a closing paren to treat it as subtraction rather than negation
-// 					term->op_type = OpType_Subtraction;
-					
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator){
-// 					term->op_type = OpType_Negation;
-					
-// 					ast_insert_last(cursor, term);
-// 					term->flags = TermFlag_OpArgRight;
-// 					if(cursor->op_type == OpType_Parentheses){
-// 						if(cursor->first_inside){
-// 							linear_insert_left(cursor->first_inside, term);
-// 						}else{
-// 							term->outside = cursor;
-// 							cursor->first_inside = cursor->last_inside = term;
-// 						}
-// 					}else{
-// 						linear_insert_right(cursor, term);
-// 					}
-// 				}else{
-// 					term->op_type = OpType_Negation;
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 			}break;
-			
-// 			case '=':{
-// 				str8_advance(&stream);
-				
-// 				if(expr->equals){
-// 					valid = false; //NOTE an equals operator already exists
-// 				}
-				
-// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
-// 				term->op_type = OpType_ExpressionEquals;
-				
-// 				if(   cursor->type == TermType_Literal
-// 				   || cursor->type == TermType_Variable
-// 				   || cursor->type == TermType_FunctionCall
-// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
-// 					//loop until we find a lower precedence operator, then insert op below it
-// 					Term* lower = cursor;
-// 					while(   lower->parent->type == TermType_Operator
-// 						  && OpIsLesserEqual(term, lower->parent)
-// 						  && lower->parent->op_type != OpType_Parentheses){
-// 						lower = lower->parent;
-// 					}
-// 					term->flags = (lower->flags & OPARG_MASK);
-// 					ast_insert_last(lower->parent, term);
-// 					ast_change_parent_insert_last(term, lower);
-// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
-// 					linear_insert_right(cursor, term);
-// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
-// 					valid = false; //NOTE equals operator cant be inside of parentheses
-// 					if(cursor->first_inside){
-// 						linear_insert_left(cursor->first_inside, term);
-// 					}else{
-// 						term->outside = cursor;
-// 						cursor->first_inside = cursor->last_inside = term;
-// 					}
-// 				}else{
-// 					valid = false;
-// 					linear_insert_right(cursor, term);
-// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
-// 				}
-// 				cursor = term;
-// 				expr->equals = term;
-// 			}break;
-			
-// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @ast_parse_error
-// 			default:{
-// 				LogE("lexer", "Unhandled token '",*stream.str,"' at (",TOKEN_OFFSET,").");
-// 				valid = false;
-// 				str8_advance(&stream);
-// 			}break;
-// 		}
-// #undef TOKEN_OFFSET
-// #undef TOKEN_LENGTH
+	// 	expr->root = Term{TermType_Expression};
+	
+	// 	b32 valid = true;
+	// 	Term* inside_this_paren = 0;
+	// 	str8 stream = dstr8_peek(&expr->raw);
+	// 	Term* cursor = &expr->root;
+	// 	while(stream && *stream.str != '\0'){
+	// 		u8* token_start = stream.str;
+	// #define TOKEN_OFFSET (s64)(token_start - expr->raw.str)
+	// #define TOKEN_LENGTH (s64)(stream.str - token_start)
+	
+	// 		switch(*stream.str){
+	// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @ast_parse_whitespace
+	// 			case ' ': case '\n': case '\r': case '\t': case '\v':{
+	// 				while(isspace(*stream.str)){ str8_advance(&stream); } //skip to non-whitespace
+	// 			}continue; //skip token creation
+	
+	// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @ast_parse_literal
+	// 			case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': case '.':{
+	// 				f64 value = MAX_F64;
+	
+	// 				while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
+	// 				if(*stream.str == '.'){
+	// 					str8_advance(&stream);
+	// 					while(isdigit(*stream.str)){ str8_advance(&stream); } //skip to non-digit
+	// 					value = atof((const char*)token_start);
+	// 				}else if(*stream.str == 'x' || *stream.str == 'X'){
+	// 					str8_advance(&stream);
+	// 					while(isxdigit(*stream.str)){ str8_advance(&stream); } //skip to non-hexdigit
+	// 					value = (f64)strtoll((const char*)token_start, 0, 16);
+	// 				}else{
+	// 					value = (f64)strtoll((const char*)token_start, 0, 10);
+	// 				}
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Literal);
+	// 				term->lit_value = value;
+	
+	// 				if      (cursor->type == TermType_Expression){
+	// 					ast_insert_last(cursor, term);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator){
+	// 					if(cursor->op_type == OpType_Parentheses){
+	// 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 							//loop until we find a lower precedence operator, then insert op below it
+	// 							Term* lower = cursor;
+	// 							while(   lower->parent->type == TermType_Operator
+	// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 								  && lower->parent->op_type != OpType_Parentheses){
+	// 								lower = lower->parent;
+	// 							}
+	// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 							ast_insert_last(lower->parent, implicit_multiply);
+	// 							ast_change_parent_insert_first(implicit_multiply, lower);
+	// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 							ast_insert_last(implicit_multiply, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							linear_insert_right(cursor, term);
+	// 						}else{
+	// 							ast_insert_last(cursor, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							if(cursor->first_inside){
+	// 								linear_insert_left(cursor->first_inside, term);
+	// 							}else{
+	// 								term->outside = cursor;
+	// 								cursor->first_inside = cursor->last_inside = term;
+	// 							}
+	// 						}
+	// 					}else{
+	// 						ast_insert_last(cursor, term);
+	// 						term->flags = TermFlag_OpArgRight;
+	// 					}
+	// 				}else if(cursor->type == TermType_Variable){
+	// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 					implicit_multiply->op_type   = OpType_ImplicitMultiplication;
+	
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, implicit_multiply);
+	// 					ast_change_parent_insert_first(implicit_multiply, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 					ast_insert_last(implicit_multiply, term);
+	// 					term->flags = TermFlag_OpArgRight;
+	// 					linear_insert_right(cursor, term);
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	
+	// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @ast_parse_letters
+	// 			case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j':
+	// 			case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't':
+	// 			case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
+	// 			case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': case 'J':
+	// 			case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T':
+	// 			case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z':
+	// 			case '_':{ //TODO hotstrings/constants
+	// 				Term* func = 0;
+	// 				str8 open_paren = stream;
+	// 				while(open_paren && *open_paren.str != '(') str8_advance(&open_paren);
+	// 				if(open_paren && *open_paren.str == '('){
+	// 					//-///////////////////////////////////////////////////////////////////////////////////////////
+	// 					//// @ast_parse_letters_logarithm
+	// 					if(strncmp("log_", (const char*)token_start, 4) == 0){
+	// 						b32 decimal_already = false;
+	// 						u8* base_cursor = token_start+4;
+	// 						while(isdigit(*base_cursor) || (*base_cursor == '.' && !decimal_already)){
+	// 							if(*base_cursor == '.') decimal_already = true;
+	// 							base_cursor++;
+	// 						}
+	// 						if(*base_cursor == '('){
+	// 							stream = open_paren;
+	// 							str8_advance(&stream);
+	
+	// 							Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_Logarithm);
+	// 							func->log_base = atof((const char*)token_start+4);
+	// 						}
+	// 					}
+	
+	// 					//-///////////////////////////////////////////////////////////////////////////////////////////
+	// 					//// @ast_parse_letters_function
+	// 					if(func == 0){
+	// 						forI(ArrayCount(builtin_functions)){ Function* it = &builtin_functions[i];
+	// 							//NOTE compare until the length of the larger string
+	// 							if(strncmp((const char*)it->text.str, (const char*)token_start,
+	// 									   (it->text.count > (open_paren.str - token_start)) ? it->text.count : open_paren.str - token_start) == 0){
+	// 								stream = open_paren;
+	// 								str8_advance(&stream);
+	
+	// 								Term* func = create_term(expr, {token_start, TOKEN_LENGTH-1}, TermType_FunctionCall);
+	// 								func->func = it;
+	// 								break;
+	// 							}
+	// 						}
+	// 					}
+	// 				}
+	
+	// 				if(func){
+	// 					Term* paren = create_term(expr, {stream.str-1, 1}, TermType_Operator);
+	// 					paren->op_type = OpType_Parentheses;
+	// 					ast_insert_last(func, paren);
+	// 					linear_insert_right(func, paren);
+	
+	// 					if      (cursor->type == TermType_Expression){
+	// 						ast_insert_last(cursor, func);
+	// 						linear_insert_right(cursor, func);
+	// 					}else if(cursor->type == TermType_Operator){
+	// 						if(cursor->op_type == OpType_Parentheses){
+	// 							if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 								Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 								implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 								//loop until we find a lower precedence operator, then insert op below it
+	// 								Term* lower = cursor;
+	// 								while(   lower->parent->type == TermType_Operator
+	// 									  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 									  && lower->parent->op_type != OpType_Parentheses){
+	// 									lower = lower->parent;
+	// 								}
+	// 								implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 								ast_insert_last(lower->parent, implicit_multiply);
+	// 								ast_change_parent_insert_first(implicit_multiply, lower);
+	// 								ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 								ast_insert_last(implicit_multiply, func);
+	// 								func->flags = TermFlag_OpArgRight;
+	// 								linear_insert_right(cursor, func);
+	// 							}else{
+	// 								ast_insert_last(cursor, func);
+	// 								func->flags = TermFlag_OpArgRight;
+	// 								if(cursor->first_inside){
+	// 									linear_insert_left(cursor->first_inside, func);
+	// 								}else{
+	// 									func->outside = cursor;
+	// 									cursor->first_inside = cursor->last_inside = func;
+	// 								}
+	// 							}
+	// 						}else{
+	// 							ast_insert_last(cursor, func);
+	// 							func->flags = TermFlag_OpArgRight;
+	// 						}
+	// 					}else if(cursor->type == TermType_Literal){
+	// 						Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 						implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 						//loop until we find a lower precedence operator, then insert op below it
+	// 						Term* lower = cursor;
+	// 						while(   lower->parent->type == TermType_Operator
+	// 							  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 							  && lower->parent->op_type != OpType_Parentheses){
+	// 							lower = lower->parent;
+	// 						}
+	// 						implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 						ast_insert_last(lower->parent, implicit_multiply);
+	// 						ast_change_parent_insert_first(implicit_multiply, lower);
+	// 						ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 						ast_insert_last(implicit_multiply, func);
+	// 						func->flags = TermFlag_OpArgRight;
+	// 						linear_insert_right(cursor, func);
+	// 					}else{
+	// 						valid = false;
+	// 						linear_insert_right(cursor, func);
+	// 						ast_insert_last((func->outside) ? func->outside : &expr->root, func);
+	// 					}
+	// 					cursor = paren;
+	// 				}else{
+	// 					//-////////////////////////////////////////////////////////////////////////////////////////////
+	// 					//// @ast_parse_letters_term
+	// 					str8_advance(&stream);
+	
+	// 					forI(TOKEN_LENGTH){
+	// 						Term* term = create_term(expr, {token_start, 1}, TermType_Variable);
+	
+	// 						//TODO handle variable substitution, currently just assuming we're solving for it
+	// 						expr->unknown_vars += 1;
+	// 						term->var.name = term->raw;
+	// 						//TODO variable unit
+	// 						//TODO variable symbols
+	// 						term->var.right_of_equals = expr->equals != 0; //if there is already an equals term, we are to the right of it
+	
+	// 						if      (cursor->type == TermType_Expression){
+	// 							ast_insert_last(cursor, term);
+	// 							linear_insert_right(cursor, term);
+	// 						}else if(cursor->type == TermType_Operator){
+	// 							ast_insert_last(cursor, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							if(cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 								linear_insert_right(cursor, term);
+	// 							}else{
+	// 								if(cursor->first_inside){
+	// 									linear_insert_left(cursor->first_inside, term);
+	// 								}else{
+	// 									term->outside = cursor;
+	// 									cursor->first_inside = cursor->last_inside = term;
+	// 								}
+	// 							}
+	// 						}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
+	// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 							//loop until we find a lower precedence operator, then insert op below it
+	// 							Term* lower = cursor;
+	// 							while(   lower->parent->type == TermType_Operator
+	// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 								  && lower->parent->op_type != OpType_Parentheses){
+	// 								lower = lower->parent;
+	// 							}
+	// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 							ast_insert_last(lower->parent, implicit_multiply);
+	// 							ast_change_parent_insert_first(implicit_multiply, lower);
+	// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 							ast_insert_last(implicit_multiply, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							linear_insert_right(cursor, term);
+	// 						}else{
+	// 							valid = false;
+	// 							linear_insert_right(cursor, term);
+	// 							ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 						}
+	// 						cursor = term;
+	// 					}
+	// 				}
+	// 			}break;
+	
+	// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @ast_parse_operator
+	// 			case '(':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_Parentheses;
+	
+	// 				if      (cursor->type == TermType_Expression){
+	// 					ast_insert_last(cursor, term);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator){
+	// 					if(cursor->op_type == OpType_Parentheses){
+	// 						if(HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 							Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 							implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 							//loop until we find a lower precedence operator, then insert op below it
+	// 							Term* lower = cursor;
+	// 							while(   lower->parent->type == TermType_Operator
+	// 								  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 								  && lower->parent->op_type != OpType_Parentheses){
+	// 								lower = lower->parent;
+	// 							}
+	// 							implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 							ast_insert_last(lower->parent, implicit_multiply);
+	// 							ast_change_parent_insert_first(implicit_multiply, lower);
+	// 							ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 							ast_insert_last(implicit_multiply, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							linear_insert_right(cursor, term);
+	// 						}else{
+	// 							ast_insert_last(cursor, term);
+	// 							term->flags = TermFlag_OpArgRight;
+	// 							if(cursor->first_inside){
+	// 								linear_insert_left(cursor->first_inside, term);
+	// 							}else{
+	// 								term->outside = cursor;
+	// 								cursor->first_inside = cursor->last_inside = term;
+	// 							}
+	// 						}
+	// 					}else{
+	// 						ast_insert_last(cursor, term);
+	// 						term->flags = TermFlag_OpArgRight;
+	// 						linear_insert_right(cursor, term);
+	// 					}
+	// 				}else if(cursor->type == TermType_Literal || cursor->type == TermType_Variable){
+	// 					Term* implicit_multiply = create_term(expr, {0, 0}, TermType_Operator);
+	// 					implicit_multiply->op_type = OpType_ImplicitMultiplication;
+	
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(implicit_multiply, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					implicit_multiply->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, implicit_multiply);
+	// 					ast_change_parent_insert_first(implicit_multiply, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	
+	// 					ast_insert_last(implicit_multiply, term);
+	// 					term->flags = TermFlag_OpArgRight;
+	// 					linear_insert_right(cursor, term);
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	// 			case ')':{
+	// 				str8_advance(&stream);
+	
+	// 				//find last parenthesis op and make it the cursor
+	// 				FixMe; // removed the terms array from Expression
+	// 				// for(s32 i = expr->terms.count-1; i >= 0; --i){
+	// 				// 	if(   expr->terms[i].type == TermType_Operator
+	// 				// 	   && expr->terms[i].op_type == OpType_Parentheses
+	// 				// 	   && !HasFlag(expr->terms[i].flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 				// 		cursor = expr->terms.data + i;
+	// 				// 		break;
+	// 				// 	}
+	// 				// }
+	
+	// 				if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					cursor->raw.count = stream.str - cursor->raw.str - 1;
+	// 					AddFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen);
+	
+	// 					if(cursor->parent->type == TermType_FunctionCall){
+	// 						cursor = cursor->parent;
+	// 					}
+	// 				}else{
+	// 					//parenthesis was not found
+	// 					valid = false;
+	// 					AddFlag(cursor->flags, TermFlag_DanglingClosingParenToRight);
+	// 				}
+	// 			}break;
+	
+	// 			case '^':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_Exponential;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesser(term, lower->parent) //NOTE right-to-left precedence
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_first(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	
+	// 			case '*':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_ExplicitMultiplication;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	// 			case '/':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_Division;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	// 			case '%':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_Modulo;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	
+	// 			case '+':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_Addition;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	// 			case '-':{
+	// 				str8_advance(&stream);
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	
+	// 				if      (cursor->type == TermType_Expression){
+	// 					term->op_type = OpType_Negation;
+	
+	// 					ast_insert_last(cursor, term);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(   cursor->type == TermType_Literal
+	// 						 || cursor->type == TermType_Variable
+	// 						 || cursor->type == TermType_FunctionCall
+	// 						 || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//NOTE do an additional check to see if this is a closing paren to treat it as subtraction rather than negation
+	// 					term->op_type = OpType_Subtraction;
+	
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator){
+	// 					term->op_type = OpType_Negation;
+	
+	// 					ast_insert_last(cursor, term);
+	// 					term->flags = TermFlag_OpArgRight;
+	// 					if(cursor->op_type == OpType_Parentheses){
+	// 						if(cursor->first_inside){
+	// 							linear_insert_left(cursor->first_inside, term);
+	// 						}else{
+	// 							term->outside = cursor;
+	// 							cursor->first_inside = cursor->last_inside = term;
+	// 						}
+	// 					}else{
+	// 						linear_insert_right(cursor, term);
+	// 					}
+	// 				}else{
+	// 					term->op_type = OpType_Negation;
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 			}break;
+	
+	// 			case '=':{
+	// 				str8_advance(&stream);
+	
+	// 				if(expr->equals){
+	// 					valid = false; //NOTE an equals operator already exists
+	// 				}
+	
+	// 				Term* term = create_term(expr, {token_start, TOKEN_LENGTH}, TermType_Operator);
+	// 				term->op_type = OpType_ExpressionEquals;
+	
+	// 				if(   cursor->type == TermType_Literal
+	// 				   || cursor->type == TermType_Variable
+	// 				   || cursor->type == TermType_FunctionCall
+	// 				   || (cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses && HasFlag(cursor->flags, TermFlag_LeftParenHasMatchingRightParen))){
+	// 					//loop until we find a lower precedence operator, then insert op below it
+	// 					Term* lower = cursor;
+	// 					while(   lower->parent->type == TermType_Operator
+	// 						  && OpIsLesserEqual(term, lower->parent)
+	// 						  && lower->parent->op_type != OpType_Parentheses){
+	// 						lower = lower->parent;
+	// 					}
+	// 					term->flags = (lower->flags & OPARG_MASK);
+	// 					ast_insert_last(lower->parent, term);
+	// 					ast_change_parent_insert_last(term, lower);
+	// 					ReplaceOpArgs(lower->flags, TermFlag_OpArgLeft);
+	// 					linear_insert_right(cursor, term);
+	// 				}else if(cursor->type == TermType_Operator && cursor->op_type == OpType_Parentheses){
+	// 					valid = false; //NOTE equals operator cant be inside of parentheses
+	// 					if(cursor->first_inside){
+	// 						linear_insert_left(cursor->first_inside, term);
+	// 					}else{
+	// 						term->outside = cursor;
+	// 						cursor->first_inside = cursor->last_inside = term;
+	// 					}
+	// 				}else{
+	// 					valid = false;
+	// 					linear_insert_right(cursor, term);
+	// 					ast_insert_last((term->outside) ? term->outside : &expr->root, term);
+	// 				}
+	// 				cursor = term;
+	// 				expr->equals = term;
+	// 			}break;
+	
+	// 			//-/////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @ast_parse_error
+	// 			default:{
+	// 				LogE("lexer", "Unhandled token '",*stream.str,"' at (",TOKEN_OFFSET,").");
+	// 				valid = false;
+	// 				str8_advance(&stream);
+	// 			}break;
+	// 		}
+	// #undef TOKEN_OFFSET
+	// #undef TOKEN_LENGTH
 	//}
 	
 	//-/////////////////////////////////////////////////////////////////////////////////////////////
@@ -866,7 +866,7 @@ b32 parse(Expression* expr){
 	// FixMe; // removed terms array in Expression
 	// forE(expr->terms){
 	// 	Assert(it->parent != 0, "all non-expression terms must have a parent node");
-		
+	
 	// 	switch(it->type){
 	// 		case TermType_Operator:{
 	// 			switch(it->op_type){
@@ -879,14 +879,14 @@ b32 parse(Expression* expr){
 	// 					   && (it->first_child->first_child->type == TermType_Literal || it->first_child->type == TermType_Variable)) return false;
 	// 					if(!HasFlag(it->flags, TermFlag_LeftParenHasMatchingRightParen)) return false;
 	// 				}break;
-					
+	
 	// 				case OpType_Negation:{
 	// 					Assert(it->child_count <= 1, "negation should never have more than 1 child");
 	// 					if(it->child_count != 1) return false;
 	// 					if(   it->parent->type == TermType_Expression
 	// 					   && (it->first_child->type == TermType_Literal || it->first_child->type == TermType_Variable)) return false;
 	// 				}break;
-					
+	
 	// 				case OpType_Exponential:
 	// 				case OpType_ExplicitMultiplication:
 	// 				case OpType_Division:
@@ -896,24 +896,24 @@ b32 parse(Expression* expr){
 	// 					Assert(it->child_count <= 2, "binary operators should never have more than 2 children");
 	// 					if(it->child_count != 2) return false;
 	// 				}break;
-					
+	
 	// 				case OpType_ImplicitMultiplication:{
 	// 					Assert(it->child_count == 2, "implicit multiplies should always have 2 children");
 	// 				}break;
-					
+	
 	// 				case OpType_ExpressionEquals:{
 	// 					//NOTE equals having one child is valid for solving the equation
 	// 					if(it->child_count == 0 || it->child_count > 2) return false;
 	// 				}break;
-					
+	
 	// 				default: Assert(!"operator type validity not setup"); break;
 	// 			}
 	// 		}break;
-			
+	
 	// 		case TermType_Literal:{
 	// 			Assert(it->child_count == 0, "literals should never have children");
 	// 		}break;
-			
+	
 	// 		case TermType_Variable:{
 	// 			Assert(it->child_count == 0, "variables should never have children");
 	// 			if(it->var.expr == 0){
@@ -922,98 +922,91 @@ b32 parse(Expression* expr){
 	// 				if(expr->equals->child_count != 2) return false;
 	// 			}
 	// 		}break;
-			
+	
 	// 		case TermType_FunctionCall:{
 	// 			Assert(it->func != 0, "function calls in the tree must have a valid function pointer");
 	// 			if(it->child_count != 1) return false;
 	// 		}break;
-			
+	
 	// 		case TermType_Logarithm:{
 	// 			if(it->child_count != 1) return false;
 	// 		}break;
-			
+	
 	// 		default: Assert(!"term type validity not setup"); break;
 	// 	}
 	// }
 	return true;
 }
 
-
-dstr8 gen_str(Term* term, Expression* expr) {
+dstr8 gen_str(Term* term, Expression* expr){
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
-
+	
 	if(term->child_count){
 		dstr8_append(&out, "(");
 	}
-
+	
 	// dstr8 node_text;
 	// dstr8_init(&out, str8l(""), deshi_temp_allocator);
-
-	// if(term->mathobj) {
-	// 	switch(term->mathobj->type) {
+	
+	// if(term->mathobj){
+	// 	switch(term->mathobj->type){
 	// 		case MathObject_Number: {
 	// 			dstr8_append(&node_text, term->mathobj->number.value);
 	// 		}break;
 	// 	}
 	// 	dstr8_append(&node_text, term->mathobj->name, " ");
 	// }
-
-	if(term == expr->term_cursor_start) {
-		dstr8_append(&out, 
-			str8{term->raw.buffer.str, term->raw.cursor.pos},
-			"|",
-			str8{term->raw.buffer.str+term->raw.cursor.pos, term->raw.buffer.count-term->raw.cursor.pos},
-			" "
-		);
-	} else dstr8_append(&out, term->raw.buffer.fin, " ");
-
+	
+	if(term == expr->term_cursor_start){
+		dstr8_append(&out, str8{term->raw.buffer.str, term->raw.cursor.pos}, "|",
+					 str8{term->raw.buffer.str+term->raw.cursor.pos, term->raw.buffer.count-term->raw.cursor.pos}, " ");
+	}else{
+		dstr8_append(&out, term->raw.buffer.fin, " ");
+	}
+	
 	for(Term* t = term->first_child; t; t = t->next){
 		dstr8_append(&out, gen_str(t, expr).fin);
 	}
-
-	if(term->child_count) {
+	
+	if(term->child_count){
 		dstr8_append(&out, ")");
 	}
-
+	
 	return out;
 }
 
 void print_expression_text(Expression* expr){
 	dstr8 out; dstr8_init(&out, str8l(""), deshi_temp_allocator);
 	Term* root = &expr->root;
-
+	
 	dstr8_append(&out, "(");
-
+	
 	if(root->child_count){
 		if(root == expr->term_cursor_start){
-			dstr8_append(&out, 
-				str8{root->raw.buffer.str, root->raw.cursor.pos},
-				"|",
-				str8{root->raw.buffer.str+root->raw.cursor.pos, root->raw.buffer.count-root->raw.cursor.pos},
-				" "
-			);
+			dstr8_append(&out, str8{root->raw.buffer.str, root->raw.cursor.pos}, "|",
+						 str8{root->raw.buffer.str+root->raw.cursor.pos, root->raw.buffer.count-root->raw.cursor.pos}, " ");
 			
-		} else dstr8_append(&out, root->raw.buffer.fin, " ");
-		for(Term* t = root->first_child; t; t = t->next) {
+		}else{
+			dstr8_append(&out, root->raw.buffer.fin, " ");
+		}
+		for(Term* t = root->first_child; t; t = t->next){
 			dstr8_append(&out, gen_str(t, expr).fin);
 		}
 	}
-
+	
 	// trim trailing space
-	if(out.str[out.count-1] == ' ') {
+	if(out.str[out.count-1] == ' '){
 		dstr8_remove_codepoint_at_byteoffset(&out, out.count-1);
 	}
 	dstr8_append(&out, ")");
-
+	
 	Log("", out.fin);
 }
 
-
-
-MathObject* math_object_from_string(str8 s) {
+MathObject* math_object_from_string(str8 s){
 #define str8case(str) case str8_static_hash64(str8_static_t(str))
 	u64 hash = str8_hash64(s);
-	switch(hash) {
+	switch(hash){
 		str8case("+"): return &math_objects.addition;
 		str8case("-"): return &math_objects.subtraction;
 		str8case("*"): return &math_objects.multiplication;
@@ -1028,49 +1021,48 @@ MathObject* math_object_from_string(str8 s) {
 // we can call this immediately instead of needing to wait until the 
 // next input
 // returns true if the calling function should stop
-b32 attempt_to_resolve_placeholder(Expression* expr) {
+b32 attempt_to_resolve_placeholder(Expression* expr){
 	Term* cursor = expr->term_cursor_start;
-
+	
 	// if the first character is a digit this must be an integer
-	if(isdigit(cursor->raw.buffer.str[0])) {
+	if(isdigit(cursor->raw.buffer.str[0])){
 		cursor->mathobj = &math_objects.number;
 		return true; // we've already inserted the character for this frame, so we must quit early so we dont do it again below
-	} else {
+	}else{
 		MathObject* mo = math_object_from_string(cursor->raw.buffer.fin);
 		if(!mo) return true;
 		cursor->mathobj = mo;
-		switch(mo->type) {
+		switch(mo->type){
 			case MathObject_Function: {
 				Term** temp;
 				array_init(temp, mo->func.arity, deshi_temp_allocator);
 				*array_push(temp) = cursor;
 				
-				if(cursor->child_count == mo->func.arity) {
+				if(cursor->child_count == mo->func.arity){
 					// arguments to function already exist, so just put them in the temp array
-					for(Term* t = cursor->first_child; t; t = t->next) {
+					for(Term* t = cursor->first_child; t; t = t->next){
 						*array_push(temp) = t;
 					}
-				} else if(cursor->child_count != mo->func.arity) { // TODO(sushi) better check for already existing children (there could be more or less than arity)
-					forI(cursor->mathobj->func.arity) {
+				}else if(cursor->child_count != mo->func.arity){ // TODO(sushi) better check for already existing children (there could be more or less than arity)
+					forI(cursor->mathobj->func.arity){
 						Term* t = create_term();
 						ast_insert_last(cursor, t);
 						t->mathobj = &math_objects.placeholder;
 						*array_push(temp) = t;
 					}
 				} 
-
 			}break;
 		}
 	}
 	return false;
 }
 
-void ast_input(Expression* expr) {
+void ast_input(Expression* expr){
 	Term* cursor = expr->term_cursor_start;
 	
-	defer{print_expression_text(expr);};
-
-	if(cursor->mathobj && !(cursor->movement.up || cursor->movement.down || cursor->movement.left || cursor->movement.right)) {
+	defer{ print_expression_text(expr); };
+	
+	if(cursor->mathobj && !(cursor->movement.up || cursor->movement.down || cursor->movement.left || cursor->movement.right)){
 		// if the cursor is at a node where there is no movement, we must force it to go elsewhere
 		// this happens when the root node is something that has no rendered part that the cursor can move into
 		// eg. division, which has a center line, but the cursor will never move there
@@ -1078,10 +1070,10 @@ void ast_input(Expression* expr) {
 		Assert(cursor->first_child); // this shouldn't happen in normal circumstances
 		cursor = expr->term_cursor_start = cursor->first_child;
 	}
-
+	
 	// handle movements
-	if(key_pressed(CanvasBind_Expression_CursorLeft)) {
-		if(text_cursor_at_start(&cursor->raw)) {
+	if(key_pressed(CanvasBind_Expression_CursorLeft)){
+		if(text_cursor_at_start(&cursor->raw)){
 			if(cursor->movement.left){
 				cursor = expr->term_cursor_start = cursor->movement.left;
 				text_move_cursor_to_end(&cursor->raw);
@@ -1090,8 +1082,8 @@ void ast_input(Expression* expr) {
 			text_move_cursor_left(&cursor->raw);
 		}
 	}
-	if(key_pressed(CanvasBind_Expression_CursorRight)) {
-		if(text_cursor_at_end(&cursor->raw)) {
+	if(key_pressed(CanvasBind_Expression_CursorRight)){
+		if(text_cursor_at_end(&cursor->raw)){
 			if(cursor->movement.right){
 				cursor = expr->term_cursor_start = cursor->movement.right;
 				text_move_cursor_to_start(&cursor->raw);
@@ -1100,42 +1092,43 @@ void ast_input(Expression* expr) {
 			text_move_cursor_right(&cursor->raw);
 		}
 	}
-	if(key_pressed(CanvasBind_Expression_CursorUp)) {
-		if(cursor->movement.up) {
+	if(key_pressed(CanvasBind_Expression_CursorUp)){
+		if(cursor->movement.up){
 			cursor = expr->term_cursor_start = cursor->movement.up;
 		}		
 	}
-	if(key_pressed(CanvasBind_Expression_CursorDown)) {
-		if(cursor->movement.down) {
+	if(key_pressed(CanvasBind_Expression_CursorDown)){
+		if(cursor->movement.down){
 			cursor = expr->term_cursor_start = cursor->movement.down;
 		}		
 	}
-
-	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder) {
+	
+	if(!cursor->mathobj || cursor->mathobj->type == MathObject_Placeholder){
 		// if the current term has no mathobj yet, we need to gather input until we can tell what it should be
-		if(DeshInput->charCount) 
+		if(DeshInput->charCount){
 			text_insert_string(&cursor->raw, str8{DeshInput->charIn, DeshInput->charCount});
+		}
 		if(attempt_to_resolve_placeholder(expr)) return;
 	}
-
-	switch(cursor->mathobj->type) {
+	
+	switch(cursor->mathobj->type){
 		case MathObject_Number:{
-			forI(DeshInput->charCount) {
+			forI(DeshInput->charCount){
 				// scan the input array. if we find numbers, simply append them where the cursor is
 				// if we find anything else, we need to decide how to handle it
-				if(isdigit(DeshInput->charIn[i])) {
+				if(isdigit(DeshInput->charIn[i])){
 					text_insert_string(&cursor->raw, str8{DeshInput->charIn+i,1});
-				} else {
+				}else{
 					// the user is probably inserting something inside the text, like another operator, or something.
 					// we convert the current node to a placeholder, make the new text the raw of the placeholder,
 					// then make the split number the children of the placeholder
 					//text_insert_string(&t->raw, str8{DeshInput->charIn+i, 1});
-					if(text_cursor_at_start(&cursor->raw) || text_cursor_at_end(&cursor->raw)) {
+					if(text_cursor_at_start(&cursor->raw) || text_cursor_at_end(&cursor->raw)){
 						Term* move = create_term();
 						move->mathobj = &math_objects.number;
 						text_clear_and_replace(&move->raw, cursor->raw.buffer.fin);
 						ast_insert_last(cursor, move);
-					} else {
+					}else{
 						// we need to split the number at the cursor
 						Term* front = create_term(), *back = create_term();
 						text_clear_and_replace(&front->raw, str8{cursor->raw.buffer.str, cursor->raw.cursor.pos});
@@ -1146,16 +1139,15 @@ void ast_input(Expression* expr) {
 						ast_insert_last(cursor, back);
 						cursor->mathobj = &math_objects.placeholder;
 						text_clear_and_replace(&cursor->raw, str8{(u8*)DeshInput->charIn,1});
+						
 						// we need to try and resolve the place holder here incase it is a single symbol
 						// representing a MathObject
 						if(attempt_to_resolve_placeholder(expr)) return;
-
 					}
 				}
 			}
 		}break;
 	}
-
 }
 
 
@@ -1916,7 +1908,7 @@ struct gvGraph {
 
 gvGraph graph;
 u32 i = 0;
-void make_dot_file(TNode* node, Agnode_t* parent) {
+void make_dot_file(TNode* node, Agnode_t* parent){
 	i++;
 	u32 save = i;
 	
@@ -1926,22 +1918,22 @@ void make_dot_file(TNode* node, Agnode_t* parent) {
 	for_node(node->first_child){
 		make_dot_file(it, me);
 	}
-	//if (stage->first_child)   make_dot_file(stage->first_child, me);
-	//if (stage->next != stage) make_dot_file(stage->next, parent);
+	//if(stage->first_child)   make_dot_file(stage->first_child, me);
+	//if(stage->next != stage) make_dot_file(stage->next, parent);
 	
-	if (parent)
+	if(parent)
 		agedge(gvgraph, parent, me, "", 1);
 	
 }
 
 
 
-void Parser::pretty_print(Expression& e) {
+void Parser::pretty_print(Expression& e){
 	
-	if (!gvc) gvc = gvContext();
-	if (!gout) gout = (char*)memtalloc(Kilobytes(1)); //arbitrary size, maybe should be changed later
+	if(!gvc) gvc = gvContext();
+	if(!gout) gout = (char*)memtalloc(Kilobytes(1)); //arbitrary size, maybe should be changed later
 	
-	if (e.node.first_child) {
+	if(e.node.first_child){
 		graph.nodes.clear();
 		graph.edges.clear();
 		i=0;
@@ -1956,9 +1948,9 @@ void Parser::pretty_print(Expression& e) {
 		
 		FileReader reader = init_reader(gout, gout_size);
 		
-		forI(reader.lines.count) {
+		forI(reader.lines.count){
 			next_line(reader);
-			if (str_begins_with(reader.read, "node")) {
+			if(str_begins_with(reader.read, "node")){
 				gvNode node;
 				chunk_line(reader, i, ' ');
 				node.label = reader.chunks[6];
@@ -1972,7 +1964,7 @@ void Parser::pretty_print(Expression& e) {
 				graph.ymax=Max(f64(graph.ymax),f64(node.pos.y+node.siz.y));
 				graph.nodes.add(node);
 			}
-			else if (str_begins_with(reader.read, "edge")){
+			else if(str_begins_with(reader.read, "edge")){
 				gvEdge edge;
 				chunk_line(reader, i, ' ');
 				edge.pos1.x = stod(reader.chunks[4]);
@@ -1984,7 +1976,7 @@ void Parser::pretty_print(Expression& e) {
 			}
 		}
 	}
-	else {
+	else{
 		using namespace UI;
 		Begin("suuguprettyprint", UIWindowFlags_FitAllElements); {
 			static f32 zoom = 17;
@@ -1992,7 +1984,7 @@ void Parser::pretty_print(Expression& e) {
 			if(IsWinHovered()){
 				ppi += 10 * DeshInput->scrollY;
 			}
-			for (gvNode node : graph.nodes) {
+			for (gvNode node : graph.nodes){
 				vec2 np = vec2(
 							   ppi*(node.pos.x),
 							   ppi*(node.pos.y)
@@ -2017,6 +2009,6 @@ void Parser::pretty_print(Expression& e) {
 }
 
 #else 
-void Parser::pretty_print(Expression& e) {}//LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when BUILD_SLOW not set!");}
+void Parser::pretty_print(Expression& e){}//LogW("SUUGUDEBUG", "Function 'pretty_print' called from somewhere when BUILD_SLOW not set!");}
 #endif
 */

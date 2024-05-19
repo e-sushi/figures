@@ -26,7 +26,6 @@
 
 // organized collection of data relating to suugu's canvas
 local struct{
-	
 	struct{ // ui
 		uiItem* root; // item encompassing the entire space of the canvas
 		uiItem* debug; // debug panel which immediate info is drawn into
@@ -36,11 +35,11 @@ local struct{
 			Font* debug;
 		}font;
 	}ui;
-
+	
 	struct{ // tool
 		CanvasTool active;
 		CanvasTool previous;
-
+		
 		struct{// pencil
 			PencilStroke* strokes;
 			u32 skip_amount = 4;
@@ -52,7 +51,7 @@ local struct{
 			}stroke;
 		}pencil;
 	}tool;
-
+	
 	struct{ // camera
 		vec2 pos{0,0};
 		f64  zoom = 1.0;
@@ -60,11 +59,11 @@ local struct{
 		vec2 pan_mouse_pos;
 		b32  pan_active = false;
 	}camera;
-
+	
 	struct{ // world
 		vec2 mouse_pos;
 	}world;
-
+	
 	struct{
 		Element** arr; // kigu array
 		Element* selected;
@@ -110,26 +109,26 @@ local const char* context_dropdown_option_strings[] = {
 	"Add: Graph",
 };
 
-void scale_render_part(Element* element, RenderPart* part, vec2 scale) {
+void scale_render_part(Element* element, RenderPart* part, vec2 scale){
 	uiDrawCmdPtrs draw_cmd_ptrs = ui_drawcmd_get_ptrs(element->item->drawcmds);
 	part->bbx.x *= scale.x;
 	part->bbx.y *= scale.y;
-	forI(part->vcount) {
+	forI(part->vcount){
 		(draw_cmd_ptrs.vertexes + part->vstart + i)->pos.x *= scale.x;
 		(draw_cmd_ptrs.vertexes + part->vstart + i)->pos.y *= scale.y;
 	}
 }
 
-void offset_render_part_position(Element* element, RenderPart* part, vec2 offset) {
+void offset_render_part_position(Element* element, RenderPart* part, vec2 offset){
 	part->position += offset;
-	if(part->type == RenderPart_Group) {
-		forI(part->group_children) {
+	if(part->type == RenderPart_Group){
+		forI(part->group_children){
 			offset_render_part_position(element, part + i + 1, offset);
 		}
 	} 
 }
 
-void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
+void offset_render_part(Element* element, RenderPart* part, vec2 offset){
 	uiDrawCmdPtrs draw_cmd_ptrs = ui_drawcmd_get_ptrs(element->item->drawcmds);
 	forI(part->vcount){
 		(draw_cmd_ptrs.vertexes + part->vstart + i)->pos.x += offset.x;
@@ -156,7 +155,7 @@ void offset_render_part(Element* element, RenderPart* part, vec2 offset) {
 
 #define RenderError(...) LogE("suugu_render", term->mathobj->name, ":", current_token->line, ":", current_token->column, " ", __VA_ARGS__)
 
-RenderPart render_term(Term* term, Element* element) {
+RenderPart render_term(Term* term, Element* element){
 	logger_push_indent(1);
 	defer{ logger_pop_indent(1); };
 	
@@ -164,11 +163,11 @@ RenderPart render_term(Term* term, Element* element) {
 	uiDrawCmdPtrs draw_cmd_ptrs = ui_drawcmd_get_ptrs(draw_cmd);
 	
 	Token* current_token = term->mathobj->display.instruction_tokens;
-
+	
 	u32 current_render_part_index = array_count(element->expression.rendered_parts);
 	u32* proper_indexes = array_create(u32, 8, deshi_temp_allocator);
 	u32 parts_rendered = 0;
-
+	
 	struct PositionReference {
 		b32 is_scalar;
 		u32 x_axis; // true if the scalar represents a value along the x_axis, false if over y
@@ -178,28 +177,31 @@ RenderPart render_term(Term* term, Element* element) {
 			vec2 vec;
 		};
 	};
-
+	
 	// TODO(sushi) this needs to return a vec2 no matter what because aligning relies on it 
-	const auto eval_position = [&](b32 force_vector = false) {
+	const auto eval_position = [&](b32 force_vector = false){
 		RenderLog("eval_position");
 		enum{
 			State_Vector=1<<0,
 			State_Function=1<<1,
 		};
+		
 		u32 state = 0;
 		auto impl = [&](auto& recur) -> PositionReference {
-			switch(current_token->type) {
-				case Token_Backtick: {
+			switch(current_token->type){
+				case Token_Backtick:{
 					current_token++;
-					if(current_token->type != Token_Integer) {
+					if(current_token->type != Token_Integer){
 						RenderError("need an integer after '`'");
 						return PositionReference{0,{}};
 					}
+					
 					RenderPart* part = element->expression.rendered_parts + proper_indexes[stoi(current_token->raw)];
-					current_token++;
 					PositionReference out;
 					out.part = part;
-					switch(current_token->type) {
+					
+					current_token++;
+					switch(current_token->type){
 						case Token_bottom:   out.scalar = part->position.y+part->bbx.y;   out.is_scalar = true;  out.x_axis = 0; break;
 						case Token_left:     out.scalar = part->position.x;               out.is_scalar = true;  out.x_axis = 1; break;
 						case Token_top:      out.scalar = part->position.y;               out.is_scalar = true;  out.x_axis = 0; break;
@@ -210,159 +212,179 @@ RenderPart render_term(Term* term, Element* element) {
 						case Token_origin:   out.vec = (part->position + part->bbx) / 2;  out.is_scalar = false; out.x_axis = 0; break;
 						case Token_origin_x: out.scalar = part->position.x+part->bbx.x/2; out.is_scalar = true;  out.x_axis = 1; break;
 						case Token_origin_y: out.scalar = part->position.y+part->bbx.y/2; out.is_scalar = true;  out.x_axis = 0; break;
-
-						default: {
+						default:{
 							RenderError("invalid position, expected one of (top, bottom, left, right, center, center_x, center_y, origin, origin_x, origin_y)");
 							return {};
 						}break;
 					}
+					
 					current_token++;
 					return out;
 				}break;
-
-				case Token_OpenParen: {
-					if(HasFlag(state, State_Vector)) {
+				
+				case Token_OpenParen:{
+					if(HasFlag(state, State_Vector)){
 						RenderError("cannot start a vector within a vector");
 						return {};
 					}
 					AddFlag(state, State_Vector);
-					current_token++;
+					
 					PositionReference out;
+					
+					current_token++;
 					PositionReference l = recur(recur);
-					if(!l.is_scalar) {
+					if(!l.is_scalar){
 						RenderError("vector arguments must be scalars");
 						return {};
 					}
-					if(current_token->type != Token_Comma) {
+					if(current_token->type != Token_Comma){
 						RenderError("expected a ',' after first parameter of vector");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference r = recur(recur);
-					if(!r.is_scalar) {
+					if(!r.is_scalar){
 						RenderError("vector arguments must be scalars");
 						return {};
 					}
+					if(current_token->type != Token_CloseParen){
+						RenderError("expected ')' to close vector");
+					}
+					
 					out.is_scalar = false;
 					out.vec.x = l.scalar;
 					out.vec.y = r.scalar;
-					if(current_token->type != Token_CloseParen) {
-						RenderError("expected ')' to close vector");
-					}
+					
 					current_token++;
 					RemoveFlag(state, State_Vector);
+					
 					return out;
 				}break;
-
-				case Token_max: {
+				
+				case Token_max:{
 					current_token++;
-					if(current_token->type != Token_OpenParen) {
+					if(current_token->type != Token_OpenParen){
 						RenderError("expected '(' after token 'max'");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference l = recur(recur);
-					if(current_token->type != Token_Comma) {
+					if(current_token->type != Token_Comma){
 						RenderError("expected ',' after first parameter of max");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference r = recur(recur);
-					if(current_token->type != Token_CloseParen) {
+					if(current_token->type != Token_CloseParen){
 						RenderError("expected ')' to close function max");
 						return {};
 					}
+					
 					current_token++;
-					if(l.is_scalar != r.is_scalar) {
+					if(l.is_scalar != r.is_scalar){
 						RenderError("cannot perform max between a vector and a scalar");
 						return {};
 					}
+					
 					PositionReference out;
 					out.is_scalar = l.is_scalar;
-					if(l.is_scalar) {
-						if(l.scalar > r.scalar) {
+					if(l.is_scalar){
+						if(l.scalar > r.scalar){
 							out = l;
-						} else {
+						}else{
 							out = r;
 						}
-					} else { // NOTE(sushi) we cannot decide on either part when we take the max of 2 vectors
+					}else{ // NOTE(sushi) we cannot decide on either part when we take the max of 2 vectors
 						out.vec = Max(l.vec, r.vec);
 					}
+					
 					return out;
 				}break; 
-
-				case Token_min: {
+				
+				case Token_min:{
 					current_token++;
-					if(current_token->type != Token_OpenParen) {
+					if(current_token->type != Token_OpenParen){
 						RenderError("expected '(' after token 'min'");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference l = recur(recur);
-					if(current_token->type != Token_Comma) {
+					if(current_token->type != Token_Comma){
 						RenderError("expected ',' after first parameter of min");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference r = recur(recur);
-					if(current_token->type != Token_CloseParen) {
+					if(current_token->type != Token_CloseParen){
 						RenderError("expected ')' to close function min");
 						return {};
 					}
+					
 					current_token++;
-					if(l.is_scalar != r.is_scalar) {
+					if(l.is_scalar != r.is_scalar){
 						RenderError("cannot perform min between a vector and a scalar");
 						return {};
 					}
+					
 					PositionReference out;
 					out.is_scalar = l.is_scalar;
-					if(l.is_scalar) {
-						if(l.scalar < r.scalar) {
+					if(l.is_scalar){
+						if(l.scalar < r.scalar){
 							out = l;
-						} else {
+						}else{
 							out = r;
 						}
-					} else { // NOTE(sushi) we cannot decide on either part when we take the min of 2 vectors
+					}else{ // NOTE(sushi) we cannot decide on either part when we take the min of 2 vectors
 						out.vec = Min(l.vec, r.vec);
 					}
+					
 					return out;
 				}break; 
-
-				case Token_avg: {
+				
+				case Token_avg:{
 					current_token++;
-					if(current_token->type != Token_OpenParen) {
+					if(current_token->type != Token_OpenParen){
 						RenderError("expected '(' after token 'avg'");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference l = recur(recur);
-					if(current_token->type != Token_Comma) {
+					if(current_token->type != Token_Comma){
 						RenderError("expected ',' after first parameter of avg");
 						return {};
 					}
+					
 					current_token++;
 					PositionReference r = recur(recur);
-					if(current_token->type != Token_CloseParen) {
+					if(current_token->type != Token_CloseParen){
 						RenderError("expected ')' to close function avg");
 						return {};
 					}
+					
 					current_token++;
-					if(l.is_scalar != r.is_scalar) {
+					if(l.is_scalar != r.is_scalar){
 						RenderError("cannot perform avg between a vector and a scalar");
 						return {};
 					}
+					
 					PositionReference out;
 					out.is_scalar = l.is_scalar;
-					if(l.is_scalar) {
+					if(l.is_scalar){
 						out.scalar = (l.scalar + r.scalar) / 2;
-					} else {
+					}else{
 						out.vec = (l.vec + r.vec) / 2;
 					}
-
+					
 					return out;
 				}break;
-
-				default: {
+				
+				default:{
 					RenderError("need a position expression");
 				}break;
 			}
@@ -370,16 +392,16 @@ RenderPart render_term(Term* term, Element* element) {
 		};
 		return impl(impl);
 	};
-
-	while(1) {
-		switch(current_token->type) {
-			case Token_render: {
+	
+	while(1){
+		switch(current_token->type){
+			case Token_render:{
 				current_token++;
-				switch(current_token->type) {
-					case Token_child: {
+				switch(current_token->type){
+					case Token_child:{
 						current_token++;
 						RenderLog("rendering child ", stoi(current_token->raw));
-						if(current_token->type != Token_Integer) {
+						if(current_token->type != Token_Integer){
 							RenderError("need an integer after 'child' token.");
 							return {};
 						}
@@ -396,19 +418,19 @@ RenderPart render_term(Term* term, Element* element) {
 						current_token++;
 					}break;
 					
-					case Token_text: {
+					case Token_text:{
 						RenderLog("drawing text");
 						current_token++;
 						
 						str8 text;
-						switch(current_token->type) {
-							case Token_String: {
+						switch(current_token->type){
+							case Token_String:{
 								text = current_token->raw;
 							}break;
 							case Token_term_raw:{
 								text = term->raw.buffer.fin;
 							}break;
-							default: {
+							default:{
 								RenderError("need a string or 'term_raw' after 'text' token");
 								return {};
 							}break;
@@ -435,10 +457,10 @@ RenderPart render_term(Term* term, Element* element) {
 						current_token++;
 					}break;
 					
-					case Token_shape: {
+					case Token_shape:{
 						current_token++;
 						switch(current_token->type){
-							case Token_line: {
+							case Token_line:{
 								RenderLog("drawing line");
 								current_token++;
 								
@@ -477,36 +499,41 @@ RenderPart render_term(Term* term, Element* element) {
 				}
 			}break;
 			
-			case Token_align: {
+			case Token_align:{
 				current_token++;
 				RenderLog("aligning");
+				
+				vec2 o0, o1;
 				PositionReference offset0 = eval_position();
 				PositionReference offset1 = eval_position();
-				vec2 o0, o1;
-				if(offset0.x_axis) {
+				if(offset0.x_axis){
 					o0.x = offset0.scalar;
 					o0.y = 0;
-				} else {
+				}else{
 					o0.x = 0;
 					o0.y = offset0.scalar;
 				}
-				if(offset1.x_axis) {
+				if(offset1.x_axis){
 					o1.x = offset1.scalar;
 					o1.y = 0;
-				} else {
+				}else{
 					o1.x = 0;
 					o1.y = offset1.scalar;;
 				}
+				
 				RenderLog("  ", offset0.part->term->mathobj->name, " ", offset0.part - element->expression.rendered_parts, "  ->  ", offset1.part->term->mathobj->name, " ", offset1.part - element->expression.rendered_parts);
 				offset_render_part(element, offset0.part, o1-o0);
 				RenderLog("  by offset ", o1-o0);
 			}break;
 		}
-		if(current_token->type == Token_EOF) break;
+		
+		if(current_token->type == Token_EOF){
+			break;
+		}
 	}
-
+	
 	RenderPart* fin = element->expression.rendered_parts + current_render_part_index;
-	if(parts_rendered > 1) {
+	if(parts_rendered > 1){
 		RenderPart* group = array_insert(element->expression.rendered_parts, current_render_part_index);
 		group->type = RenderPart_Group;
 		group->term = term;
@@ -514,7 +541,7 @@ RenderPart render_term(Term* term, Element* element) {
 		group->istart = MAX_S32;
 		group->group_children = parts_rendered;
 		RenderPart* iter = fin + 1;
-		forI(parts_rendered) {
+		forI(parts_rendered){
 			RenderLog("child ", i);
 			RenderLog("  raw: ", iter->term->raw.buffer.fin);
 			RenderLog("  pos: ", iter->position);
@@ -527,31 +554,34 @@ RenderPart render_term(Term* term, Element* element) {
 			fin->icount += iter->icount;
 			fin->vstart = Min(fin->vstart, iter->vstart);
 			fin->istart = Min(fin->istart, iter->istart);
-			if(iter->type == RenderPart_Group) {
+			if(iter->type == RenderPart_Group){
 				iter += iter->group_children+1;
-			} else iter += 1;
+			}else{
+				iter += 1;
+			}
 		}
 		return *group;
 	}
+	
 	return *fin;
 }
 
-void render_element(uiItem* item) {
+void render_element(uiItem* item){
 	Element* element = (Element*)item->userVar;
-	switch(element->type) {
-		case ElementType_Expression: {
+	switch(element->type){
+		case ElementType_Expression:{
 			//NOTE: drawcmd filled out during item evaluation
 		}break;
-		case ElementType_Graph: {
-
+		case ElementType_Graph:{
+			
 		}break;
-		case ElementType_NULL: {
-
+		case ElementType_NULL:{
+			
 		}break;
 	}
 }
 
-void evaluate_element(uiItem* item) {
+void evaluate_element(uiItem* item){
 	RenderLog("", "-------------------------------- render start");
 	Element* element = (Element*)item->userVar;
 	array_deinit(element->expression.rendered_parts);
@@ -560,18 +590,18 @@ void evaluate_element(uiItem* item) {
 	array_deinit(element->expression.position_map.y);
 	array_init(element->expression.position_map.x, 4, deshi_allocator);
 	array_init(element->expression.position_map.y, 4, deshi_allocator);
-
-	switch(element->type) {
+	
+	switch(element->type){
 		case ElementType_Expression:{ 
 			if(element->expression.handle.root.mathobj){
 				RenderPart rp = render_term(&element->expression.handle.root, element);
 				item->size = {rp.bbx.x, rp.bbx.y};
-
-				forI(array_count(element->expression.rendered_parts)) {
+				
+				forI(array_count(element->expression.rendered_parts)){
 					RenderPart rp = element->expression.rendered_parts[i];
-					if(rp.type == RenderPart_Group) {
+					if(rp.type == RenderPart_Group){
 						RenderLog(i, " group");
-					} else {
+					}else{
 						RenderLog(i, " indiv");
 					}
 					RenderLog("  raw: ", rp.term->raw.buffer.fin);
@@ -579,58 +609,57 @@ void evaluate_element(uiItem* item) {
 					RenderLog("  bbx: ", rp.bbx);
 					RenderLog("    v: ", rp.vstart, " -> ", rp.vstart + rp.vcount);
 					RenderLog("    i: ", rp.istart, " -> ", rp.istart + rp.icount);
-
 					
 					if(rp.type == RenderPart_Group || rp.cursor_ignore == true) continue;
 					position_map_insert(element, rp.term, rp.position);
 				}
-
+				
 				RenderLog("", "pos x: ");
-				forI(array_count(element->expression.position_map.x)) {
+				forI(array_count(element->expression.position_map.x)){
 					RenderLog("", "  ", element->expression.position_map.x[i].pos, " ", element->expression.position_map.x[i].term->raw.buffer.fin);
 					TermPos* curr = element->expression.position_map.x + i;
 					TermPos* prev = (i? curr - 1 : 0);
 					TermPos* next = (i != array_count(element->expression.position_map.x) - 1? curr + 1 : 0);
-					if(next) {
+					if(next){
 						curr->term->movement.right = next->term;
 						next->term->movement.left  = curr->term;
 					}
-					if(prev) {
+					if(prev){
 						curr->term->movement.left  = prev->term;
 						prev->term->movement.right = curr->term;
 					}
 				}
-
+				
 				RenderLog("", "pos y: ");
-				forI(array_count(element->expression.position_map.y)) {
+				forI(array_count(element->expression.position_map.y)){
 					RenderLog("", "  ", element->expression.position_map.y[i].pos, " ", element->expression.position_map.y[i].term->raw.buffer.fin);
 					TermPos* curr = element->expression.position_map.y + i;
 					TermPos* prev = 0;
 					TermPos* next = 0;
-					forX_reverse(j, i-1) {
+					forX_reverse(j, i-1){
 						TermPos* scan = element->expression.position_map.y + j;
 						if(scan->pos != curr->pos) prev = scan;
 					}
-					forX(j, array_count(element->expression.position_map.y) - i - 1) {
+					forX(j, array_count(element->expression.position_map.y) - i - 1){
 						TermPos* scan = element->expression.position_map.y + j;
 						if(scan->pos != curr->pos) next = scan;
 					}
-					if(next) {
+					if(next){
 						curr->term->movement.up   = next->term;
 						next->term->movement.down = curr->term;
 					}
-					if(prev) {
+					if(prev){
 						curr->term->movement.down = prev->term;
 						prev->term->movement.up   = curr->term;
 					}
 				}
 			}
 		}break;
-		case ElementType_Graph: {
-
+		case ElementType_Graph:{
+			
 		}break;
-		case ElementType_NULL: {
-
+		case ElementType_NULL:{
+			
 		}break;
 	}
 }
@@ -639,167 +668,167 @@ void evaluate_element(uiItem* item) {
 //NOTE(delle) mathobj cursor is drawn to the right of the mathobj
 void draw_term_old(Expression* expr, Term* mathobj, vec2& cursor_start, f32& cursor_y){
 	FixMe;
-// #define CursorAfterLastItem() (cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(), cursor_y = -UI::GetLastItemSize().y)
-// #define CursorBeforeLastItem() (cursor_start = UI::GetLastItemPos(), cursor_y = UI::GetLastItemSize().y)
+	// #define CursorAfterLastItem() (cursor_start = UI::GetLastItemPos() + UI::GetLastItemSize(), cursor_y = -UI::GetLastItemSize().y)
+	// #define CursorBeforeLastItem() (cursor_start = UI::GetLastItemPos(), cursor_y = UI::GetLastItemSize().y)
 	
-// 	if(mathobj == 0) return;
-// 	switch(mathobj->type){
-// 		case TermType_Expression:{
-// 			Expression* expr = ExpressionFromTerm(mathobj);
-// 			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
-// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 				if(expr->raw_cursor_start == 1) CursorBeforeLastItem();
-// 			}
-// 			if(mathobj->child_count){
-// 				draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 				for_node(mathobj->first_child->next){
-// 					UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
-// 					draw_term_old(expr, it, cursor_start, cursor_y);
-// 				}
-// 			}
-// 			if(expr->raw_cursor_start == expr->raw.count) CursorAfterLastItem();
-			
-// 			//draw solution if its valid
-// 			if(expr->valid){
-// 				UI::PushColor(UIStyleCol_Text, Color_Grey);
-// 				if(expr->equals){
-// 					if(expr->solution == MAX_F64){
-// 						UI::TextOld(str8_lit("ERROR"));
-// 					}else{
-// 						UI::TextF(str8_lit("%g"), expr->solution);
-// 					}
-// 					UI::SameLine();
-// 				}else if(expr->solution != MAX_F64){
-// 					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
-// 					UI::TextF(str8_lit("%g"), expr->solution);
-// 					UI::SameLine();
-// 				}
-// 				UI::PopColor();
-// 			}
-// 			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap);
-// 		}break;
-		
-// 		case TermType_Operator:{
-// 			switch(mathobj->op_type){
-// 				case OpType_Parentheses:{
-// 					UI::TextOld(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->first_child){
-// 						draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 						for_node(mathobj->first_child->next){
-// 							UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
-// 							draw_term_old(expr, it, cursor_start, cursor_y);
-// 						}
-// 					}
-// 					if(HasFlag(mathobj->flags, TermFlag_LeftParenHasMatchingRightParen)){
-// 						UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 						if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
-// 					}
-// 				}break;
-				
-// 				case OpType_Exponential:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-				
-// 				case OpType_Negation:{
-// 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 				}break;
-				
-// 				case OpType_ImplicitMultiplication:{
-// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-				
-// 				case OpType_ExplicitMultiplication:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-// 				case OpType_Division:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-// 				case OpType_Modulo:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-				
-// 				case OpType_Addition:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-// 				case OpType_Subtraction:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 				}break;
-				
-// 				case OpType_ExpressionEquals:{
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
-// 					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
-// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
-// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
-// 					if(mathobj->last_child) for_node(mathobj->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
-// 				}break;
-				
-// 				default: Assert(!"operator type drawing not setup"); break;
-// 			}
-// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
-// 			}
-// 		}break;
-		
-// 		case TermType_Literal:
-// 		case TermType_Variable:{
-// 			//TODO italics for variables (make this an option)
-// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
-// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
-// 			}
-// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
-// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
-// 			}
-// 		}break;
-		
-// 		case TermType_FunctionCall:{
-// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
-// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
-// 			}
-// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
-// 		}break;
-		
-// 		case TermType_Logarithm:{
-// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
-// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
-// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
-// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
-// 			}
-// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
-// 		}break;
-		
-// 		default: Assert(!"mathobj type drawing not setup"); break;
-// 	}
-// #undef CursorAfterLastItem
-// #undef CursorBeforeLastItem
+	// 	if(mathobj == 0) return;
+	// 	switch(mathobj->type){
+	// 		case TermType_Expression:{
+	// 			Expression* expr = ExpressionFromTerm(mathobj);
+	// 			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+	// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
+	// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+	// 				if(expr->raw_cursor_start == 1) CursorBeforeLastItem();
+	// 			}
+	// 			if(mathobj->child_count){
+	// 				draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 				for_node(mathobj->first_child->next){
+	// 					UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+	// 					draw_term_old(expr, it, cursor_start, cursor_y);
+	// 				}
+	// 			}
+	// 			if(expr->raw_cursor_start == expr->raw.count) CursorAfterLastItem();
+	
+	// 			//draw solution if its valid
+	// 			if(expr->valid){
+	// 				UI::PushColor(UIStyleCol_Text, Color_Grey);
+	// 				if(expr->equals){
+	// 					if(expr->solution == MAX_F64){
+	// 						UI::TextOld(str8_lit("ERROR"));
+	// 					}else{
+	// 						UI::TextF(str8_lit("%g"), expr->solution);
+	// 					}
+	// 					UI::SameLine();
+	// 				}else if(expr->solution != MAX_F64){
+	// 					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
+	// 					UI::TextF(str8_lit("%g"), expr->solution);
+	// 					UI::SameLine();
+	// 				}
+	// 				UI::PopColor();
+	// 			}
+	// 			UI::TextOld(str8_lit(" "), UITextFlags_NoWrap);
+	// 		}break;
+	
+	// 		case TermType_Operator:{
+	// 			switch(mathobj->op_type){
+	// 				case OpType_Parentheses:{
+	// 					UI::TextOld(str8_lit("("), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->first_child){
+	// 						draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 						for_node(mathobj->first_child->next){
+	// 							UI::TextOld(str8_lit(" "), UITextFlags_NoWrap); UI::SameLine();
+	// 							draw_term_old(expr, it, cursor_start, cursor_y);
+	// 						}
+	// 					}
+	// 					if(HasFlag(mathobj->flags, TermFlag_LeftParenHasMatchingRightParen)){
+	// 						UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+	// 						if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
+	// 					}
+	// 				}break;
+	
+	// 				case OpType_Exponential:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("^"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				case OpType_Negation:{
+	// 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				case OpType_ImplicitMultiplication:{
+	// 					draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				case OpType_ExplicitMultiplication:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("*"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	// 				case OpType_Division:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("/"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	// 				case OpType_Modulo:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("%"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				case OpType_Addition:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("+"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	// 				case OpType_Subtraction:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("-"), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				case OpType_ExpressionEquals:{
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) draw_term_old(expr, mathobj->first_child, cursor_start, cursor_y);
+	// 					UI::TextOld(str8_lit("="), UITextFlags_NoWrap); UI::SameLine();
+	// 					if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str) CursorBeforeLastItem();
+	// 					if(mathobj->last_child && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) draw_term_old(expr, mathobj->last_child, cursor_start, cursor_y);
+	// 					if(mathobj->last_child) for_node(mathobj->last_child->next) draw_term_old(expr, it, cursor_start, cursor_y);
+	// 				}break;
+	
+	// 				default: Assert(!"operator type drawing not setup"); break;
+	// 			}
+	// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
+	// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+	// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count) CursorBeforeLastItem();
+	// 			}
+	// 		}break;
+	
+	// 		case TermType_Literal:
+	// 		case TermType_Variable:{
+	// 			//TODO italics for variables (make this an option)
+	// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+	// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+	// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
+	// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+	// 			}
+	// 			if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
+	// 				UI::TextOld(str8_lit(")"), UITextFlags_NoWrap); UI::SameLine();
+	// 				if(expr->raw.str + expr->raw_cursor_start == mathobj->raw.str + mathobj->raw.count){ cursor_start = UI::GetLastItemPos(); cursor_y = UI::GetLastItemSize().y; }
+	// 			}
+	// 		}break;
+	
+	// 		case TermType_FunctionCall:{
+	// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+	// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+	// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
+	// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+	// 			}
+	// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
+	// 		}break;
+	
+	// 		case TermType_Logarithm:{
+	// 			UI::TextOld(str8{(u8*)mathobj->raw.str, (s64)mathobj->raw.count}, UITextFlags_NoWrap); UI::SameLine();
+	// 			if((mathobj->raw.str <= expr->raw.str + expr->raw_cursor_start) && (expr->raw.str + expr->raw_cursor_start < mathobj->raw.str + mathobj->raw.count)){
+	// 				f32 x_offset = UI::CalcTextSize(str8{(u8*)mathobj->raw.str, s64(expr->raw.str + expr->raw_cursor_start - mathobj->raw.str)}).x;
+	// 				cursor_start = UI::GetLastItemPos() + vec2{x_offset,0}; cursor_y = UI::GetLastItemSize().y;
+	// 			}
+	// 			for_node(mathobj->first_child) draw_term_old(expr, it, cursor_start, cursor_y);
+	// 		}break;
+	
+	// 		default: Assert(!"mathobj type drawing not setup"); break;
+	// 	}
+	// #undef CursorAfterLastItem
+	// #undef CursorBeforeLastItem
 }
 
 //-////////////////////////////////////////////////////////////////////////////////////////////////
@@ -819,189 +848,189 @@ local struct{
 
 void debug_draw_term_tree(Expression* expr, Term* mathobj){DPZoneScoped;
 	FixMe;
-// #define ctx debug_draw_term_tree_context
-// 	auto highlight_border_when_focused = [](uiItem* item){
-// 		if(g_ui->active == item){
-// 			item->style.border_color = Color_Grey;
-// 		}else{
-// 			item->style.border_color = Color_VeryDarkGrey;
-// 		}
-// 	};
+	// #define ctx debug_draw_term_tree_context
+	// 	auto highlight_border_when_focused = [](uiItem* item){
+	// 		if(g_ui->active == item){
+	// 			item->style.border_color = Color_Grey;
+	// 		}else{
+	// 			item->style.border_color = Color_VeryDarkGrey;
+	// 		}
+	// 	};
 	
-// 	if(mathobj == 0) return;
+	// 	if(mathobj == 0) return;
 	
-// 	str8 term_text{};
-
-// 	switch(mathobj->type){
-// 		case TermType_Expression:{
-// 			//reset the context
-// 			ctx.depth = 0;
-// 			if(ctx.expression) uiItemR(ctx.expression);
-			
-// 			//fill the mathobj style
-// 			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
-// 			ctx.term_style.margin        = Vec4(2,2,2,2);
-// 			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
-// 			ctx.term_style.font_height   = 12;
-// 			ctx.term_style.text_color    = Color_LightGrey;
-// 			ctx.term_style.content_align = Vec2(0.5f,0.5f);
-			
-// 			//begin the expression container
-// 			ctx.expression = uiItemB();
-// 			ctx.expression->id = STR8("expression");
-// 			ctx.expression->style.positioning      = pos_draggable_absolute;
-// 			ctx.expression->style.anchor           = anchor_bottom_left;
-// 			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
-// 			ctx.expression->style.background_color = Color_DarkCyan;
-// 			ctx.expression->style.border_style     = border_solid;
-// 			ctx.expression->style.border_color     = Color_VeryDarkGrey;
-// 			ctx.expression->style.border_width     = 5;
-// 			ctx.expression->style.focus            = true;
-// 			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
-// 			ctx.expression->style.overflow         = overflow_scroll;
-// 			ctx.expression->action         = highlight_border_when_focused;
-// 			ctx.expression->action_trigger = action_act_always;
-			
-// 			//gather the terms and their depths
-// 			arrsetlen(ctx.term_array, expr->terms.count);
-// 			Expression* expr = ExpressionFromTerm(mathobj);
-// 			if(mathobj->child_count){
-// 				ctx.depth += 1;
-// 				debug_draw_term_tree(expr, mathobj->first_child);
-// 				for_node(mathobj->first_child->next){
-// 					debug_draw_term_tree(expr, it);
-// 				}
-// 				ctx.depth -= 1;
-// 			}
-			
-// 			//position the mathobj items
-			
-			
-// 			//draw lines between terms and their parents
-			
-			
-// 			//end the expression container
-// 			uiItemE();
-// 		}break;
-		
-// 		case TermType_Operator:{
-// 			switch(mathobj->op_type){
-// 				case OpType_Parentheses:{
-// 					if(mathobj->first_child){
-// 						ctx.depth += 1;
-// 						debug_draw_term_tree(expr, mathobj->first_child);
-// 						for_node(mathobj->first_child->next){
-// 							debug_draw_term_tree(expr, it);
-// 						}
-// 						ctx.depth -= 1;
-// 					}
-// 					term_text = STR8("(");
-// 				}break;
-// 				case OpType_Exponential:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("^");
-// 				}break;
-// 				case OpType_Negation:{
-// 					ctx.depth += 1;
-// 					debug_draw_term_tree(expr, mathobj->first_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("NEG");
-// 				}break;
-// 				case OpType_ImplicitMultiplication:{
-// 					ctx.depth += 1;
-// 					debug_draw_term_tree(expr, mathobj->first_child);
-// 					debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("*i");
-// 				}break;
-// 				case OpType_ExplicitMultiplication:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("*e");
-// 				}break;
-// 				case OpType_Division:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("/");
-// 				}break;
-// 				case OpType_Modulo:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("%");
-// 				}break;
-// 				case OpType_Addition:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("+");
-// 				}break;
-// 				case OpType_Subtraction:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("-");
-// 				}break;
-// 				case OpType_ExpressionEquals:{
-// 					ctx.depth += 1;
-// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
-// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
-// 					if(mathobj->last_child) for_node(mathobj->last_child->next) debug_draw_term_tree(expr, it);
-// 					ctx.depth -= 1;
-// 					term_text = STR8("=");
-// 				}break;
-// 				default: Assert(!"operator type drawing not setup"); break;
-// 			}
-// 		}break;
-		
-// 		case TermType_Literal:{
-// 			term_text = ToString8(deshi_temp_allocator, mathobj->lit_value);
-// 		}break;
-		
-// 		case TermType_Variable:{
-// 			term_text = mathobj->raw;
-// 		}break;
-		
-// 		case TermType_FunctionCall:{
-// 			ctx.depth += 1;
-// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
-// 			ctx.depth -= 1;
-// 			term_text = mathobj->func->text;
-// 		}break;
-		
-// 		case TermType_Logarithm:{
-// 			ctx.depth += 1;
-// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
-// 			ctx.depth -= 1;
-// 			term_text = ToString8(deshi_temp_allocator, STR8("log"), mathobj->log_base);
-// 		}break;
-		
-// 		default: Assert(!"mathobj type drawing not setup"); break;
-// 	}
+	// 	str8 term_text{};
 	
-// 	if(term_text){
-// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
-// 			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
-// 		}
-		
-// 		//create the mathobj text item
-// 		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
-// 		term_item->id = STR8("HELLO!");
-		
-// 		//binary insertion sort
-		
-// 	}
-// #undef ctx
+	// 	switch(mathobj->type){
+	// 		case TermType_Expression:{
+	// 			//reset the context
+	// 			ctx.depth = 0;
+	// 			if(ctx.expression) uiItemR(ctx.expression);
+	
+	// 			//fill the mathobj style
+	// 			ctx.term_style.positioning   = pos_static; //change to pos_absolute when actually positioning items
+	// 			ctx.term_style.margin        = Vec4(2,2,2,2);
+	// 			ctx.term_style.font          = assets_font_create_from_file(STR8("gohufont-uni-14.ttf"),14);
+	// 			ctx.term_style.font_height   = 12;
+	// 			ctx.term_style.text_color    = Color_LightGrey;
+	// 			ctx.term_style.content_align = Vec2(0.5f,0.5f);
+	
+	// 			//begin the expression container
+	// 			ctx.expression = uiItemB();
+	// 			ctx.expression->id = STR8("expression");
+	// 			ctx.expression->style.positioning      = pos_draggable_absolute;
+	// 			ctx.expression->style.anchor           = anchor_bottom_left;
+	// 			ctx.expression->style.size             = Vec2(g_window->height/2, g_window->height/2);
+	// 			ctx.expression->style.background_color = Color_DarkCyan;
+	// 			ctx.expression->style.border_style     = border_solid;
+	// 			ctx.expression->style.border_color     = Color_VeryDarkGrey;
+	// 			ctx.expression->style.border_width     = 5;
+	// 			ctx.expression->style.focus            = true;
+	// 			ctx.expression->style.display          = (ctx.visible) ? 0 : display_hidden;
+	// 			ctx.expression->style.overflow         = overflow_scroll;
+	// 			ctx.expression->action         = highlight_border_when_focused;
+	// 			ctx.expression->action_trigger = action_act_always;
+	
+	// 			//gather the terms and their depths
+	// 			arrsetlen(ctx.term_array, expr->terms.count);
+	// 			Expression* expr = ExpressionFromTerm(mathobj);
+	// 			if(mathobj->child_count){
+	// 				ctx.depth += 1;
+	// 				debug_draw_term_tree(expr, mathobj->first_child);
+	// 				for_node(mathobj->first_child->next){
+	// 					debug_draw_term_tree(expr, it);
+	// 				}
+	// 				ctx.depth -= 1;
+	// 			}
+	
+	// 			//position the mathobj items
+	
+	
+	// 			//draw lines between terms and their parents
+	
+	
+	// 			//end the expression container
+	// 			uiItemE();
+	// 		}break;
+	
+	// 		case TermType_Operator:{
+	// 			switch(mathobj->op_type){
+	// 				case OpType_Parentheses:{
+	// 					if(mathobj->first_child){
+	// 						ctx.depth += 1;
+	// 						debug_draw_term_tree(expr, mathobj->first_child);
+	// 						for_node(mathobj->first_child->next){
+	// 							debug_draw_term_tree(expr, it);
+	// 						}
+	// 						ctx.depth -= 1;
+	// 					}
+	// 					term_text = STR8("(");
+	// 				}break;
+	// 				case OpType_Exponential:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("^");
+	// 				}break;
+	// 				case OpType_Negation:{
+	// 					ctx.depth += 1;
+	// 					debug_draw_term_tree(expr, mathobj->first_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("NEG");
+	// 				}break;
+	// 				case OpType_ImplicitMultiplication:{
+	// 					ctx.depth += 1;
+	// 					debug_draw_term_tree(expr, mathobj->first_child);
+	// 					debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("*i");
+	// 				}break;
+	// 				case OpType_ExplicitMultiplication:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("*e");
+	// 				}break;
+	// 				case OpType_Division:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("/");
+	// 				}break;
+	// 				case OpType_Modulo:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("%");
+	// 				}break;
+	// 				case OpType_Addition:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("+");
+	// 				}break;
+	// 				case OpType_Subtraction:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("-");
+	// 				}break;
+	// 				case OpType_ExpressionEquals:{
+	// 					ctx.depth += 1;
+	// 					if(mathobj->first_child && HasFlag(mathobj->first_child->flags, TermFlag_OpArgLeft)) debug_draw_term_tree(expr, mathobj->first_child);
+	// 					if(mathobj->last_child  && HasFlag(mathobj->last_child->flags, TermFlag_OpArgRight)) debug_draw_term_tree(expr, mathobj->last_child);
+	// 					if(mathobj->last_child) for_node(mathobj->last_child->next) debug_draw_term_tree(expr, it);
+	// 					ctx.depth -= 1;
+	// 					term_text = STR8("=");
+	// 				}break;
+	// 				default: Assert(!"operator type drawing not setup"); break;
+	// 			}
+	// 		}break;
+	
+	// 		case TermType_Literal:{
+	// 			term_text = ToString8(deshi_temp_allocator, mathobj->lit_value);
+	// 		}break;
+	
+	// 		case TermType_Variable:{
+	// 			term_text = mathobj->raw;
+	// 		}break;
+	
+	// 		case TermType_FunctionCall:{
+	// 			ctx.depth += 1;
+	// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
+	// 			ctx.depth -= 1;
+	// 			term_text = mathobj->func->text;
+	// 		}break;
+	
+	// 		case TermType_Logarithm:{
+	// 			ctx.depth += 1;
+	// 			for_node(mathobj->first_child) debug_draw_term_tree(expr, it);
+	// 			ctx.depth -= 1;
+	// 			term_text = ToString8(deshi_temp_allocator, STR8("log"), mathobj->log_base);
+	// 		}break;
+	
+	// 		default: Assert(!"mathobj type drawing not setup"); break;
+	// 	}
+	
+	// 	if(term_text){
+	// 		if(HasFlag(mathobj->flags, TermFlag_DanglingClosingParenToRight)){
+	// 			term_text = ToString8(deshi_temp_allocator, term_text, STR8(")"));
+	// 		}
+	
+	// 		//create the mathobj text item
+	// 		uiItem* term_item = uiTextMS(&debug_draw_term_tree_context.term_style, term_text);
+	// 		term_item->id = STR8("HELLO!");
+	
+	// 		//binary insertion sort
+	
+	// 	}
+	// #undef ctx
 }
 
 
@@ -1022,79 +1051,47 @@ void init_canvas(){
 	// elements.add(&default_graph.element);
 	
 	//library_load(STR8("test.slib"));
-
+	
 	array_init(canvas.element.arr, 4, deshi_allocator);
-
-#if 0
-	//debug testing ui
-	//maximized, this runs at around 500-600 fps
-	
-	const u32 n = 5;
-	static uiItem* items[n];
-	uiItem* inside;
-	
-	forI(n){
-		items[i] = uiItemB();
-		items[i]->style.sizing = size_auto;
-		items[i]->style.padding = {5,5,5,5};
-		items[i]->style.background_color = {100, 50, u8(255 * f32(i)/n), 255};
-	}
-	
-	inside = uiItemM();
-	inside->style.size = {10,10};
-	inside->action_trigger = action_act_always;
-	inside->style.positioning = pos_absolute;
-	inside->action = [](uiItem* item){
-		item->style.pos = {BoundTimeOsc(0, 80), BoundTimeOsc(0,80)};
-	};
-	
-	forI(n){
-		uiItemE();
-	}
-	
-	items[0]->style.positioning = pos_fixed;
-	items[0]->style.pos = {200,200};
-	
-#endif
 	
 	canvas.ui.font.math = assets_font_create_from_path(str8_lit("data/fonts/STIXTwoMath-Regular.otf"), 100);
 	Assert(canvas.ui.font.math != assets_font_null(), "Canvas math font failed to load");
 	canvas.ui.font.debug = assets_font_create_from_path(str8l("data/fonts/gohufont-11.bdf"), 11);
 	Assert(canvas.ui.font.debug != assets_font_null(), "Canvas debug font failed to load");
-
-	canvas.ui.root = ui_begin_item(0);
-	canvas.ui.root->id = STR8("suugu.canvas");
-	canvas.ui.root->style.sizing = size_percent; // canvas is always the size of the window
-	canvas.ui.root->style.size = {100,100};
-
-	canvas.ui.debug = ui_begin_item(0);
-	canvas.ui.debug->id = str8l("suugu.canvas.debug");
-	{uiStyle* s = &canvas.ui.debug->style;
-		s->sizing = size_auto;
-		s->background_color = Color_Black;
-		s->font = canvas.ui.font.debug;
-		s->font_height = 11;
-		s->text_color = Color_White;
-		s->text_wrap = text_wrap_word;
-		s->border_style = border_solid;
-		s->border_color = Color_White;
-		s->border_width = 1;
-		s->padding_left = 5;
-		s->padding_top = 5;
-		s->padding_right = 5;
-		s->padding_bottom = 5;
-		//s->padding = {5,5,5,5};
-		s->positioning = pos_draggable_relative;
-		s->display = display_horizontal;
-	}
-	ui_end_item(); // debug
-	ui_end_item(); // root
+	
+	canvas.ui.root = ui_begin_item(0);{
+		canvas.ui.root->id = STR8("suugu.canvas");
+		canvas.ui.root->style.sizing = size_percent; // canvas is always the size of the window
+		canvas.ui.root->style.size = {100,100};
+		
+		canvas.ui.debug = ui_begin_item(0);{
+			canvas.ui.debug->id = str8l("suugu.canvas.debug");
+			{uiStyle* s = &canvas.ui.debug->style;
+				s->sizing = size_auto;
+				s->background_color = Color_Black;
+				s->font = canvas.ui.font.debug;
+				s->font_height = 11;
+				s->text_color = Color_White;
+				s->text_wrap = text_wrap_word;
+				s->border_style = border_solid;
+				s->border_color = Color_White;
+				s->border_width = 1;
+				s->padding_left = 5;
+				s->padding_top = 5;
+				s->padding_right = 5;
+				s->padding_bottom = 5;
+				//s->padding = {5,5,5,5};
+				s->positioning = pos_draggable_relative;
+				s->display = display_horizontal;
+			}
+		}ui_end_item(); // debug
+	}ui_end_item(); // root
 }
 
 void update_canvas(){
- 	//-///////////////////////////////////////////////////////////////////////////////////////////////
- 	//// @input
- 	canvas.world.mouse_pos = ToWorld(input_mouse_position());
+	//-///////////////////////////////////////////////////////////////////////////////////////////////
+	//// @input
+	canvas.world.mouse_pos = ToWorld(input_mouse_position());
 	
 	//// @input_tool ////
 	if      (key_pressed(CanvasBind_SetTool_Navigation) && canvas.tool.active != CanvasTool_Navigation){
@@ -1130,49 +1127,46 @@ void update_canvas(){
 	}
 	if(DeshInput->scrollY != 0 && input_mods_down(InputMod_None) && g_ui->hovered == canvas.ui.root){
 		//if(!active_graph){
-			canvas.camera.zoom -= canvas.camera.zoom / 10.0 * DeshInput->scrollY;
-			canvas.camera.zoom = Clamp(canvas.camera.zoom, 1e-37, 1e37);
+		canvas.camera.zoom -= canvas.camera.zoom / 10.0 * DeshInput->scrollY;
+		canvas.camera.zoom = Clamp(canvas.camera.zoom, 1e-37, 1e37);
 		//}else{
-			//active_graph->cartesian_graph->camera_zoom -= 0.2 * active_graph->cartesian_graph->camera_zoom * DeshInput->scrollY;
+		//active_graph->cartesian_graph->camera_zoom -= 0.2 * active_graph->cartesian_graph->camera_zoom * DeshInput->scrollY;
 		//}
 	}
 	
 #if 1 //NOTE temp ui
-	
 	if(canvas.tool.active == CanvasTool_Pencil){
 		ui_begin_immediate_branch(canvas.ui.debug); {
-			uiItem* item = ui_begin_item(0);
-			item->id = str8l("suugu.canvas.debug.pencil");
-			item->style.sizing = size_auto;
-			item->style.border_color = Color_White;
-			item->style.border_style = border_solid;
-			item->style.border_width = 1;
-			{
+			uiItem* item = ui_begin_item(0);{
+				item->id = str8l("suugu.canvas.debug.pencil");
+				item->style.sizing = size_auto;
+				item->style.border_color = Color_White;
+				item->style.border_style = border_solid;
+				item->style.border_width = 1;
+				
 				uiText* text = (uiText*)ui_make_text(str8null, 0);
 				str8 out = to_dstr8v(deshi_temp_allocator, 
-					"stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
-					"stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
-					"stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
-					"stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
-					"stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
-				).fin;
+									 "stroke size:   ", canvas.tool.pencil.stroke.size, "\n",
+									 "stroke color:  ", canvas.tool.pencil.stroke.color, "\n",
+									 "stroke start:  ", canvas.tool.pencil.stroke.start_pos, "\n",
+									 "stroke index:  ", canvas.tool.pencil.stroke.idx, "\n",
+									 "stroke skip:   ", canvas.tool.pencil.skip_amount, "\n"
+									 ).fin;
 				text_insert_string(&text->text, out);
-				if(canvas.tool.pencil.stroke.idx) {
-					text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, 
-						"stroke points: ", array_count(array_last(canvas.tool.pencil.strokes)->pencil_points)
-					).fin);
+				
+				if(canvas.tool.pencil.stroke.idx){
+					text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, "stroke points: ", array_count(array_last(canvas.tool.pencil.strokes)->pencil_points)).fin);
 				}
+				
 				u32 total_points = 0;
 				forX_array(stroke, canvas.tool.pencil.strokes){
 					total_points += array_count(stroke->pencil_points);
 				}
-				text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator,
-					"total points: ", total_points
-				).fin);
-			}
-			ui_end_item();
+				text_insert_string(&text->text, to_dstr8v(deshi_temp_allocator, "total points: ", total_points).fin);
+			}ui_end_item();
 		}ui_end_immediate_branch();
 	}
+	
 	if(canvas.tool.active == CanvasTool_Expression){
 		ui_begin_immediate_branch(canvas.ui.debug); {
 			uiItem* item = ui_begin_item(0);
@@ -1182,20 +1176,20 @@ void update_canvas(){
 			item->style.border_style = border_solid;
 			item->style.border_width = 1;
 			item->style.padding = {5,5,5,5};
-
+			
 			// TODO(sushi) fix the deshi_ui_allocator bug and then use it here
 			ui_make_text(to_dstr8v(deshi_allocator, "elements: ", array_count(canvas.element.arr)).fin, 0);
-			if(canvas.element.selected) {
+			if(canvas.element.selected){
 				uiItem* text = ui_make_text(to_dstr8v(deshi_temp_allocator,
-					"selected: ", canvas.element.selected, "\n",
-					"position: ", canvas.element.selected->pos, "\n",
-					"size:     ", canvas.element.selected->size, "\n"
-				).fin, 0);
+													  "selected: ", canvas.element.selected, "\n",
+													  "position: ", canvas.element.selected->pos, "\n",
+													  "size:     ", canvas.element.selected->size, "\n"
+													  ).fin, 0);
 				text->id = str8l("suugu.canvas.debug.expression.selected_text");
 			}
 			ui_end_item();
 		}ui_end_immediate_branch();	
-
+		
 		// UI::Begin(str8_lit("expression_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
 		// UI::TextF(str8_lit("Elements: %d"), elements.count);
 		// if(selected_element){
@@ -1206,15 +1200,16 @@ void update_canvas(){
 		// }
 		// UI::End();
 	}
+	
 	//if(active_graph){
-		// UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
-		// UI::TextOld(str8_lit("Graph Info"));
-		// UI::TextF(str8_lit("Element Pos:   (%g,%g)"), active_graph->element.x,active_graph->element.y);
-		// UI::TextF(str8_lit("Element Size:  (%g,%g)"), active_graph->element.width,active_graph->element.height);
-		// UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), active_graph->cartesian_graph->camera_position.x,active_graph->cartesian_graph->camera_position.y);
-		// UI::TextF(str8_lit("Camera Zoom:   %g"),      active_graph->cartesian_graph->camera_zoom);
-		// UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), active_graph->cartesian_graph->unit_length.x,active_graph->cartesian_graph->unit_length.y);
-		// UI::End();
+	// UI::Begin(str8_lit("graph_debug"), {200,10}, {200,200}, UIWindowFlags_FitAllElements);
+	// UI::TextOld(str8_lit("Graph Info"));
+	// UI::TextF(str8_lit("Element Pos:   (%g,%g)"), active_graph->element.x,active_graph->element.y);
+	// UI::TextF(str8_lit("Element Size:  (%g,%g)"), active_graph->element.width,active_graph->element.height);
+	// UI::TextF(str8_lit("Camera Pos:    (%g,%g)"), active_graph->cartesian_graph->camera_position.x,active_graph->cartesian_graph->camera_position.y);
+	// UI::TextF(str8_lit("Camera Zoom:   %g"),      active_graph->cartesian_graph->camera_zoom);
+	// UI::TextF(str8_lit("Dims per Unit: (%g,%g)"), active_graph->cartesian_graph->unit_length.x,active_graph->cartesian_graph->unit_length.y);
+	// UI::End();
 	//}
 #endif
 	
@@ -1225,14 +1220,14 @@ void update_canvas(){
 				canvas.camera.pan_active = true;
 				canvas.camera.pan_mouse_pos = input_mouse_position();
 				// if(!active_graph){
-				 	canvas.camera.pan_start_pos = canvas.camera.pos;
+				canvas.camera.pan_start_pos = canvas.camera.pos;
 				// }else{
 				//	canvas.camera.pan_start_pos = vec2f64{active_graph->cartesian_graph->camera_position.x, active_graph->cartesian_graph->camera_position.y};
 				//}
 			}
 			if(key_down(CanvasBind_Navigation_Pan)){
 				//if(!active_graph){
-					canvas.camera.pos = canvas.camera.pan_start_pos + (ToWorld(canvas.camera.pan_mouse_pos) - canvas.world.mouse_pos);
+				canvas.camera.pos = canvas.camera.pan_start_pos + (ToWorld(canvas.camera.pan_mouse_pos) - canvas.world.mouse_pos);
 				// }else{
 				// 	active_graph->cartesian_graph->camera_position.x = (canvas.camera.pan_start_pos.x + (canvas.camera.pan_mouse_pos.x - DeshInput->mouseX) / active_graph->cartesian_graph->unit_length.x);
 				// 	active_graph->cartesian_graph->camera_position.y = (canvas.camera.pan_start_pos.y + (canvas.camera.pan_mouse_pos.y - DeshInput->mouseY) / active_graph->cartesian_graph->unit_length.y);
@@ -1243,14 +1238,14 @@ void update_canvas(){
 			}
 			if(key_pressed(CanvasBind_Navigation_ResetPos)){
 				//if(!active_graph){
-					canvas.camera.pos = {0,0};
+				canvas.camera.pos = {0,0};
 				// }else{
 				// 	active_graph->cartesian_graph->camera_position = vec2g{0,0};
 				// }
 			}
 			if(key_pressed(CanvasBind_Navigation_ResetZoom)){
 				//if(!active_graph){
-					canvas.camera.zoom = 1.0;
+				canvas.camera.zoom = 1.0;
 				// }else{
 				// 	active_graph->cartesian_graph->camera_zoom = 5.0;
 				// }
@@ -1266,7 +1261,7 @@ void update_canvas(){
 		}break;
 		
 		//// @input_expression ////
-		case CanvasTool_Expression: {
+		case CanvasTool_Expression:{
 			if(key_pressed(CanvasBind_Expression_Select)){
 				canvas.element.selected = 0;
 				//TODO inverse the space transformation here since mouse pos is screen space, which is less precise being
@@ -1315,7 +1310,7 @@ void update_canvas(){
 				*array_push(canvas.element.arr) = element;
 				canvas.element.selected = element;
 			}
-
+			
 			
 			if(any_key_down() && canvas.element.selected){
 				ast_input(&canvas.element.selected->expression.handle);
@@ -1324,7 +1319,7 @@ void update_canvas(){
 			// if(canvas.element.selected && canvas.element.selected->type == ElementType_Expression){
 			// 	Expression* expr = &canvas.element.selected->expression;
 			// 	expr->changed = false;
-				
+			
 			// 	//// @input_expression_cursor ////
 			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorLeft)){
 			// 		expr->raw_cursor_start -= 1;
@@ -1366,8 +1361,8 @@ void update_canvas(){
 			// 	if(key_pressed(CanvasBind_Expression_CursorEnd)){
 			// 		expr->raw_cursor_start = expr->raw.count;
 			// 	}
-				
-				
+			
+			
 			// 	/*
 			// 	if(expr->term_cursor_start->left && key_pressed(CanvasBind_Expression_CursorLeft)){
 			// 		expr->term_cursor_start    = expr->term_cursor_start->left;
@@ -1390,7 +1385,7 @@ void update_canvas(){
 			// 		}
 			// 	}
 			// 	*/
-				
+			
 			// 	//character based input (letters, numbers, symbols)
 			// 	//// @input_expression_insertion ////
 			// 	if(DeshInput->charCount){
@@ -1399,7 +1394,7 @@ void update_canvas(){
 			// 		expr->raw_cursor_start += DeshInput->charCount;
 			// 		Log("", expr->raw.fin);
 			// 	}
-				
+			
 			// 	//// @input_expression_deletion ////
 			// 	if(expr->raw_cursor_start > 1 && key_pressed(CanvasBind_Expression_CursorDeleteLeft)){
 			// 		expr->changed = true;
@@ -1446,8 +1441,8 @@ void update_canvas(){
 			// 			}
 			// 		}
 			// 	}
-				
-
+			
+			
 			// 	if(expr->changed){
 			// 		expr->valid = parse(expr);
 			// 		solve(&expr->root);
@@ -1458,152 +1453,152 @@ void update_canvas(){
 		}break;
 		case CanvasTool_Pencil:{}break;
 	}
-		
-// 		////////////////////////////////////////////////////////////////////////////////////////////////
-// 		//// @input_pencil
-// 		case CanvasTool_Pencil: if(!UI::AnyWinHovered()){
-// 			if(key_pressed(CanvasBind_Pencil_Stroke)){
-// 				PencilStroke new_stroke;
-// 				new_stroke.size  = pencil_stroke_size;
-// 				new_stroke.color = pencil_stroke_color;
-// 				pencil_strokes.add(new_stroke);
-// 				pencil_stroke_start_pos = mouse_pos_world;
-// 			}
-// 			if(key_down(CanvasBind_Pencil_Stroke)){
-// 				pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_pos_world);
-// 			}
-// 			if(key_released(CanvasBind_Pencil_Stroke)){
-// 				pencil_stroke_idx += 1;
-// 			}
-// 			if(key_pressed(CanvasBind_Pencil_DeletePrevious)){ 
-// 				if(pencil_strokes.count){
-// 					pencil_strokes.pop();
-// 					if(pencil_stroke_idx) pencil_stroke_idx -= 1;
-// 				}
-// 			}
-// 			if     (DeshInput->scrollY > 0 && key_down(Key_LSHIFT)){ pencil_stroke_size += 1; }
-// 			else if(DeshInput->scrollY > 0 && key_down(Key_LCTRL)) { pencil_stroke_size += 5; }
-// 			else if(DeshInput->scrollY < 0 && key_down(Key_LSHIFT)){ pencil_stroke_size -= 1; }
-// 			else if(DeshInput->scrollY < 0 && key_down(Key_LCTRL)) { pencil_stroke_size -= 5; }
-// 			pencil_stroke_size = ((pencil_stroke_size < 1) ? 1 : ((pencil_stroke_size > 100) ? 100 : (pencil_stroke_size)));
-// 			if     (key_pressed(CanvasBind_Pencil_DetailIncrementBy1)){ pencil_draw_skip_amount -= 1; }
-// 			else if(key_pressed(CanvasBind_Pencil_DetailIncrementBy5)){ pencil_draw_skip_amount -= 5; }
-// 			else if(key_pressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
-// 			else if(key_pressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
-// 			pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
-// 		}break;
-// 	}
 	
-// 	//// @draw_elements ////
-// 	for(Element* el : elements){
-// 		switch(el->type){
-// 			///////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @draw_elements_expression
-// 			case ElementType_Expression:{
-// 				Expression* expr = ElementToExpression(el);
-// 				UIWindow* window = 0;
-// 				UI::PushFont(math_font);
-// 				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
-// 				UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
-// 				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
-// 				UI::PushVar(UIStyleVar_FontHeight,       80);
-// 				UI::SetNextWindowPos(ToScreen(el->x, el->y));
-// 				string s = stringf(deshi_temp_allocator, "expression_0x%p",el);
-// 				UI::Begin(str8{(u8*)s.str, (s64)s.count}, vec2::ZERO, vec2::ZERO, UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);{
-// 					window = UI::GetWindow();
-					
-// 					vec2 cursor_start; f32 cursor_y;
-// 					persist b32 tog = 0;
-// 					if(key_pressed(Key_UP)) ToggleBool(tog);
-// 					if(tog){
-// 						draw_term_old(expr, &expr->mathobj, cursor_start, cursor_y);
-// 					}else{
-// 						//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
-// 						//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
-// 						drawinfo.drawCmd     = UIDrawCmd();
-// 						drawinfo.initialized = true;
-// 						drawinfo.item        = UI::BeginCustomItem();
-// 						draw_term(expr, &expr->mathobj);
-// 						UI::EndCustomItem();
-// 						drawinfo.initialized = false;
-// 						//if(expr->raw.str){
-// 						//	UI::SetNextItemActive();
-// 						//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
-// 						//	UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
-// 						//}
-// 					}
-					
-// 					//draw cursor
-// 					if(selected_element == el){
-// 						UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime / 1000.f)));
-// 					}
-// 				}UI::End();
-// 				UI::PopVar(2);
-// 				UI::PopColor();
-				
-// 				//draw AST
-// 				if(selected_element == el && DEBUG_draw_term_simple_){
-// 					UI::SetNextWindowPos(window->x, window->y + window->height);
-// 					debug_draw_term_simple(&expr->mathobj);
-// 				}
-// 				UI::PopScale();
-// 				UI::PopFont();
-// 			}break;
-			
-// 			///////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @draw_elements_graph
-// 			case ElementType_Graph:{
-// 				GraphElement* ge = ElementToGraphElement(el);
-// 				vec2 tl = ToScreen(ge->element.x, ge->element.y);
-// 				vec2 br = ToScreen(ge->element.x + ge->element.width, ge->element.y - ge->element.height);
-// 				ge->cartesian_graph->item.style.pos  = tl;
-// 				ge->cartesian_graph->item.style.size = vec2_subtract(br, tl);
-// 			}break;
-			
-// 			///////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @draw_elements_workspace
-// 			//case ElementType_Workspace:{}break;
-			
-// 			///////////////////////////////////////////////////////////////////////////////////////////////
-// 			//// @draw_elements_text
-// 			//case ElementType_Text:{}break;
-			
-// 			default:{
-// 				NotImplemented;
-// 			}break;
-// 		}
-// 	}
+	// 		////////////////////////////////////////////////////////////////////////////////////////////////
+	// 		//// @input_pencil
+	// 		case CanvasTool_Pencil: if(!UI::AnyWinHovered()){
+	// 			if(key_pressed(CanvasBind_Pencil_Stroke)){
+	// 				PencilStroke new_stroke;
+	// 				new_stroke.size  = pencil_stroke_size;
+	// 				new_stroke.color = pencil_stroke_color;
+	// 				pencil_strokes.add(new_stroke);
+	// 				pencil_stroke_start_pos = mouse_pos_world;
+	// 			}
+	// 			if(key_down(CanvasBind_Pencil_Stroke)){
+	// 				pencil_strokes[pencil_stroke_idx].pencil_points.add(mouse_pos_world);
+	// 			}
+	// 			if(key_released(CanvasBind_Pencil_Stroke)){
+	// 				pencil_stroke_idx += 1;
+	// 			}
+	// 			if(key_pressed(CanvasBind_Pencil_DeletePrevious)){ 
+	// 				if(pencil_strokes.count){
+	// 					pencil_strokes.pop();
+	// 					if(pencil_stroke_idx) pencil_stroke_idx -= 1;
+	// 				}
+	// 			}
+	// 			if     (DeshInput->scrollY > 0 && key_down(Key_LSHIFT)){ pencil_stroke_size += 1; }
+	// 			else if(DeshInput->scrollY > 0 && key_down(Key_LCTRL)){ pencil_stroke_size += 5; }
+	// 			else if(DeshInput->scrollY < 0 && key_down(Key_LSHIFT)){ pencil_stroke_size -= 1; }
+	// 			else if(DeshInput->scrollY < 0 && key_down(Key_LCTRL)){ pencil_stroke_size -= 5; }
+	// 			pencil_stroke_size = ((pencil_stroke_size < 1) ? 1 : ((pencil_stroke_size > 100) ? 100 : (pencil_stroke_size)));
+	// 			if     (key_pressed(CanvasBind_Pencil_DetailIncrementBy1)){ pencil_draw_skip_amount -= 1; }
+	// 			else if(key_pressed(CanvasBind_Pencil_DetailIncrementBy5)){ pencil_draw_skip_amount -= 5; }
+	// 			else if(key_pressed(CanvasBind_Pencil_DetailDecrementBy1)){ pencil_draw_skip_amount += 1; }
+	// 			else if(key_pressed(CanvasBind_Pencil_DetailDecrementBy5)){ pencil_draw_skip_amount += 5; }
+	// 			pencil_draw_skip_amount = Clamp(pencil_draw_skip_amount, 1, 100);
+	// 		}break;
+	// 	}
 	
-// 	//// @draw_pencil //// //TODO smooth line drawing
-// 	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, Vec2(DeshWindow->width,DeshWindow->height), UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
-// 	//UI::PushScale(vec2::ONE * camera_zoom * 2.0);
-// 	forE(pencil_strokes){
-// 		if(it->pencil_points.count > 1){
-			
-// 			//arrayT<vec2> pps(it->pencil_points.count);
-// 			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
-// 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
-			
-// 			UI::CircleFilled(ToScreen(it->pencil_points[0]), it->size/2.f, 16, it->color);
-// 			for(int i = 1; i < it->pencil_points.count; ++i){
-// 				UI::CircleFilled(ToScreen(it->pencil_points[i]), it->size/2.f, 16, it->color);
-// 				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
-// 			}
-// 		}
-// 	}
-// 	//UI::PopScale();
-// 	UI::End();
+	// 	//// @draw_elements ////
+	// 	for(Element* el : elements){
+	// 		switch(el->type){
+	// 			///////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @draw_elements_expression
+	// 			case ElementType_Expression:{
+	// 				Expression* expr = ElementToExpression(el);
+	// 				UIWindow* window = 0;
+	// 				UI::PushFont(math_font);
+	// 				UI::PushScale(vec2::ONE * el->height / camera_zoom * 2.0);
+	// 				UI::PushColor(UIStyleCol_Border, (el == selected_element) ? Color_Yellow : Color_White);
+	// 				UI::PushVar(UIStyleVar_WindowMargins,    vec2{5,5});
+	// 				UI::PushVar(UIStyleVar_FontHeight,       80);
+	// 				UI::SetNextWindowPos(ToScreen(el->x, el->y));
+	// 				string s = stringf(deshi_temp_allocator, "expression_0x%p",el);
+	// 				UI::Begin(str8{(u8*)s.str, (s64)s.count}, vec2::ZERO, vec2::ZERO, UIWindowFlags_NoInteract|UIWindowFlags_FitAllElements);{
+	// 					window = UI::GetWindow();
 	
-// 	//// @draw_canvas_info ////
-// 	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->deltaTime / 1000)));
-// 	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[canvas.tool.active]);
-// 	UI::TextF(str8_lit("Previous Tool: %s"), canvas_tool_strings[previous_tool]);
-// 	UI::TextF(str8_lit("Selected Element: %d"), u64(selected_element));
-// 	UI::TextF(str8_lit("campos:  (%g, %g)"),camera_pos.x,camera_pos.y);
-// 	UI::TextF(str8_lit("camzoom: %g"), camera_zoom);
-// 	UI::TextF(str8_lit("camarea: (%g, %g)"), WorldViewArea().x, WorldViewArea().y);
-// 	UI::TextF(str8_lit("graph active: %s"), (active_graph) ? "true" : "false");
+	// 					vec2 cursor_start; f32 cursor_y;
+	// 					persist b32 tog = 0;
+	// 					if(key_pressed(Key_UP)) ToggleBool(tog);
+	// 					if(tog){
+	// 						draw_term_old(expr, &expr->mathobj, cursor_start, cursor_y);
+	// 					}else{
+	// 						//NOTE(sushi): drawinfo initialization is temporarily done outside the draw_term function and ideally will be added back later
+	// 						//             or we make a drawinfo struct and pass it in to (possibly) support parallelizing this
+	// 						drawinfo.drawCmd     = UIDrawCmd();
+	// 						drawinfo.initialized = true;
+	// 						drawinfo.item        = UI::BeginCustomItem();
+	// 						draw_term(expr, &expr->mathobj);
+	// 						UI::EndCustomItem();
+	// 						drawinfo.initialized = false;
+	// 						//if(expr->raw.str){
+	// 						//	UI::SetNextItemActive();
+	// 						//	UI::InputText("textrenderdebugdisplay", expr->raw.str, expr->raw.count, 0, UIInputTextFlags_FitSizeToText | UIInputTextFlags_NoEdit);
+	// 						//	UI::GetInputTextState("textrenderdebugdisplay")->cursor = expr->cursor_start;
+	// 						//}
+	// 					}
 	
-// 	UI::End();
-// 	UI::PopVar();
+	// 					//draw cursor
+	// 					if(selected_element == el){
+	// 						UI::Line(cursor_start, cursor_start + vec2{0,cursor_y}, 2, Color_White * abs(sin(DeshTime->totalTime / 1000.f)));
+	// 					}
+	// 				}UI::End();
+	// 				UI::PopVar(2);
+	// 				UI::PopColor();
+	
+	// 				//draw AST
+	// 				if(selected_element == el && DEBUG_draw_term_simple_){
+	// 					UI::SetNextWindowPos(window->x, window->y + window->height);
+	// 					debug_draw_term_simple(&expr->mathobj);
+	// 				}
+	// 				UI::PopScale();
+	// 				UI::PopFont();
+	// 			}break;
+	
+	// 			///////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @draw_elements_graph
+	// 			case ElementType_Graph:{
+	// 				GraphElement* ge = ElementToGraphElement(el);
+	// 				vec2 tl = ToScreen(ge->element.x, ge->element.y);
+	// 				vec2 br = ToScreen(ge->element.x + ge->element.width, ge->element.y - ge->element.height);
+	// 				ge->cartesian_graph->item.style.pos  = tl;
+	// 				ge->cartesian_graph->item.style.size = vec2_subtract(br, tl);
+	// 			}break;
+	
+	// 			///////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @draw_elements_workspace
+	// 			//case ElementType_Workspace:{}break;
+	
+	// 			///////////////////////////////////////////////////////////////////////////////////////////////
+	// 			//// @draw_elements_text
+	// 			//case ElementType_Text:{}break;
+	
+	// 			default:{
+	// 				NotImplemented;
+	// 			}break;
+	// 		}
+	// 	}
+	
+	// 	//// @draw_pencil //// //TODO smooth line drawing
+	// 	UI::Begin(str8_lit("pencil_layer"), vec2::ZERO, Vec2(DeshWindow->width,DeshWindow->height), UIWindowFlags_Invisible | UIWindowFlags_NoInteract);
+	// 	//UI::PushScale(vec2::ONE * camera_zoom * 2.0);
+	// 	forE(pencil_strokes){
+	// 		if(it->pencil_points.count > 1){
+	
+	// 			//arrayT<vec2> pps(it->pencil_points.count);
+	// 			//forI(it->pencil_points.count) pps.add(ToScreen(it->pencil_points[i]));
+	// 			//Render::DrawLines2D(pps, it->size / camera_zoom, it->color, 4, vec2::ZERO, DeshWindow->dimensions);
+	
+	// 			UI::CircleFilled(ToScreen(it->pencil_points[0]), it->size/2.f, 16, it->color);
+	// 			for(int i = 1; i < it->pencil_points.count; ++i){
+	// 				UI::CircleFilled(ToScreen(it->pencil_points[i]), it->size/2.f, 16, it->color);
+	// 				UI::Line(ToScreen(it->pencil_points[i-1]), ToScreen(it->pencil_points[i]), it->size, it->color);
+	// 			}
+	// 		}
+	// 	}
+	// 	//UI::PopScale();
+	// 	UI::End();
+	
+	// 	//// @draw_canvas_info ////
+	// 	UI::TextF(str8_lit("%.3f FPS"), F_AVG(50, 1 / (DeshTime->deltaTime / 1000)));
+	// 	UI::TextF(str8_lit("Active Tool:   %s"), canvas_tool_strings[canvas.tool.active]);
+	// 	UI::TextF(str8_lit("Previous Tool: %s"), canvas_tool_strings[previous_tool]);
+	// 	UI::TextF(str8_lit("Selected Element: %d"), u64(selected_element));
+	// 	UI::TextF(str8_lit("campos:  (%g, %g)"),camera_pos.x,camera_pos.y);
+	// 	UI::TextF(str8_lit("camzoom: %g"), camera_zoom);
+	// 	UI::TextF(str8_lit("camarea: (%g, %g)"), WorldViewArea().x, WorldViewArea().y);
+	// 	UI::TextF(str8_lit("graph active: %s"), (active_graph) ? "true" : "false");
+	
+	// 	UI::End();
+	// 	UI::PopVar();
 }

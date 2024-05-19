@@ -3,16 +3,16 @@
 	This library provides a mutiprecision integer, aka bigint for use in suugu.
 
 */
-
-
 #ifndef SUUGU_MINT_H
 #define SUUGU_MINT_H
 #include "kigu/common.h"
 #include "memory.h"
 StartLinkageC();
 
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @mint
+
 
 // multiprecision integer, or big int
 struct mint{
@@ -99,11 +99,11 @@ void mint_print(mint a);
 
 
 EndLinkageC();
-#endif // SUUGU_MINT_H
-
+#endif //#ifndef SUUGU_MINT_H
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #if defined(SUUGU_IMPLEMENTATION) && !defined(SUUGU_MINT_IMPL)
 #define SUUGU_MINT_IMPL
+
 
 #define sign(x) (s8)x<0
 
@@ -158,8 +158,9 @@ s8 mint_compare_mag(mint a, mint b){
 	if(a.count > b.count) return  1;
 	if(a.count < b.count) return -1;
 	forI(a.count){
-		if(a.arr[i] != b.arr[i])
+		if(a.arr[i] != b.arr[i]){
 			return (a.arr[i] < b.arr[i] ? -1 : 1);
+		}
 	}
 	return 0;
 }
@@ -187,8 +188,9 @@ mint* mint_log2(mint* a){
 	s32 count = 0;
 	forI_reverse(a->count){
 		if(!a->arr[i]) continue;
-		while((a->arr[i]<<=1) > 0) 
+		while((a->arr[i]<<=1) > 0){
 			count++;
+		}
 		count = 7-count;
 	}
 	return a;
@@ -204,39 +206,40 @@ mint* mint_shift_left(mint* a, mint b){
 	u32 count = 0;
 	forI_reverse(a->count){
 		if(!a->arr[i]) continue;
-		while((a->arr[i]<<=1)>0) count++;
+		while((a->arr[i] <<= 1) > 0) count++;
 		break;
 	}
 	count = 7-count;
-
+	
 	mint_add_s64(b, count);
 	return a;
 }
 
-// TODO(sushi) this needs a lot more testing and there are probably several optimizations we can do as well
+//TODO(sushi) this needs a lot more testing and there are probably several optimizations we can do as well
 mint* mint_add(mint* a, mint b){
 	if(!a->sign){ // a is 0
 		*a = mint_copy(b);
 		return a;
 	}
-	if(!b.sign) // b is 0
+	if(!b.sign){ // b is 0
 		return a;
-	if(b.sign < a->sign) // b is negative
-		return mint_sub(a, b); 
-	if(a->sign < b.sign) // here, we do -(a-b), because mint_sub stores the result in a, so we can't just flip the order of operands
+	}
+	if(b.sign < a->sign){ // b is negative
+		return mint_sub(a, b);
+	}
+	if(a->sign < b.sign){ // here, we do -(a-b), because mint_sub stores the result in a, so we can't just flip the order of operands
 		return mint_negate(mint_sub(mint_negate(a), *mint_negate(&b)));
+	}
 	
-
 	//special case where we are adding a mint with itself
 	if(a->arr == b.arr){
 		NotImplemented;
-		//NOTE(sushi) handle this
+		//TODO(sushi) handle this
 	}
-
-
+	
 	// if a is smaller in memory than b, we need to allocate enough space for it
 	if(a->count < b.count) mint_resize(a, b.count);
-
+	
 	// add corresponding parts of the numbers 
 	s32 carry = 0;
 	forI(b.count){
@@ -244,14 +247,14 @@ mint* mint_add(mint* a, mint b){
 		carry = a->arr[i] > res;
 		a->arr[i] = res;
 	}
-
+	
 	// propagate carries through for as long as needed
 	for(s32 i = b.count; i < a->count && carry; i++){
 		u8 res = a->arr[i] + carry;
 		carry = a->arr[i] > res;
 		a->arr[i] = res;
 	}
-
+	
 	// if we still need to carry, we need to add one more integer to a and add one to it.
 	if(carry){
 		mint_resize(a, a->count+1);
@@ -280,13 +283,16 @@ mint mint_add_s64(mint a, s64 b){
 		carry = sign(m.arr[i+1]) != sign(a.arr[i+1]);
 		if(!carry) break;
 	}
-
+	
 	if(carry){
 		m.arr = (u8*)memrealloc(m.arr, sizeof(s8) * ++m.count);
-		if(m.arr[m.count-1] > 0) m.arr[m.count-1] = 1;
-		else m.arr[m.count-1] = -1;
+		if(m.arr[m.count-1] > 0){
+			m.arr[m.count-1] = 1;
+		}else{
+			m.arr[m.count-1] = -1;
+		}
 	}
-
+	
 	return m;
 }
 
@@ -299,7 +305,7 @@ mint* mint_sub(mint* a, mint b){
 		return a;
 	}	
 	if(a->sign == b.sign) return mint_add(a, b);
-
+	
 	s8 compare = mint_compare_mag(*a, b);
 	switch(compare){
 		case 0:{ // the numbers are equal, so a becomes 0
@@ -310,10 +316,10 @@ mint* mint_sub(mint* a, mint b){
 		case 1: break; //no need to do anything maybe
 		case -1: a->sign = !a->sign; break;
 	}
-
+	
 	// if a is smaller in memory than b, we need to allocate enough space for it
 	if(a->count < b.count) mint_resize(a, b.count);
-
+	
 	// subtract corresponding parts of the numbers
 	s32 borrow = 0;
 	forI(b.count){
@@ -321,19 +327,18 @@ mint* mint_sub(mint* a, mint b){
 		borrow = sign(a->arr[i]) != sign(res);
 		a->arr[i] = res;
 	}
-
+	
 	// propagate borrows as much as needed
 	for(s32 i = b.count; i < a->count && borrow; i++){
 		u8 res = a->arr[i] - borrow;
 		borrow = sign(a->arr[i]) != sign(res);
 		if(!borrow) break;
 	}
-
+	
 	if(borrow){
 		DebugBreakpoint;
 	}
-
-
+	
 	return a;
 }
 
@@ -347,23 +352,23 @@ mint mint_sub_new(mint a, mint b){
 // allocates a copy of the largest mint to modify and return
 mint mint_mul(mint a, mint b){
 	mint min, max;
-	if(a.count<b.count) 
+	if(a.count < b.count){
 		min = a, max = b;
-	else 
+	}else{
 		min = b, max = a;
+	}
 	mint m = mint_copy(max);
 	mint save = m;
 	mint iter = mint_init(0);
 	while(mint_less_than(iter, b)){
-
+		
 	}
-
-
+	
 	return mint_init(0);
 }
 
 void mint_div(mint* a, mint b){
-
+	
 }
 
 mint mint_div_new(mint a, mint b){
@@ -385,4 +390,5 @@ void mint_print(mint a){
 	}
 }
 
-#endif // SUUGU_IMPLEMENTATION
+
+#endif //#if defined(SUUGU_IMPLEMENTATION) && !defined(SUUGU_MINT_IMPL)

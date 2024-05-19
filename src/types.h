@@ -43,6 +43,7 @@ struct Expression;
 //};
 //#define ElementToTextElement(elem_ptr) ((TextElement*)((u8*)(elem_ptr) - (upt)(OffsetOfMember(TextElement, element))))
 
+
 /////////////////
 //// @pencil ////
 /////////////////
@@ -51,6 +52,7 @@ struct PencilStroke{
 	color color;
 	vec2* pencil_points; // kigu array
 };
+
 
 ////////////////
 //// @tools ////
@@ -64,6 +66,7 @@ enum CanvasTool : u32{
 local const char* canvas_tool_strings[] = {
 	"Navigation", "Context", "Expression", "Pencil",
 };
+
 
 ////////////////
 //// @binds ////
@@ -111,11 +114,11 @@ enum CanvasBind_{ //TODO ideally support multiple keybinds per action
 }; typedef KeyCode CanvasBind;
 
 
-
-
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @term
-enum TermType : u32 { //TermType_{
+
+
+enum TermType : u32{ //TermType_{
 	TermType_Expression,
 	TermType_Operator,
 	TermType_Literal,
@@ -261,16 +264,16 @@ struct Term{
 	Text raw;
 	MathObject* mathobj; // the MathObject containing information about the type of this Term
 	Part* part; // the part of the MathObject this Term represents
-
+	
 	struct{
 		Term* left, *right, *up, *down;
 	}movement;
-
+	
 	// wasteful, we should probably just use the information on the MathObject for this
 	struct{
 		Term* left, *right, *up, *down;
 	}movement_in;
-
+	
 	//syntax tree
 	Term* prev;
 	Term* next;
@@ -393,8 +396,11 @@ global void linear_remove(Term* term){
 	}
 }
 
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @expression
+
+
 //expression: collection of terms in the form of a syntax tree
 struct Expression{
 	Node node;
@@ -416,8 +422,11 @@ struct Expression{
 	f64 solution;
 };
 
+
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 //// @element
+
+
 enum CoordinateSpace : u32{
 	//CoordinateSpace_World,
 	//CoordinateSpace_Screen,
@@ -433,16 +442,16 @@ enum ElementType : u32{
 };
 
 // represents data pertaining to a discrete visual element on screen
-struct Visual {
-
+struct Visual{
+	
 };
 
-struct TermPos {
+struct TermPos{
 	Term* term;
 	f32 pos;
 };
 
-enum {
+enum{
 	RenderPart_Individual,
 	RenderPart_Group,
 };
@@ -462,18 +471,21 @@ struct RenderPart{
 
 // element: anything with position, size, coordinate space, and display info
 struct Element{
-	union{struct{f32 x,y,z;};
+	union{
+		struct{ f32 x, y, z; };
 		vec3 pos;
 	};
-	union{struct{f32 width,height,depth;};
+	union{
+		struct{ f32 width, height, depth; };
 		vec3 size;
 	};
+	
 	//CoordinateSpace space;
 	ElementType type;
 	uiItem* item; // handle to the uiItem representing this Element
-
+	
 	union{
-		struct {
+		struct{
 			Expression handle;
 			RenderPart* rendered_parts;
 			// sorted lists of Terms over each axes so that 
@@ -489,7 +501,7 @@ struct Element{
 };
 
 // returns the index in the x and y arrays where the term belongs based on the given position
-pair<spt,spt> position_map_find(Element* element, vec2 pos) {
+pair<spt,spt> position_map_find(Element* element, vec2 pos){
 	spt x_idx; 
 	{
 		spt index = -1, middle = -1;
@@ -506,6 +518,7 @@ pair<spt,spt> position_map_find(Element* element, vec2 pos) {
 		}
 		x_idx = middle;
 	}
+	
 	spt y_idx;
 	{
 		spt index = -1, middle = -1;
@@ -522,11 +535,11 @@ pair<spt,spt> position_map_find(Element* element, vec2 pos) {
 		}
 		y_idx = middle;
 	}
-
+	
 	return {x_idx, y_idx};
 }
 
-void position_map_insert(Element* element, Term* term, vec2 pos) {
+void position_map_insert(Element* element, Term* term, vec2 pos){
 	Assert(element->type == ElementType_Expression);
 	auto [x,y] = position_map_find(element, pos);
 	if(x == -1) x = 0;
@@ -538,17 +551,6 @@ void position_map_insert(Element* element, Term* term, vec2 pos) {
 	*((element->expression.position_map.y)+(y)) = ypos;
 }
 
-// NOTE(sushi) this compiles on clang, need to know if it compiles on MSVC as well
-/*
-const uiStyle element_default_style = {
-	.positioning = pos_relative,
-	.sizing = size_auto,
-	.background_color = Color_Black,
-	.border_style = border_solid,
-	.border_width = 1,
-	.text_wrap = text_wrap_none,
-};
-*/
 const uiStyle element_default_style = {
 	/*positioning*/ pos_relative,
 	/*anchor*/ anchor_top_left,
@@ -580,10 +582,10 @@ const uiStyle element_default_style = {
 
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
-// @Display
+// @display
 
 
-enum {
+enum{
 	Token_EOF,
 	Token_align,
 	Token_render,
@@ -605,7 +607,7 @@ enum {
 	Token_min,
 	Token_shape,
 	Token_line,
-
+	
 	Token_Integer,
 	Token_Backtick,
 	Token_String,
@@ -614,7 +616,7 @@ enum {
 	Token_Comma,
 };
 
-struct Token {
+struct Token{
 	Type type;
 	str8 raw;
 	u64 hash;
@@ -622,10 +624,10 @@ struct Token {
 };
 
 
-Token* tokenize_instructions(str8 instructions) {
+Token* tokenize_instructions(str8 instructions){
 #define str8case(str) case str8_static_hash64(str8_static_t(str))
 #define charcase(c, type_)       \
-case c: {                        \
+case c:{                        \
     Token* t = array_push(out);  \
     t->line = line;              \
     t->column = column;          \
@@ -634,15 +636,15 @@ case c: {                        \
     advance_stream();            \
     eat_whitespace();            \
 }break;
-
+	
 	Token* out;
 	array_init(out, 1, deshi_allocator);
-
+	
 	u64 line = 1, column = 1;
 	str8 stream = instructions;
-
-	auto advance_stream = [&]() {
-		if(*stream.str == '\n') {
+	
+	auto advance_stream = [&](){
+		if(*stream.str == '\n'){
 			column = 1;
 			line++;
 		}else{
@@ -650,13 +652,13 @@ case c: {                        \
 		}
 		str8_advance(&stream);
 	};
-
-	auto eat_whitespace = [&]() {
-		while(stream) {
-			if(!is_whitespace(utf8codepoint(stream.str))) {
+	
+	auto eat_whitespace = [&](){
+		while(stream){
+			if(!is_whitespace(utf8codepoint(stream.str))){
 				break;
 			}
-			if(*stream.str == '\n') {
+			if(*stream.str == '\n'){
 				column = 1;
 				line++;
 			}else{
@@ -665,11 +667,11 @@ case c: {                        \
 			str8_advance(&stream);
 		}
 	};
-
-	auto eat_word = [&]() {
+	
+	auto eat_word = [&](){
 		str8 out = stream;
-		while(stream) {
-			if(is_whitespace(utf8codepoint(stream.str))) {
+		while(stream){
+			if(is_whitespace(utf8codepoint(stream.str))){
 				break;
 			}
 			column++;
@@ -678,19 +680,20 @@ case c: {                        \
 		out.count = stream.str - out.str;
 		return out;
 	};
-
+	
 	eat_whitespace();
-	while(stream) {
-		switch(*stream.str) {
+	while(stream){
+		switch(*stream.str){
 			charcase('`', Token_Backtick);
 			charcase(',', Token_Comma);
 			charcase('(', Token_OpenParen);
 			charcase(')', Token_CloseParen);
-			case '\'': {
+			
+			case '\'':{
 				advance_stream();
 				str8 start = stream;
 				u64 save_line = line, save_column = column;
-				while(stream && *stream.str != '\'') {
+				while(stream && *stream.str != '\''){
 					str8_advance(&stream);
 				}
 				Token* t = array_push(out);
@@ -700,27 +703,31 @@ case c: {                        \
 				t->column = save_column;
 				advance_stream();
 			}break;
-			default: {
+			
+			default:{
 				str8 start = stream;
 				b32 is_word = true;
-				if(isdigit(*start.str)) {
+				if(isdigit(*start.str)){
 					is_word = false;
 					while(isdigit(*stream.str)) advance_stream();
-				} else while(stream) {
-					if(is_whitespace(*stream.str) || match_any(*stream.str, '`', '\'', ',', '(', ')')) {
-						break;
+				}else{
+					while(stream){
+						if(is_whitespace(*stream.str) || match_any(*stream.str, '`', '\'', ',', '(', ')')){
+							break;
+						}
+						advance_stream();
 					}
-					advance_stream();
 				}
+				
 				Token* t = array_push(out);
 				t->raw = {start.str, stream.str-start.str};
 				t->line = line;
 				t->column = column;
-				if(!is_word) {
+				if(!is_word){
 					t->type = Token_Integer;
 				}else{
 					u64 hash = str8_hash64(t->raw);
-					switch(hash) {
+					switch(hash){
 						str8case("align"): t->type = Token_align; break;
 						str8case("render"): t->type = Token_render; break;
 						str8case("text"): t->type = Token_text; break;
@@ -739,7 +746,7 @@ case c: {                        \
 						str8case("min"): t->type = Token_min; break;
 						str8case("shape"): t->type = Token_shape; break;
 						str8case("line"): t->type = Token_line; break;
-						default: {
+						default:{
 							LogE("instrcomp", "unknown word '", t->raw, "' on line ", t->line, " column ", t->column);
 							return 0;
 						}break;
@@ -749,6 +756,7 @@ case c: {                        \
 		}
 		eat_whitespace();
 	}
+	
 	Token* eof = array_push(out);
 	eof->type = Token_EOF;
 	return out;
@@ -756,24 +764,24 @@ case c: {                        \
 }
 
 // type containing data needed for displaying math in some way
-struct Display {
+struct Display{
 	TNode node;
 	Term* obj; // the Term this display represents
 	MathObject* mathobj; // the MathObject that this Display belongs to
-
+	
 	str8 text; // data used when displaying as text
 	str8 s_expression; //  data used when displaying as an s-expression
 	Token* instruction_tokens; // kigu array of instructions used when rendering
-
 };
 
-void compile_display(Term* term) {
+void compile_display(Term* term){
 	MathObject* curmo = term->mathobj;
-
 }
+
 
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @MathObject
+
 
 // represents a unit, which may or may not be composed of other units
 struct Unit{
@@ -796,7 +804,7 @@ struct Function{
 	s32 arity; // number of arguments 
 };
 
-struct Number {
+struct Number{
 	// TODO(sushi) replace this with mint and a built in fixed point type
 	f64 value; 
 };
@@ -818,16 +826,15 @@ const str8 MathObjectTypeStrings[] = {
 	str8l("Unit"),
 };
 
-struct Movement {
+struct Movement{
 	s32 left, right, up, down;
 };
-
 typedef Movement* MovementArray;
 
 // Base object of all mathematical things in suugu, such as operators,
 // functions, constants, units, etc. This contains information such as its name and
 // data regarding how to display it.
-struct MathObject {
+struct MathObject{
 	str8 name;
 	u64  hash;
 	str8 description;
@@ -835,7 +842,7 @@ struct MathObject {
 	Display display; // how to display this MathObject in various ways.
 	// a movement for each part that determines how the cursor should move between them
 	MovementArray movements;
-
+	
 	// TODO(sushi) this is pretty limited, for instance, in a case like 
 	//                 (1+2)/(3+4+5) 
 	//             when the cursor moves up from '5', it should to the end of the numerator
@@ -844,7 +851,7 @@ struct MathObject {
 	//             go visually
 	// which part should the cursor go to when the MathObject is moved into from some direction
 	Movement movement_in;
-
+	
 	union{
 		Function func;
 		Number number;
@@ -854,7 +861,7 @@ struct MathObject {
 struct{ // these are made in the compiler for now
 	MathObject placeholder;
 	MathObject number;
-
+	
 	// arithmetic
 	MathObject addition;
 	MathObject subtraction;
@@ -904,20 +911,20 @@ struct{ // these are made in the compiler for now
 //     return {middle, index != -1};
 // }
 
-// pair<MathObjectTableEntry*, b32> mathobj_table_add(MathObjectTable* table, str8 name) {
+// pair<MathObjectTableEntry*, b32> mathobj_table_add(MathObjectTable* table, str8 name){
 //     u64 hash = str8_hash64(name);
-    
+
 //     auto [idx,found] = mathobj_table_find(table, hash);
 //     if(found) return {&(*table)[idx], 1};
 //     if(idx == -1) idx = 0; // -1 returned on empty array, so need to say we're inserting at 0
-    
+
 //     MathObjectTableEntry* s = array_insert(*table, idx);
 // 	s->name = name;
 // 	s->hash = hash;
 //     return {s, 0};
 // }
 
-// b32 mathobj_table_remove(MathObjectTable* table, str8 name) {
+// b32 mathobj_table_remove(MathObjectTable* table, str8 name){
 //     u64 hash = str8_hash64(name);
 
 //     auto [idx,found] = mathobj_table_find(table, hash);
@@ -929,10 +936,11 @@ struct{ // these are made in the compiler for now
 
 
 
-
 //~////////////////////////////////////////////////////////////////////////////////////////////////
 // @memory
 // TODO(sushi) chunked arenas (pools?) so that we can grow
+
+
 struct{
 	Arena* elements;
 	Node inactive_elements;
@@ -942,7 +950,7 @@ struct{
 	Node inactive_math_objects;
 }arenas;
 
-void suugu_memory_init() {
+void suugu_memory_init(){
 	arenas.elements = memory_create_arena(500*sizeof(Element));
 	arenas.terms = memory_create_arena(5000*sizeof(Term));
 	arenas.math_objects = memory_create_arena(5000*sizeof(MathObject));
@@ -962,7 +970,7 @@ create_element(){
 		NodeRemove(arenas.inactive_elements.next);
 		ZeroMemory(result, sizeof(Element));
 	}else{
-		if(arenas.elements->used + sizeof(Element) > arenas.elements->size) {
+		if(arenas.elements->used + sizeof(Element) > arenas.elements->size){
 			LogE("suugu_memory", "ran out of memory when allocating an Element, allocated size is ", arenas.elements->size/bytesDivisor(arenas.elements->size), " ", bytesUnit(arenas.elements->size));
 			return 0;
 		}
@@ -974,7 +982,7 @@ create_element(){
 }
 
 global void
-delete_element(Element* element) {
+delete_element(Element* element){
 	NotImplemented; // TODO(sushi) when we need it 
 }
 
@@ -986,7 +994,7 @@ create_term(){
 		NodeRemove(arenas.inactive_terms.next);
 		ZeroMemory(result, sizeof(Term));
 	}else{
-		if(arenas.terms->used + sizeof(Term)+sizeof(Node) > arenas.terms->size) {
+		if(arenas.terms->used + sizeof(Term)+sizeof(Node) > arenas.terms->size){
 			LogE("suugu_memory", "ran out of memory when allocating a Term, allocated size is ", arenas.terms->size/bytesDivisor(arenas.terms->size), " ", bytesUnit(arenas.terms->size));
 			return 0;
 		}
@@ -999,21 +1007,21 @@ create_term(){
 }
 
 global void
-delete_term(Term* t) {
+delete_term(Term* t){
 	text_deinit(&t->raw);
 	Node* n = (Node*)(t-sizeof(Node));
 	NodeInsertPrev(&arenas.inactive_terms, n);
 }
 
 global MathObject* 
-create_math_object() {
+create_math_object(){
 	MathObject* result;
 	if(arenas.inactive_math_objects.next != &arenas.inactive_math_objects){ // this probably shouldn't happen
 		result = (MathObject*)(arenas.inactive_math_objects.next+sizeof(Node));
 		NodeRemove(arenas.inactive_math_objects.next);
 		ZeroMemory(result, sizeof(MathObject));
 	}else{
-		if(arenas.math_objects->used + sizeof(MathObject)+sizeof(Node) > arenas.math_objects->size) {
+		if(arenas.math_objects->used + sizeof(MathObject)+sizeof(Node) > arenas.math_objects->size){
 			LogE("suugu_memory", "ran out of memory when allocating a MathObject, allocated size is ", arenas.math_objects->size/bytesDivisor(arenas.math_objects->size), " ", bytesUnit(arenas.math_objects->size));
 			return 0;
 		}
@@ -1025,7 +1033,7 @@ create_math_object() {
 }
 
 global void
-delete_math_object(MathObject* mathobj) {
+delete_math_object(MathObject* mathobj){
 	NotImplemented; // TODO(sushi) when we need it 
 }
 

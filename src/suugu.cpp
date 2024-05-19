@@ -200,9 +200,7 @@ void test_math_objects(){
 		placeholder.type = MathObject_Placeholder;
 		placeholder.display.text = str8l("□");
 		
-		placeholder.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '□'"
-		));
+		placeholder.display.instruction_tokens = tokenize_instructions(str8l("render text '□'"));
 	}
 	
 	{
@@ -211,9 +209,7 @@ void test_math_objects(){
 		num.description = str8l("A mathematical object used to count, measure, and label.");
 		num.type = MathObject_Number;
 		
-		num.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text term_raw"
-		));
+		num.display.instruction_tokens = tokenize_instructions(str8l("render text term_raw"));
 	}
 	
 	{
@@ -223,15 +219,13 @@ void test_math_objects(){
 		add.type = MathObject_Function;
 		add.func.arity = 2;
 		
-		add.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '+'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
+		add.display.instruction_tokens = tokenize_instructions(str8l("render text '+'\n" // stack: 0
+																	 "render child 0\n"  // stack: 1
+																	 "render child 1\n"  // stack: 2
+																	 "align `1 origin_y `0 center_y\n"
+																	 "align `0 left `1 right\n"
+																	 "align `2 origin_y `0 center_y\n"
+																	 "align `2 left `0 right\n"));
 		
 		add.display.text = str8l("$1 + $2");
 		add.display.s_expression = str8l("(+ $1 $2)");
@@ -244,15 +238,13 @@ void test_math_objects(){
 		sub.type = MathObject_Function;
 		sub.func.arity = 2;
 		
-		sub.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '-'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
+		sub.display.instruction_tokens = tokenize_instructions(str8l("render text '-'\n" // stack: 0
+																	 "render child 0\n"  // stack: 1
+																	 "render child 1\n"  // stack: 2
+																	 "align `1 origin_y `0 center_y\n"
+																	 "align `0 left `1 right\n"
+																	 "align `2 origin_y `0 center_y\n"
+																	 "align `2 left `0 right\n"));
 		
 		sub.display.text = str8l("$1 - $2");
 		sub.display.s_expression = str8l("(- $1 $2)");
@@ -265,15 +257,13 @@ void test_math_objects(){
 		mul.type = MathObject_Function;
 		mul.func.arity = 2;
 		
-		mul.display.instruction_tokens = tokenize_instructions(str8l(
-			"render text '*'\n" // stack: 0
-			"render child 0\n"  // stack: 1
-			"render child 1\n"  // stack: 2
-			"align `1 origin_y `0 center_y\n"
-			"align `0 left `1 right\n"
-			"align `2 origin_y `0 center_y\n"
-			"align `2 left `0 right\n"
-		));
+		mul.display.instruction_tokens = tokenize_instructions(str8l("render text '*'\n" // stack: 0
+																	 "render child 0\n"  // stack: 1
+																	 "render child 1\n"  // stack: 2
+																	 "align `1 origin_y `0 center_y\n"
+																	 "align `0 left `1 right\n"
+																	 "align `2 origin_y `0 center_y\n"
+																	 "align `2 left `0 right\n"));
 		
 		mul.display.text = str8l("$1 * $2");
 		mul.display.s_expression = str8l("(* $1 $2)");
@@ -287,15 +277,13 @@ void test_math_objects(){
 		div.func.arity = 2;
 		
 		// TODO(sushi) div rendering instructions
-		div.display.instruction_tokens = tokenize_instructions(str8l(
-			"render child 0\n" // stack: 0
-			"render child 1\n" // stack: 1
-			"align `1 top `0 bottom\n"
-			"align min(`0 center_x, `1 center_x) max(`0 center_x, `1 center_x)\n"
-			"render shape line \n"
-			"		(min(`0 left, `1 left), avg(`0 bottom, `1 top))\n" 
-			"	    (max(`0 right, `1 right), avg(`0 bottom, `1 top))\n"
-		));
+		div.display.instruction_tokens = tokenize_instructions(str8l("render child 0\n" // stack: 0
+																	 "render child 1\n" // stack: 1
+																	 "align `1 top `0 bottom\n"
+																	 "align min(`0 center_x, `1 center_x) max(`0 center_x, `1 center_x)\n"
+																	 "render shape line \n"
+																	 "		(min(`0 left, `1 left), avg(`0 bottom, `1 top))\n" 
+																	 "	    (max(`0 right, `1 right), avg(`0 bottom, `1 top))\n"));
 		
 		div.display.text = str8l("$1 / $2");
 		div.display.s_expression = str8l("(/ $1 $2)");
@@ -303,7 +291,7 @@ void test_math_objects(){
 	
 	//compile_math_objects(str8l("scratch"));
 	
-	// forI(array_count(math_objects)) {
+	// forI(array_count(math_objects)){
 	// 	Part s = math_objects[i];
 	// 	MathObject* mo = s.mathobj;
 	// 	Log("", 
@@ -410,7 +398,7 @@ void test_inputs(){
 		Key_2,
 	};
 	
-	if(DeshTime->frame < ArrayCount(inputs)+1) {
+	if(DeshTime->frame < ArrayCount(inputs)+1){
 		Log("", "key: ", input_keycode_to_str8(inputs[DeshTime->frame-1]));
 		simulate_key_press(inputs[DeshTime->frame-1]);
 	}
@@ -419,7 +407,7 @@ void test_inputs(){
 /*
 void test_selected(){
 	Element* selected = canvas.element.selected;
-	if(selected && array_count(selected->expression.rendered_parts)) {
+	if(selected && array_count(selected->expression.rendered_parts)){
 		static u32 iter = 0;
 		if(key_pressed(Key_LEFT|InputMod_AnyCtrl) && iter) iter--;
 		if(key_pressed(Key_RIGHT|InputMod_AnyCtrl) && iter < array_count(selected->expression.rendered_parts)-1) iter++; 
@@ -544,7 +532,7 @@ int main(int args_count, char** args){
 		}
 		return 0;
 	}
-
+	
 	//-///////////////////////////////////////////////////////////////////////////////////////////////
 	// Regular Mode
 	//init deshi
